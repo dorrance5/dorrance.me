@@ -1,5 +1,5 @@
 /* Converter — offline cache. Bump CACHE when files change. */
-const CACHE = 'converter-v9';
+const CACHE = 'converter-v10';
 const FILES = ['./', './index.html', './manifest.json', './icon-180.png', './icon-512.png', '../shared/base.css', '../shared/base.js'];
 
 self.addEventListener('install', e => {

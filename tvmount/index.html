@@ -8,6 +8,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="TV Mount">
 <meta name="theme-color" content="#F4F4F5">
+<!-- The theme before the first paint, as App.init sets it, so a dark phone does not flash Day. -->
+<script>try{var t=localStorage.getItem('theme')||'auto';if(t==='auto')t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';if(t==='aurora')t='dark';if(t!=='light')document.documentElement.dataset.mode=t}catch(e){}</script>
 <meta name="description" content="Plan where to drill so a wall-mounted TV lands at the planned height. Dimensioned sketch, studs, viewing angle. Works offline.">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
