@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-180.png">
-<meta name="description" content="Tally counters with colors, sorting and history. Works offline.">
+<meta name="description" content="Tally counters with colors and sorting. Works offline.">
 <title>Counter</title>
 <link rel="stylesheet" href="../shared/base.css">
 <style>
@@ -23,7 +23,6 @@
 .cnt:active{filter:brightness(.96)}
 .left{padding:14px 16px 8px;display:flex;flex-direction:column;justify-content:space-between;min-width:0}
 .name{font-size:20px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.today{font-size:13px;font-weight:600;opacity:.8;margin-top:2px;white-space:nowrap}
 .chev{width:44px;height:36px;margin-left:-10px;display:grid;place-items:center}
 .chev svg{width:22px;height:22px;transition:transform .2s}
 .open .chev svg{transform:rotate(180deg)}
@@ -85,7 +84,12 @@ function load() {
   try {
     const s = JSON.parse(localStorage.getItem(KEY));
     if (s && Array.isArray(s.counters)) {
-      s.counters.forEach(c => { if (OLD_COLORS[c.color]) c.color = OLD_COLORS[c.color]; });
+      s.counters.forEach(c => {
+        if (OLD_COLORS[c.color]) c.color = OLD_COLORS[c.color];
+        // An older Counter kept a time for every tap. Only the number is kept now.
+        if (Array.isArray(c.events)) { c.n = c.events.length; delete c.events; }
+        if (!Number.isInteger(c.n) || c.n < 0) c.n = 0;
+      });
       return Object.assign({sort:'manual', theme:'auto'}, s);
     }
   } catch (e) {}
@@ -103,9 +107,7 @@ try { if (!localStorage.getItem('theme') && S.theme !== 'auto') localStorage.set
 let editing = false;
 const expanded = new Set();
 
-// events = list of tap timestamps
-const count = c => c.events.length;
-const today = c => { const d = new Date(); d.setHours(0, 0, 0, 0); const t = d.getTime(); let n = 0; for (let i = c.events.length - 1; i >= 0 && c.events[i] >= t; i--) n++; return n; };
+const count = c => c.n;
 
 function sorted() {
   const a = [...S.counters];
@@ -122,7 +124,7 @@ function cardHTML(c, i, n) {
         : '<div></div>')
     : `<button class="chev" data-action="toggle" aria-label="More">${ICON.chev}</button>`;
   return `<div class="card cnt${open ? ' open' : ''}${hueClass(c.color)}"${hueStyle(c.color)} data-id="${c.id}" data-action="${editing ? 'edit' : 'inc'}">
-    <div class="left"><div><div class="name">${esc(c.name)}</div>${!editing && today(c) && today(c) !== count(c) ? `<div class="today">${today(c)} today</div>` : ''}</div>${left}</div>
+    <div class="left"><div><div class="name">${esc(c.name)}</div></div>${left}</div>
     <div class="num" id="n-${c.id}">${editing ? ICON.pen : count(c)}</div>
     ${open ? `<div class="more" data-action="none">
       <button data-action="dec">−1</button>
@@ -161,7 +163,7 @@ function openCounterSheet(c) {
     const name = input.value.trim();
     if (!name) { input.placeholder = 'Enter a name'; input.focus(); return; }
     if (c) { c.name = name; c.color = color; }
-    else S.counters.push({id: uid(), name, color, events: []});
+    else S.counters.push({id: uid(), name, color, n: 0});
     save(); closeSheet(); render();
   };
   input.addEventListener('keydown', e => { if (e.key === 'Enter') doSave(); });
@@ -204,7 +206,7 @@ function openSettings() {
     setTimeout(syncTheme);   // the shared sheet sets the theme after this handler
     const act = e.target.closest('[data-act]')?.dataset.act;
     if (act === 'all' && confirm('Reset every counter to 0?')) {
-      S.counters.forEach(c => c.events = []);
+      S.counters.forEach(c => c.n = 0);
       save(); closeSheet(); render();
     }
     if (act === 'wipe' && S.counters.length && confirm(`Delete all ${S.counters.length} counters? This can't be undone.`)) {
@@ -224,11 +226,11 @@ $('#list').addEventListener('click', e => {
   const c = S.counters.find(x => x.id === id);
   if (!c) return;
 
-  if (a === 'inc') { c.events.push(Date.now()); save(); render(); bump(id); buzz(12); }
-  if (a === 'dec' && count(c) > 0) { c.events.pop(); save(); render(); bump(id); buzz([8, 30, 8]); }
+  if (a === 'inc') { c.n++; save(); render(); bump(id); buzz(12); }
+  if (a === 'dec' && count(c) > 0) { c.n--; save(); render(); bump(id); buzz([8, 30, 8]); }
   if (a === 'toggle') { expanded.has(id) ? expanded.delete(id) : expanded.add(id); render(); }
   if (a === 'edit') openCounterSheet(c);
-  if (a === 'reset' && confirm(`Reset ${c.name} to 0?`)) { c.events = []; save(); render(); }
+  if (a === 'reset' && confirm(`Reset ${c.name} to 0?`)) { c.n = 0; save(); render(); }
   if (a === 'up' || a === 'down') {
     const i = S.counters.indexOf(c), j = a === 'up' ? i - 1 : i + 1;
     if (j < 0 || j >= S.counters.length) return;
