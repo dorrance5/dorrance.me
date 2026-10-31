@@ -14,6 +14,8 @@ fs.mkdirSync(out, { recursive: true });
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon' };
 const server = http.createServer((req, res) => {
   let p = decodeURIComponent(new URL(req.url, 'http://x').pathname);
+  // An empty shared library. It is here, not a Playwright route, because routes miss the requests of a page the service worker controls.
+  if (p.startsWith('/api/tvmount/lib')) { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{"tvs":[],"mounts":[]}'); return; }
   if (p.endsWith('/')) p += 'index.html';
   const f = path.join(root, p);
   if (!f.startsWith(root) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404); res.end(); return; }
@@ -112,7 +114,6 @@ function withBar(d, bar, on = 0) {
       if (seed) localStorage.setItem('tvmount.data', seed);
       if (theme) localStorage.setItem('theme', theme);
     }, [sc.seed ? JSON.stringify(sc.seed) : null, sc.theme || null]);
-    await ctx.route('**/api/tvmount/lib**', r => r.fulfill({ contentType: 'application/json', body: '{"tvs":[],"mounts":[]}' }));
     const page = await ctx.newPage();
     page.on('console', m => { if (m.type() === 'error') problems.push(`${sc.name}: console: ${m.text()}`); });
     page.on('pageerror', e => problems.push(`${sc.name}: page error: ${e.message}`));

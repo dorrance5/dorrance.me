@@ -10,8 +10,22 @@ const path = require('node:path');
 const root = path.join(__dirname, '..', '..');
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png' };
 let swBump = null;   // when set, sw.js is served with this cache name, like a deploy would
+// A stand-in for the Cloudflare Worker that holds the shared library; passcode "abc". It is in the server,
+// not a Playwright route, because routes miss the requests of a page the service worker controls.
+const shared = { tvs: [{ id: 'l1', model: 'SHARED65', w: 57, h: 32.5, vesaTop: 7, vesaW: 15.75, vesaH: 11.75 }], mounts: [] };
+function api(req, res, p, body) {
+  const m = p.match(/lib(?:\/(tv|mount)(?:\/(.+))?)?$/);
+  const reply = (b, status = 200) => { res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(b)); };
+  if (req.method === 'GET') return reply(shared);
+  if (req.headers['x-passcode'] !== 'abc') return reply({ error: 'passcode' }, 403);
+  const list = shared[m[1] === 'tv' ? 'tvs' : 'mounts'];
+  if (req.method === 'PUT') { const it = JSON.parse(body); const i = list.findIndex(x => x.model.toLowerCase() === it.model.toLowerCase()); if (i >= 0) list[i] = { ...it, id: list[i].id }; else list.push({ ...it, id: 's' + list.length }); }
+  if (req.method === 'DELETE') { const i = list.findIndex(x => x.id === m[2]); if (i >= 0) list.splice(i, 1); }
+  return reply({ lib: shared });
+}
 const server = http.createServer((req, res) => {
   let p = decodeURIComponent(new URL(req.url, 'http://x').pathname);
+  if (p.startsWith('/api/tvmount/lib')) { let b = ''; req.on('data', c => b += c); req.on('end', () => api(req, res, p, b)); return; }
   if (p.endsWith('/')) p += 'index.html';
   const f = path.join(root, p);
   if (!f.startsWith(root) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404); res.end(); return; }
@@ -29,21 +43,10 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
   const base = `http://127.0.0.1:${server.address().port}/tvmount/`;
   const browser = await webkit.launch();
   const ctx = await browser.newContext({ ...devices['iPhone 13'] });
-  // a stand-in for the Cloudflare Worker that holds the shared library; passcode "abc"
-  const shared = { tvs: [{ id: 'l1', model: 'SHARED65', w: 57, h: 32.5, vesaTop: 7, vesaW: 15.75, vesaH: 11.75 }], mounts: [] };
-  await ctx.route('**/api/tvmount/lib**', async route => {
-    const req = route.request(), m = new URL(req.url()).pathname.match(/lib(?:\/(tv|mount)(?:\/(.+))?)?$/);
-    const reply = (b, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(b) });
-    if (req.method() === 'GET') return reply(shared);
-    if (req.headers()['x-passcode'] !== 'abc') return reply({ error: 'passcode' }, 403);
-    const list = shared[m[1] === 'tv' ? 'tvs' : 'mounts'];
-    if (req.method() === 'PUT') { const it = JSON.parse(req.postData()); const i = list.findIndex(x => x.model.toLowerCase() === it.model.toLowerCase()); if (i >= 0) list[i] = { ...it, id: list[i].id }; else list.push({ ...it, id: 's' + list.length }); }
-    if (req.method() === 'DELETE') { const i = list.findIndex(x => x.id === m[2]); if (i >= 0) list.splice(i, 1); }
-    return reply({ lib: shared });
-  });
   const page = await ctx.newPage();
   const errors = [];
-  page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
+  let offline = false;   // with the network off, the library sync fails on purpose and WebKit logs it
+  page.on('console', m => { if (m.type() === 'error' && !(offline && m.location().url.includes('/api/'))) errors.push(m.text()); });
   page.on('pageerror', e => errors.push(e.message));
   const tab0 = () => page.evaluate(() => TVM.doc.tabs.find(t => t.id === TVM.doc.current));
   const keys = async (...ks) => { for (const k of ks) await page.tap(`#kp [data-key="${k}"]`); };
@@ -385,11 +388,11 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
   check('service worker is ready', swOk === 'ready', swOk);
   if (swOk === 'ready') {
     await page.reload(); await page.waitForSelector('#res .hero');
-    await ctx.setOffline(true);
+    await ctx.setOffline(true); offline = true;
     await page.reload();
     const off = await page.waitForSelector('#res .hero', { timeout: 5000 }).then(() => true).catch(() => false);
     check('loads with the network off', off && (await hero()).replace(/ /g, ' ') === '53 7/8"');
-    await ctx.setOffline(false);
+    await ctx.setOffline(false); offline = false;
 
     swBump = 'tvmount-v999';
     const updated = await page.evaluate(async () => {
