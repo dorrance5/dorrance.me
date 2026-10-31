@@ -143,6 +143,13 @@
     return true;
   }
 
+  // On a wide screen the form scrolls in its own column, so the keypad room and reveal() go there
+  const wide = matchMedia('(min-width:640px)');
+  const scroller = () => wide.matches ? $('#rcol') : $('#main');
+  function padForKeypad() {
+    $('#main').style.paddingBottom = $('#rcol').style.paddingBottom = '';
+    if (kp.path) scroller().style.paddingBottom = ($('#kp').offsetHeight + 16) + 'px';
+  }
   function openKeypad(path) {
     const first = !kp.path, changed = commitKp();
     kp.path = path; kp.fresh = true;
@@ -150,7 +157,7 @@
     $('#kp').hidden = false;
     $('#kp').classList.toggle('mm', inMm(path));   // millimeters have no fractions
     if (changed) render(); else { renderForm(); syncKeypad(); }
-    if (first) $('#main').style.paddingBottom = ($('#kp').offsetHeight + 16) + 'px';
+    if (first) padForKeypad();
     reveal(path);
   }
   function closeKeypad() {
@@ -158,7 +165,7 @@
     commitKp();
     kp.path = null;
     $('#kp').hidden = true;
-    $('#main').style.paddingBottom = '';
+    padForKeypad();
     const t = tab();
     if (t.studs.list.some(v => !isNum(v))) { t.studs.list = t.studs.list.filter(isNum); persist(); }
     render();
@@ -166,7 +173,7 @@
   function reveal(path) {
     const el = document.querySelector(`#form [data-k="${path}"]`);
     if (!el) return;
-    const main = $('#main'), rc = el.getBoundingClientRect(), mr = main.getBoundingClientRect();
+    const main = scroller(), rc = el.getBoundingClientRect(), mr = main.getBoundingClientRect();
     const bottom = innerHeight - $('#kp').offsetHeight - 12;
     if (rc.bottom > bottom) main.scrollBy({ top: rc.bottom - bottom, behavior: 'smooth' });
     else if (rc.top < mr.top + 8) main.scrollBy({ top: rc.top - mr.top - 8, behavior: 'smooth' });
@@ -769,7 +776,7 @@
 
   function drawInto(svg, zm, sk, o) {
     const cw = svg.clientWidth || 360;
-    const aspectH = vb => Math.max(220, Math.min(Math.min(470, innerHeight * 0.56), cw * vb.h / vb.w));
+    const aspectH = vb => Math.max(220, Math.min(wide.matches ? Math.min(600, innerHeight * 0.62) : Math.min(470, innerHeight * 0.56), cw * vb.h / vb.w));
     let f = o.px * (sk.tv.x1 - sk.tv.x0) * 1.9 / cw, out;
     for (let i = 0; i < 3; i++) {
       out = sketchSVG(sk, f, o.example, o.hid, o.view);
@@ -1198,7 +1205,7 @@
   }
 
   let rt;
-  addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { renderSketch(); if (shot) renderShot(); }, 120); });
+  addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { padForKeypad(); renderSketch(); if (shot) renderShot(); }, 120); });
   addEventListener('storage', e => { if (e.key === S.KEY && e.newValue) { doc = S.load(localStorage).doc; render(); } });
 
   render();

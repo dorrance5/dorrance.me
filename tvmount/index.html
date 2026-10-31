@@ -149,6 +149,14 @@
 .kp-bar .done{background:var(--primary);border-color:var(--primary-line);color:var(--primary-text)}
 .kp-bar svg{width:20px;height:20px;vertical-align:middle}
 
+/* wide screens like the open iPhone Duo (669 upright, 951 sideways): the sketch and results on the left, the form
+   on the right, each scrolling by itself; the keypad covers only the form. Narrower, the columns don't exist. */
+.col{display:contents}
+@media (min-width:640px){
+  #main{display:grid;grid-template-columns:54fr 46fr;grid-template-rows:minmax(0,1fr);column-gap:12px;overflow:hidden;padding-bottom:0}
+  .col{display:block;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 16px)}
+  .kp{left:calc(18px + (100% - 36px) * .54);border-left:.5px solid var(--line);border-top-left-radius:20px}
+}
 /* screenshot mode */
 .shot{position:fixed;inset:0;z-index:30;background:var(--bg);display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 8px) 8px calc(env(safe-area-inset-bottom,0px) + 8px)}
 .shot .cap{padding:4px 8px 6px;flex:none}
@@ -179,13 +187,17 @@
 <nav class="tabs" id="tabs" aria-label="TV locations"></nav>
 
 <main id="main">
+  <div class="col" id="lcol">
   <div class="card skc">
     <div class="sk-bar"><span class="sk-tag" id="skTag"></span><button id="fitBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"/></svg>Fit</button></div>
     <svg class="sk" id="sk" aria-label="Wall sketch" role="img"></svg>
   </div>
   <div id="res"></div>
+  </div>
+  <div class="col" id="rcol">
   <div id="form"></div>
   <div class="ver" id="ver"></div>
+  </div>
 </main>
 
 <div class="kp" id="kp" hidden>
