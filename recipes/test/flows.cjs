@@ -16,13 +16,16 @@ const FILE = fs.readFileSync(path.join(__dirname, 'fixture-recipes.json'), 'utf8
 const site = { text: FILE };   // recipes.json on the site, for a page that is signed out
 const D = require('../data.js');
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml', '.woff2': 'font/woff2' };
+let swBump = null;   // when set, sw.js is served with this cache name, like a deploy would
 const server = http.createServer((req, res) => {
   let p = decodeURIComponent(new URL(req.url, 'http://x').pathname);
   if (p.endsWith('/')) p += 'index.html';
   const f = path.join(root, p);
   if (!f.startsWith(root) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404); res.end(); return; }
+  let body = fs.readFileSync(f);
+  if (swBump && p === '/recipes/sw.js') body = Buffer.from(body.toString().replace(/const CACHE = '[^']+'/, `const CACHE = '${swBump}'`));
   res.writeHead(200, { 'Content-Type': TYPES[path.extname(f)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
-  res.end(fs.readFileSync(f));
+  res.end(body);
 });
 
 const results = [];
@@ -43,7 +46,8 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
   const browser = await webkit.launch();
   const phone = { ...devices['iPhone 13'], viewport: { width: 390, height: 844 } };
   async function newContext() {
-    const ctx = await browser.newContext(phone);
+    // The service worker is off: Playwright routes miss the requests of a page it controls. The offline checks turn it on.
+    const ctx = await browser.newContext({ ...phone, serviceWorkers: 'block' });
     await ctx.route('**/recipes/recipes.json', r => r.fulfill({ contentType: 'application/json', body: site.text }));
     await ctx.route('**/api/**', api.route);
     // a wake lock that counts, and a vibration that counts
@@ -881,6 +885,38 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
   check('Ellie edits Hayden’s recipes now, with no copy', (await ep.getAttribute('#editBtn', 'aria-label')) === 'Edit recipe' && !(await ep.$('#vBody .bookbtn')));
   await hayden.c.close();
   await ellie.c.close();
+
+  // Offline and an update, with the service worker on. No stand-ins, so the page reads the site's own files.
+  {
+    const c = await browser.newContext(phone), p = await c.newPage();
+    const errs = []; p.on('pageerror', e => errs.push(e.message));
+    await p.goto(base);
+    await p.waitForSelector('#deck .rc');
+    await p.evaluate(() => navigator.serviceWorker.ready);
+    await p.reload();
+    await p.waitForSelector('#deck .rc');
+    check('offline: the service worker is in charge after a reload', await p.evaluate(() => (navigator.serviceWorker.controller?.scriptURL || '').endsWith('/recipes/sw.js')));
+    await p.waitForTimeout(500);
+    check('offline: no update notice on the first install', !(await p.$('#toast.tap')));
+    await c.setOffline(true);
+    await p.reload();
+    const off = await p.waitForSelector('#deck .rc', { timeout: 5000 }).then(() => true, () => false);
+    check('offline: opens with the network off, and says it shows the copy on the phone', off && (await p.textContent('#notice')).startsWith('No connection'), off && await p.textContent('#notice'));
+    await c.setOffline(false);
+    swBump = 'recipes-v999';
+    await p.evaluate(() => navigator.serviceWorker.getRegistration().then(r => r.update()));
+    const shown = await p.waitForSelector('#toast.tap.on', { timeout: 8000 }).then(() => true, () => false);
+    check('an update shows "Updated · Tap to reload"', shown && (await p.textContent('#toast')) === 'Updated · Tap to reload');
+    if (shown) {
+      await Promise.all([p.waitForEvent('load'), p.tap('#toast')]);
+      await p.waitForSelector('#deck .rc');
+      const keys = await p.evaluate(() => caches.keys());
+      check('tapping it reloads, on the new cache only', keys.includes('recipes-v999') && !keys.some(k => k.startsWith('recipes-') && k !== 'recipes-v999'), keys);
+    }
+    check('offline: no page errors', errs.length === 0, errs);
+    swBump = null;
+    await c.close();
+  }
 
   check('no console errors', errors.length === 0, errors);
   await browser.close();

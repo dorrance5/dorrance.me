@@ -40,6 +40,9 @@ This is a static site of small phone apps. GitHub Pages deploys `main` with `.gi
 ## Offline cache
 
 - When you change a file that an app uses, increase `CACHE` in the `sw.js` of that app. Example: `tvmount-v6` becomes `tvmount-v7`.
+- The home page has its own `sw.js` at the top of the site. Increase its `CACHE` when you change `index.html`, an app icon on it, or `photos/cat-thumb.jpg`. It answers only for the files in its list; everything else goes to the network.
+- Recipes has `recipes/sw.js`. Increase its `CACHE` when you change a file in `recipes/` other than `recipes.json`, or `shared/account.js`. It never caches `recipes.json` or `/api/`.
+- After an update the page shows "Updated · Tap to reload". The new version is in the cache once that shows.
 
 ## TV Mount checks
 
@@ -51,7 +54,7 @@ This is a static site of small phone apps. GitHub Pages deploys `main` with `.gi
 
 ## Recipes
 
-- `recipes/` is a standalone page, not one of the apps. It has no `manifest.json` and no `sw.js`, so there is no `CACHE` to increase. Do not add it to the home page.
+- `recipes/` is a standalone page, not one of the apps. It has no `manifest.json`. It has a `sw.js` so it opens offline (see Offline cache). Do not add it to the home page.
 - `recipes/recipes.json` is the only copy of the recipes. The page saves to it through the API Worker (`worker/recipes.js`), which holds the GitHub token. `docs/recipes-handoff.md` has the data format.
 - Run the unit tests: `node --test recipes/test/*.test.js`
 - Run the browser checks: `NODE_PATH=<folder with playwright> node recipes/test/flows.cjs`

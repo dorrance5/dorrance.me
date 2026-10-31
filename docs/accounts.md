@@ -30,7 +30,7 @@ Today the admin approves accounts in Recipes: Settings > "Waiting for you" has A
    <script src="../shared/account.js"></script>
    ```
 
-   If the app has a service worker, add `'../shared/account.js'` to its `FILES` and increase its `CACHE`.
+   If the app has a service worker, add `'../shared/account.js'` to its `FILES` and increase its `CACHE`. Recipes has it already, so a change to `shared/account.js` needs a new `CACHE` in `recipes/sw.js` too.
 
 2. Sign in, ask for an account, and sign out:
 

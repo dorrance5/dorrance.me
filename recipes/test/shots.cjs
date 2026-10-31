@@ -150,9 +150,10 @@ let signOutAll;   // ends every sign-in on the Worker, for the scene where a sav
   const browser = await webkit.launch();
   const problems = [];
   for (const sc of scenes) {
-    const ctx = await browser.newContext(sc.desktop
+    // The service worker is off: Playwright routes miss the requests of a page it controls.
+    const ctx = await browser.newContext({ serviceWorkers: 'block', ...(sc.desktop
       ? { viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 }
-      : { ...devices['iPhone 13'], viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+      : { ...devices['iPhone 13'], viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 }) });
     let session = null;
     if (sc.as) {
       const res = await api.call('http://x/api/auth/login', { method: 'POST', body: JSON.stringify({ name: sc.as, password: PASSWORDS[sc.as] }) });

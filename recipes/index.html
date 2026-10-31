@@ -484,6 +484,7 @@ body.has-nav #plan .planbody, body.has-nav #grocery .grobody { padding-bottom: c
   transform: translate(-50%, 20px); opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s;
 }
 .toast.on { transform: translate(-50%, 0); opacity: 1; }
+.toast.tap { pointer-events: auto; cursor: pointer; }
 
 @media (prefers-reduced-motion: reduce) {
   .layer, .rc, .toast, .switch::before, .switch i { transition: none; }

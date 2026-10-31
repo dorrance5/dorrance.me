@@ -8,7 +8,7 @@ This is version 2. Version 1, the aged recipe book with the Rolodex deck, was at
 
 ## Decisions from the owner
 
-- **Recipes is standalone.** It is not one of the apps. Do not add a `manifest.json` or a `sw.js`. Do not add it to the home page grid. Do not use `shared/base.css` or `shared/base.js`.
+- **Recipes is standalone.** It is not one of the apps. Do not add a `manifest.json`. It has a `sw.js` so it opens offline; increase its `CACHE` when a file it uses changes. Do not add it to the home page grid. Do not use `shared/base.css` or `shared/base.js`.
 - **The theme setting is shared.** The page reads the `theme` key in localStorage (`auto`, `light`, `dark`, `aurora`) and writes `auto`, `light` or `dark`. Settings has Auto, Day and Night, with Auto on the left. This page has no Aurora look: a saved `aurora` shows as Night, with Night picked, and stays saved until another theme is picked. Do not change the format of that key.
 - **Mobile first.** Phone width (390 × 844) is the main target. Desktop must work; the content is at most 640 px wide.
 - **Editing must be easy.** Some recipes have amounts and steps. Some have only a list of ingredient names. Both must be valid.

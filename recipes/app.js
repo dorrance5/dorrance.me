@@ -327,7 +327,7 @@
   function toast(msg) {
     const t = $('toast');
     t.textContent = msg;
-    t.classList.add('on');
+    t.classList.add('on'); t.classList.remove('tap'); t.onclick = null;
     clearTimeout(toastT);
     toastT = setTimeout(() => t.classList.remove('on'), 2800);
   }
@@ -1290,4 +1290,15 @@
   drawMeals();
   later();   // changes this phone kept from last time
   pull();
+
+  // Offline: sw.js keeps the page's files, so it opens with no signal. A new version takes over in the background
+  // while the page still shows the old files, so offer a reload; not on the first install.
+  if ('serviceWorker' in navigator) {
+    if (navigator.serviceWorker.controller?.scriptURL === new URL('sw.js', location).href)
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        toast('Updated · Tap to reload'); clearTimeout(toastT);
+        const t = $('toast'); t.classList.add('tap'); t.onclick = () => location.reload();
+      }, { once: true });
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
 })();
