@@ -60,6 +60,7 @@ h1 .logo{width:36px;height:36px;flex:none;border-radius:8px;box-shadow:var(--til
 
 .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 26px);z-index:20;transform:translate(-50%,14px);opacity:0;pointer-events:none;padding:11px 20px;border-radius:20px;font-size:14px;font-weight:600;background:var(--sheet);border:.5px solid var(--line);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);transition:opacity .22s,transform .22s}
 .toast.on{opacity:1;transform:translate(-50%,0)}
+.toast.tap{pointer-events:auto;cursor:pointer}
 
 /* Aurora: moving color field behind frosted glass (same as the apps) */
 .field,.veil{display:none}
@@ -185,7 +186,7 @@ function setTheme(t){
 let taps=[],toastEl,toastT;
 function toast(msg){
   if(!toastEl){toastEl=document.createElement('div');toastEl.className='toast';document.body.appendChild(toastEl)}
-  toastEl.textContent=msg;toastEl.classList.add('on');
+  toastEl.textContent=msg;toastEl.classList.add('on');toastEl.classList.remove('tap');toastEl.onclick=null;
   clearTimeout(toastT);toastT=setTimeout(()=>toastEl.classList.remove('on'),1900);
 }
 document.getElementById('themeLabel').addEventListener('click',()=>{
@@ -222,6 +223,15 @@ dlg.addEventListener('keydown',e=>{
   if(e.key==='ArrowLeft')show(i-1);
   if(e.key==='ArrowRight')show(i+1);
 });
+// Offline: sw.js keeps this page's files. After an update, offer a reload (not on the first install).
+if('serviceWorker' in navigator){
+  if(navigator.serviceWorker.controller?.scriptURL===new URL('sw.js',location).href)
+    navigator.serviceWorker.addEventListener('controllerchange',()=>{
+      toast('Updated · Tap to reload');clearTimeout(toastT);
+      toastEl.classList.add('tap');toastEl.onclick=()=>location.reload();
+    },{once:true});
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
 let x0=null;
 dlg.addEventListener('touchstart',e=>{x0=e.touches[0].clientX},{passive:true});
 dlg.addEventListener('touchend',e=>{
