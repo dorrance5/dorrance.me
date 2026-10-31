@@ -162,6 +162,7 @@
       cards.push(`<li><button class="rc" type="button" data-id="${D.esc(r.id)}" style="${paint(colorOf(first))}"><span class="rc-top"><span class="nm serif">${D.hl(r.name, t)}</span>${first ? `<span class="tg">${D.esc(first)}</span>` : ''}</span>${w ? `<span class="hit">${w}</span>` : ''}</button></li>`);
     }
     deck.innerHTML = cards.join('');
+    markOpen();
     const where = tab ? ` under ${tab}` : '';
     none.hidden = cards.length > 0 || !loaded;
     none.textContent = t ? `No recipe${where} has “${t}”.` : shelf.book.length ? `No recipes${where} yet.` : session() ? 'No recipes in your book yet. Tap + to add one.' : 'No recipes yet.';
@@ -206,13 +207,24 @@
   const layers = [view, cook, cookIng, editor, settings, plan, grocery, pick];
   const tabLayers = [plan, grocery, settings], mealLayers = [plan, grocery, pick];
   const stack = [];
+  // Sideways on a wide screen (the open iPhone Duo), an open recipe sits beside the box instead of over it, and the
+  // box stays in use: a tap on another card shows that one.
+  const wide = matchMedia('(orientation: landscape) and (min-width: 800px)');
+  const side = () => wide.matches && stack.length === 1 && top() === view;
+  function markOpen() {
+    const on = side();
+    deck.querySelectorAll('.rc').forEach(b => { if (on && b.dataset.id === viewId) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current'); });
+  }
   let quiet = false;   // the next popstate closes without asking: Cancel, Save and Delete already decided
   const top = () => stack[stack.length - 1];
   const isOpen = l => stack.includes(l);
   function setInert() {
-    page.inert = stack.length > 0;
+    const beside = side();
+    page.inert = stack.length > 0 && !beside;
     layers.forEach(l => { l.inert = l !== top(); });
-    root.classList.toggle('locked', stack.length > 0);
+    root.classList.toggle('locked', stack.length > 0 && !beside);
+    root.classList.toggle('side', beside);
+    markOpen();
     $('vBackText').textContent = stack[stack.indexOf(view) - 1] === plan ? 'Meal plan' : 'Recipe box';
     drawNav();
     barColor();
@@ -274,6 +286,7 @@
     }
   });
   if (history.state && history.state.sheets) history.replaceState(null, '');
+  wide.addEventListener('change', setInert);   // turned or folded with a recipe open
   layers.forEach(l => l.addEventListener('click', e => { if (e.target.closest('[data-close]')) back(); }));
   cookIng.addEventListener('click', e => { if (e.target === cookIng) back(); });   // a tap on the dim part
   pick.addEventListener('click', e => { if (e.target === pick) back(); });
@@ -363,12 +376,15 @@
     if (r.servings) chips.push(`<span class="chip plain">${D.esc(/^\d/.test(r.servings) ? 'Serves ' + r.servings : r.servings)}</span>`);
     if (me && !mine && r.owner) chips.push(`<span class="chip plain">${D.esc(r.owner)}’s recipe</span>`);
     if (!r.shared) chips.push('<span class="chip plain">Not shared</span>');
-    const ings = r.ingredients.length ? `<ul class="lines">${r.ingredients.map(ingLine).join('')}</ul>` : '<p class="empty">No ingredients yet.</p>';
-    const steps = `<ol class="lines steps">${r.steps.map((s, i) => `<li><span class="num serif">${i + 1}</span><span>${D.esc(s)}</span></li>`).join('')}</ol>`;
+    const ings = (r.steps.length ? '<h2 class="htitle serif">Ingredients</h2>' : '') + (r.ingredients.length ? `<ul class="lines">${r.ingredients.map(ingLine).join('')}</ul>` : '<p class="empty">No ingredients yet.</p>');
+    const steps = `<h2 class="htitle serif">Steps</h2><ol class="lines steps">${r.steps.map((s, i) => `<li><span class="num serif">${i + 1}</span><span>${D.esc(s)}</span></li>`).join('')}</ol>`;
     const seg = r.steps.length
       ? `<div class="seg" role="group" aria-label="Show"><button type="button" data-half="ing" aria-pressed="${half === 'ing'}">Ingredients · ${r.ingredients.length}</button><button type="button" data-half="steps" aria-pressed="${half === 'steps'}">Steps · ${r.steps.length}</button></div>`
       : '';
-    let html = `<article class="index" style="${paint(colorOf(r.tags[0]))}"><div class="strip"></div><div class="head">${chips.length ? `<div class="chips">${chips.join('')}</div>` : ''}<h1 class="serif" id="vName">${D.esc(r.name)}</h1></div><div class="rule"></div><div class="body">${seg}${r.steps.length && half === 'steps' ? steps : ings}</div></article>`;
+    let html = `<article class="index" style="${paint(colorOf(r.tags[0]))}"><div class="strip"></div><div class="head">${chips.length ? `<div class="chips">${chips.join('')}</div>` : ''}<h1 class="serif" id="vName">${D.esc(r.name)}</h1></div><div class="rule"></div>${r.steps.length
+      // On a wide screen both halves show and the tab bar hides; on the phone the tab bar picks one
+      ? `<div class="body both show-${half}">${seg}<div class="half ing">${ings}</div><div class="half steps">${steps}</div></div>`
+      : `<div class="body">${ings}</div>`}</article>`;
     const acts = [];
     if (r.steps.length) acts.push(`<button class="pill tomato big" id="cookBtn" type="button">${ICON.pot}<span>Start cooking</span></button>`);
     if (r.ingredients.length) acts.push('<button class="pill big listbtn" id="listBtn" type="button" hidden></button>');   // signed in
@@ -413,6 +429,7 @@
   }
   function openView(id, card) {
     if (!renderView(id)) return;
+    if (side()) { view.opener = card; view.scrollTop = 0; markOpen(); return; }   // beside the box: show this one instead
     open(view, card);
     wakeCheck();
   }

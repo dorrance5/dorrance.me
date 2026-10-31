@@ -32,7 +32,7 @@ This is a static site of small phone apps. GitHub Pages deploys `main` with `.gi
 ## Design
 
 - TV Mount is the model for how every app looks. `docs/design-handoff.md` tells how to restyle the other apps.
-- Wide screens, like the open iPhone Duo (669 px upright, 951 px sideways; closed it is 382 px): at `min-width:560px` an app may use two panes. Triangle, Converter and Counter do. TV Mount does from 640 px (sketch and results left, form right, each scrolling by itself, the keypad over the form only). Calculator fills the width at every size and shows history on the left only when the open Duo is sideways (`orientation:landscape` and `min-width:800px`). Below that, keep the phone layout as it is. Two apps side by side on the open Duo get about 385 px each, so they show the phone layout. Each app's checks test the four Duo sizes.
+- Wide screens, like the open iPhone Duo (669 px upright, 951 px sideways; closed it is 382 px): at `min-width:560px` an app may use two panes. Triangle, Converter and Counter do. TV Mount does from 640 px (sketch and results left, form right, each scrolling by itself, the keypad over the form only). Recipes: from 640 px ingredients and steps both show with no tab bar (side by side upright); sideways from 800 px the box stays on the left and the open recipe sits beside it (`html.side`). Calculator fills the width at every size and shows history on the left only when the open Duo is sideways (`orientation:landscape` and `min-width:800px`). Below that, keep the phone layout as it is. Two apps side by side on the open Duo get about 385 px each, so they show the phone layout. Each app's checks test the four Duo sizes.
 
 ## Choices
 

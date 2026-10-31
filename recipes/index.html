@@ -187,6 +187,10 @@ mark { background: rgba(255, 246, 230, .9); color: #2A1D17; border-radius: 3px; 
 .others .sw-open small { font-size: 13px; color: var(--soft); }
 .others .pill { flex: none; border-color: var(--edge); padding: 0 18px; }
 #page { max-width: 640px; margin: 0 auto; }
+/* sideways on the open iPhone Duo: the box on the left, the open recipe on the right (app.js sets .side) */
+html.side #page { max-width: none; width: 42%; margin: 0; }
+html.side #view { left: 42%; box-shadow: -1px 0 0 var(--line); }
+html.side .rc[aria-current] { transform: translateY(-10px); box-shadow: inset 0 0 0 3px var(--cf), 0 -10px 20px -10px var(--lift); }
 body.has-nav #page { padding-bottom: calc(72px + max(16px, env(safe-area-inset-bottom))); }
 
 /* ---- the tab bar ---- */
@@ -231,6 +235,20 @@ body.has-nav #page { padding-bottom: calc(72px + max(16px, env(safe-area-inset-b
 .seg { display: grid; grid-template-columns: repeat(var(--n, 2), minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 999px; background: var(--track); }
 .seg button { min-height: 44px; border: 0; border-radius: 999px; background: transparent; color: var(--ink); font-size: 15px; font-weight: 700; }
 .seg button[aria-pressed="true"] { background: var(--solid); color: var(--on-solid); }
+/* ingredients and steps: the tab bar shows one on the phone; from 640 px wide both show, side by side when upright */
+.index .body .half { display: flex; flex-direction: column; min-width: 0; }
+.htitle { display: none; font-size: 19px; font-weight: 700; margin-top: 6px; }
+@media (max-width: 639px) {
+  .index .body.show-ing .half.steps, .index .body.show-steps .half.ing { display: none; }
+}
+@media (min-width: 640px) {
+  .index .body.both { gap: 18px; }
+  .index .body.both .seg { display: none; }
+  .htitle { display: block; }
+}
+@media (min-width: 640px) and (orientation: portrait) {
+  .index .body.both { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); column-gap: 28px; align-items: start; }
+}
 .lines { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; }
 .lines li { display: flex; align-items: baseline; gap: 8px; min-height: 44px; padding: 11px 0 9px; border-bottom: 1px solid var(--blue-rule); font-size: 17px; line-height: 1.4; overflow-wrap: anywhere; }
 .lines strong { flex: none; font-weight: 800; }

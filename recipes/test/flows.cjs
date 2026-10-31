@@ -45,9 +45,9 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
   const sessions = () => [...api.kv.m.keys()].filter(k => k.startsWith('auth:session:')).length;
   const browser = await webkit.launch();
   const phone = { ...devices['iPhone 13'], viewport: { width: 390, height: 844 } };
-  async function newContext() {
+  async function newContext(more) {
     // The service worker is off: Playwright routes miss the requests of a page it controls. The offline checks turn it on.
-    const ctx = await browser.newContext({ ...phone, serviceWorkers: 'block' });
+    const ctx = await browser.newContext({ ...phone, serviceWorkers: 'block', ...more });
     await ctx.route('**/recipes/recipes.json', r => r.fulfill({ contentType: 'application/json', body: site.text }));
     await ctx.route('**/api/**', api.route);
     // a wake lock that counts, and a vibration that counts
@@ -169,7 +169,7 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
   check('the recipe opens as an index card with its name', (await text('#vName')) === ZUPPA);
   check('chips: the category, then Serves', (await page.$$eval('#vBody .chip', cs => cs.map(c => c.textContent))).join('|') === 'Soup|Serves 6');
   check('the card has a tomato strip', (await bg('#vBody .strip')) === TOMATO);
-  const ings = await page.$$eval('#vBody .lines li', ls => ls.map(l => [l.querySelector('strong')?.textContent || '', l.querySelector('span').textContent]));
+  const ings = await page.$$eval('#vBody .half.ing .lines li', ls => ls.map(l => [l.querySelector('strong')?.textContent || '', l.querySelector('span').textContent]));
   check('ingredients: the amount in bold, ¼ for 1/4, and none for "Salt and pepper"',
     ings.length === 11 && ings[0].join('|') === '5 strips|bacon (thick-cut)' && ings[7].join('|') === '¼ tsp|Italian seasoning' && ings[10].join('|') === '|Salt and pepper', ings);
   check('signed out: no Edit button', await page.isHidden('#editBtn'));
@@ -255,6 +255,37 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
   check('the screen stays on from the recipe through cooking mode and back', (await page.evaluate(() => __wake.releases)) === released);
   await page.goBack();
   await closed('view');
+
+  // iPhone Duo sizes (CSS px). Closed: the tab bar picks ingredients or steps. Open upright: both side by side, no tab
+  // bar. Open sideways: the box stays on the left and the recipe opens beside it.
+  for (const [w, h, kind] of [[382, 580, 'phone'], [594, 368, 'phone'], [669, 867, 'both'], [951, 585, 'beside']]) {
+    const c = await newContext({ viewport: { width: w, height: h } }), p = await c.newPage();
+    watch(p);
+    await p.goto(base); await p.waitForSelector('#deck .rc');
+    await openRecipe('zuppa', p); await p.waitForTimeout(400);
+    const shows = await p.evaluate(() => {
+      const vis = el => !!el && el.getClientRects().length > 0, r = s => document.querySelector(s).getBoundingClientRect();
+      return { seg: vis(document.querySelector('#view .seg')), ing: vis(document.querySelector('#view .half.ing .lines')), steps: vis(document.querySelector('#view .half.steps .lines')),
+        ingL: r('#view .half.ing').left, stepsL: r('#view .half.steps').left, ingB: r('#view .half.ing').bottom, stepsT: r('#view .half.steps').top,
+        pageR: r('#page').right, viewL: r('#view').left, pageInert: document.getElementById('page').inert };
+    });
+    if (kind === 'phone') check(`${w}×${h}: the tab bar shows the ingredients only`, shows.seg && shows.ing && !shows.steps, shows);
+    else check(`${w}×${h}: ingredients and steps both show, no tab bar`, !shows.seg && shows.ing && shows.steps, shows);
+    if (kind === 'both') check(`${w}×${h}: ingredients and steps side by side`, shows.stepsL > shows.ingL + 200, shows);
+    if (kind === 'beside') {
+      check(`${w}×${h}: steps under the ingredients, beside the box`, shows.stepsT >= shows.ingB - 1 && shows.viewL >= shows.pageR - 1 && shows.viewL < w * .5 && !shows.pageInert, shows);
+      check(`${w}×${h}: the open card is marked`, await p.$eval('#deck .rc[aria-current]', el => el.textContent.includes('zuppa')));
+      await p.tap('#deck .rc:has-text("Pepperoncini")'); await p.waitForTimeout(300);
+      check(`${w}×${h}: another card shows that recipe, one history entry`, (await p.textContent('#vName')) === 'Pepperoncini roast' && (await p.evaluate(() => history.state && history.state.sheets)) === 1
+        && await p.$eval('#deck .rc[aria-current]', el => el.textContent.includes('Pepperoncini')));
+      await p.setViewportSize({ width: 585, height: 951 }); await p.waitForTimeout(400);   // turned upright
+      check('turned upright, the recipe covers the box again', await p.evaluate(() => document.getElementById('page').inert && !document.querySelector('#deck .rc[aria-current]')));
+      await p.setViewportSize({ width: w, height: h }); await p.waitForTimeout(400);
+      await p.tap('#view [data-close]'); await closed('view', p);
+      check('Recipe box closes it and the box fills the screen', await p.evaluate(() => !document.getElementById('page').inert && document.getElementById('page').getBoundingClientRect().width > 600 && !document.documentElement.classList.contains('side')));
+    }
+    await c.close();
+  }
 
   // the end of a timer, on a clock the test moves
   {
