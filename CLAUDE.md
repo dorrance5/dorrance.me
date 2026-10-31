@@ -52,6 +52,12 @@ This is a static site of small phone apps. GitHub Pages deploys `main` with `.gi
 - Look at the screenshots before you push.
 - The browser scripts ask for WebKit. If only Chromium is installed, make a `playwright` module that exports `chromium` as `webkit`, and put it on `NODE_PATH`.
 
+## Checks for the other apps and the home page
+
+- Each has browser checks. Run the ones for what you changed: `NODE_PATH=<folder with playwright> node <app>/test/flows.cjs` for Calculator, Converter, Counter, Parking and Triangle, and `node test/flows.cjs` for the home page.
+- A change in `shared/` affects Converter, Counter, Parking, Triangle and TV Mount. Run the checks of all five.
+- Each one also checks the offline cache: the page opens with the network off, and an update shows "Updated · Tap to reload".
+
 ## Recipes
 
 - `recipes/` is a standalone page, not one of the apps. It has no `manifest.json`. It has a `sw.js` so it opens offline (see Offline cache). Do not add it to the home page.
