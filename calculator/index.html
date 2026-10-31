@@ -49,7 +49,7 @@
   .glass::before{content:"";position:absolute;inset:0;pointer-events:none;
     background:linear-gradient(160deg,rgba(255,255,255,.32) 0%,rgba(255,255,255,.05) 34%,transparent 60%)}
 
-  #app{position:relative;z-index:2;height:100%;max-width:540px;margin:0 auto;
+  #app{position:relative;z-index:2;height:100%;margin:0 auto;
        display:flex;flex-direction:column;
        padding:calc(env(safe-area-inset-top) + 8px) 12px calc(env(safe-area-inset-bottom) + 10px)}
 
@@ -129,6 +129,25 @@
          transform:translateX(-101%);transition:transform .3s cubic-bezier(.3,.9,.25,1)}
   .panel.on{transform:translateX(0)}
   @media (prefers-reduced-motion:reduce){.panel{transition:none}.scrim{transition:none}}
+
+  /* ---- full width at every size; wide and short screens (iPhone Duo: open 669×867 / 951×585, closed sideways 594×368) ---- */
+  @media (orientation:portrait){ .pad{height:clamp(420px,72vh,680px)} }
+  @media (orientation:landscape) and (min-width:800px){
+    .panel{transform:none;width:min(320px,34vw);transition:none}
+    .scrim,#menuBtn{display:none}
+    #app{margin-left:min(320px,34vw)}
+  }
+  @media (max-height:500px){
+    #app{--gap:5px;padding-top:calc(env(safe-area-inset-top) + 6px);padding-bottom:calc(env(safe-area-inset-bottom) + 6px)}
+    .display{flex:0 0 auto;padding:8px 14px 7px;margin-bottom:5px;border-radius:20px}
+    .expr{min-height:16px;font-size:13px}
+    .value{font-size:34px;margin-top:0}
+    .alt{margin-top:2px;min-height:14px}
+    .menu{top:9px;left:9px}
+    .pad{flex:1 1 0;height:auto}
+    .zone.whole button,.zone.ops button{font-size:24px}
+    .subpad button{font-size:19px}
+  }
   .phead{flex:0 0 auto;display:flex;align-items:center;gap:7px;
          padding:calc(env(safe-area-inset-top) + 16px) 15px 13px;
          border-bottom:.5px solid rgba(255,255,255,.16)}

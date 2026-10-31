@@ -1,4 +1,4 @@
-// Drives Calculator in WebKit at iPhone size: standard order, exact fractions, errors, history, offline and an
+// Drives Calculator in WebKit at iPhone size and the iPhone Duo sizes: standard order, exact fractions, errors, history, offline and an
 // app update. Exits 1 on a failed check or console error.
 //   NODE_PATH=/path/to/node_modules node calculator/test/flows.cjs
 const { webkit, devices } = require('playwright');
@@ -77,6 +77,25 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
   check('history keeps the expression and the answer', h.expr === '6 + 2 × 3' && h.res.n === 12 && h.res.d === 1, h);
   await page.reload(); await page.waitForSelector('#value');
   check('history is kept after a reload', (await page.evaluate(() => JSON.parse(localStorage.getItem('calculator.hist'))[0].expr)) === '6 + 2 × 3');
+
+  // iPhone Duo sizes: closed upright and sideways, open upright and sideways (CSS px). The keypad spans the
+  // width and fits the height; history stays open on the left only on the open screen sideways.
+  for (const [w, h, docked] of [[382, 580, false], [594, 368, false], [669, 867, false], [951, 585, true]]) {
+    const c = await browser.newContext({ viewport: { width: w, height: h }, isMobile: true, hasTouch: true, serviceWorkers: 'block' }), p = watch(await c.newPage());
+    await p.goto(base); await p.waitForSelector('#value');
+    const r = await p.evaluate(() => { const box = s => document.querySelector(s).getBoundingClientRect(), pad = box('.pad'), v = box('#value'), pn = box('#panel');
+      return { padL: pad.left, padR: pad.right, padB: pad.bottom, vT: v.top, vB: v.bottom, panelR: pn.right, menu: getComputedStyle(document.getElementById('menuBtn')).display !== 'none' }; });
+    check(`${w}×${h}: the keypad fits on screen`, r.padB <= h + 0.5 && r.vT >= 0 && r.vB <= h, r);
+    check(`${w}×${h}: the keypad spans the width`, w - r.padR <= 13 && r.padL - (docked ? r.panelR : 0) <= 13, r);
+    check(`${w}×${h}: ${docked ? 'history open on the left, no menu button' : 'history behind the menu button'}`, docked ? r.panelR > 200 && !r.menu : r.panelR <= 0 && r.menu, r);
+    if (docked) {
+      await p.evaluate(() => localStorage.setItem('calculator.hist', JSON.stringify([{ expr: '1 + 2', res: { n: 3, d: 1 } }])));
+      await p.reload(); await p.waitForSelector('#rows .row');
+      await p.tap('#rows .row');
+      check(`${w}×${h}: tapping a past answer uses it and history stays open`, await p.textContent('#value') === '3' && (await p.evaluate(() => document.getElementById('panel').getBoundingClientRect().right)) > 200);
+    }
+    await c.close();
+  }
 
   // Offline, and an update, with the service worker on
   {
