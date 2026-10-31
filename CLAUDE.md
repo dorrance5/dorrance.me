@@ -14,7 +14,7 @@ This is a static site of small phone apps. GitHub Pages deploys `main` with `.gi
 
 - The site must cost nothing to run. The only bill is the yearly renewal of the domain `dorrance.me` at Cloudflare Registrar.
 - Use only free services on free plans. Do not start a trial, a paid plan or a paid API, and do not add a payment method.
-- Ask the owner before you add a service, an API key or a Cloudflare binding. Today the site uses only GitHub Pages, GitHub Actions, the GitHub API (from the Worker), Cloudflare DNS, one Cloudflare Worker with one KV namespace, Google Fonts (Recipes) and the owner's Google Apps Script (Parking).
+- Ask the owner before you add a service, an API key or a Cloudflare binding. Today the site uses only GitHub Pages, GitHub Actions, the GitHub API (from the Worker), Cloudflare DNS, one Cloudflare Worker with one KV namespace and the owner's Google Apps Script (Parking).
 - GitHub: keep the repository public. Pages and Actions are free for public repositories. In workflows, use only standard runners such as `ubuntu-latest`. Larger runners cost money even for public repositories. Do not use Git LFS.
 - Keep the published site under 1 GB. Put photos in as small JPEGs.
 - Cloudflare: the account stays on the Workers Free plan. On that plan, a request over a limit fails with an error. It is never billed. Do not move to Workers Paid.
@@ -24,9 +24,9 @@ This is a static site of small phone apps. GitHub Pages deploys `main` with `.gi
 ## Layout
 
 - Each app is a folder with its own `index.html`, `manifest.json` and `sw.js`.
-- Converter, Parking, Triangle and TV Mount use `shared/base.css` and `shared/base.js`. A change in `shared/` affects all four apps.
-- Calculator and Counter have their own styles and scripts.
-- `shared/account.js` is the dorrance.me sign-in. Only pages that load it use it (Recipes). It does not affect the four apps above.
+- Converter, Counter, Parking, Triangle and TV Mount use `shared/base.css` and `shared/base.js`. A change in `shared/` affects all five apps.
+- Calculator has its own styles and scripts.
+- `shared/account.js` is the dorrance.me sign-in. Only pages that load it use it (Recipes). It does not affect the five apps above.
 - All apps share one theme setting, the `theme` key in localStorage.
 
 ## Design
