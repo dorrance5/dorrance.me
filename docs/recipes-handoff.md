@@ -36,7 +36,7 @@ This is version 2. Version 1, the aged recipe book with the Rolodex deck, was at
   - Tomato `#C63A24` with cream `#FFF6E6` text; butter `#F6C945` and carrot `#E07B2E` with ink `#2A1D17` text.
   - Day: cream ground `#FBF3E4`, surface `#FFFBF4`, ink `#2A1D17`, soft text `#6B5348`, lines `#E8D9BF`, input borders `#9C826A`, focus ring `#2F6FD0`.
   - Night: ground `#1C1512`, surface `#2A201B`, text `#F6EBDA`, soft `#C8B6A3`, lines `#3D3029`, links `#F2836B`, focus ring `#8FB8FF`.
-- Fonts from Google Fonts: Fraunces (`'SOFT' 100`, weight 800 for titles) and Figtree for the rest.
+- Fonts: Fraunces (`'SOFT' 100`, weight 800 for titles) and Figtree for the rest. They come from Google Fonts but are kept in `recipes/fonts/` (latin and latin-ext), so the page does not load them from Google.
 - **Category colors.** Soup is tomato, Crock pot is carrot, and a recipe with no category is butter. Any other category gets one of basil `#4F7A3A`, blueberry `#3B5B8C`, plum `#7A3B69`, teal `#2F6B66` or cinnamon `#8A4B2A`, picked by a hash of its name, so it keeps its color. Each has cream text at 4.5:1 or more. A recipe takes the color of its first category.
 
 ## Screens
@@ -153,7 +153,7 @@ The site is static, so the page saves through the API Worker, and the Worker sav
 1. Run the unit tests, the browser checks and the screenshots in `CLAUDE.md`, for `recipes/`. Look at the screenshots in Day and in Night.
 2. The browser checks run the Worker in Node with KV in memory and a stand-in for GitHub (`worker/test/harness.cjs`), and route the page's `/api/**` requests to it. They cover: the box, dividers and search; the recipe card; cooking mode and its timers (on a test clock); the theme; asking for an account, signing in, a wrong password, an account that waits; approve, deny and remove as the admin; add, edit and delete; a 409 on the first PUT; a sign-in that ended, a bad GitHub token and no connection; the back button; tap sizes and sideways scroll. Then the meal plan on three phones (Mitchell, Jen and Nicole, on Saturday, Oct 24, 2026): asking, No thanks, the dot, Join, the plan and the picker, the grocery list and its merged items, batches, no connection, a busy Worker, Night, Stop sharing, a removed account, and signing out.
    - The browser checks use `recipes/test/fixture-recipes.json`, a frozen copy of the recipe book, in place of `recipes/recipes.json`, so the family's edits do not change what they expect. The screenshots use the real book.
-3. There must be no console errors. A blocked Google Fonts request in the sandbox is not an error.
+3. There must be no console errors.
 4. Push, then check that the "Deploy static content to Pages" run starts.
 
 ## Setup for the owner

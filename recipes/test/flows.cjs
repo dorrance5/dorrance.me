@@ -15,7 +15,7 @@ const root = path.join(__dirname, '..', '..');
 const FILE = fs.readFileSync(path.join(__dirname, 'fixture-recipes.json'), 'utf8');
 const site = { text: FILE };   // recipes.json on the site, for a page that is signed out
 const D = require('../data.js');
-const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml' };
+const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml', '.woff2': 'font/woff2' };
 const server = http.createServer((req, res) => {
   let p = decodeURIComponent(new URL(req.url, 'http://x').pathname);
   if (p.endsWith('/')) p += 'index.html';
@@ -44,7 +44,6 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
   const phone = { ...devices['iPhone 13'], viewport: { width: 390, height: 844 } };
   async function newContext() {
     const ctx = await browser.newContext(phone);
-    await ctx.route('https://fonts.googleapis.com/**', r => r.fulfill({ contentType: 'text/css', body: '' }));
     await ctx.route('**/recipes/recipes.json', r => r.fulfill({ contentType: 'application/json', body: site.text }));
     await ctx.route('**/api/**', api.route);
     // a wake lock that counts, and a vibration that counts

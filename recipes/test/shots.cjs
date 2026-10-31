@@ -1,6 +1,5 @@
 // Phone-size screenshots of the Recipes page in WebKit, Day and Night; exits 1 on any console error or page error.
-// The API Worker runs in Node (worker/test/harness.cjs) with a stand-in for GitHub, so nothing is saved. The fonts load from Google
-// when there is a connection.
+// The API Worker runs in Node (worker/test/harness.cjs) with a stand-in for GitHub, so nothing is saved. The fonts are in recipes/fonts.
 //   NODE_PATH=/path/to/node_modules node recipes/test/shots.cjs [outdir]
 const { webkit, devices } = require('playwright');
 const http = require('node:http');
@@ -19,7 +18,7 @@ const withBooks = text => {
 const FILE = withBooks(fs.readFileSync(path.join(root, 'recipes', 'recipes.json'), 'utf8'));
 const MANY = withBooks(require('./many.cjs')(FILE));   // 30 recipes, for the scenes with "many"
 
-const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml' };
+const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml', '.woff2': 'font/woff2' };
 const server = http.createServer((req, res) => {
   let p = decodeURIComponent(new URL(req.url, 'http://x').pathname);
   if (p.endsWith('/')) p += 'index.html';
