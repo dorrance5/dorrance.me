@@ -349,9 +349,29 @@ if(t==="dark") document.body.dataset.theme="night";
   function apply(o,a,b){return o==="+"?add(a,b):o==="\u2212"?sub(a,b):o==="\u00d7"?mul(a,b):dvd(a,b);}
   function isPow2(d){return (d&(d-1))===0;}
 
+  /* Standard order: × and ÷ before + and −. A chain is terms [{v, op}], each value with the operator after it;
+     the last op is not used. The answer is a fraction, null (divide by zero) or BIG. */
+  function mulOp(o){return o==="\u00d7"||o==="\u00f7";}
+  function evalTerms(list){
+    var total=null, addOp="+", run=list[0].v;
+    for(var i=1;i<list.length;i++){
+      var o=list[i-1].op;
+      if(mulOp(o)){ run=apply(o,run,list[i].v); if(!run||run===BIG) return run; }
+      else { total=total===null?run:apply(addOp,total,run); if(total===BIG) return BIG; addOp=o; run=list[i].v; }
+    }
+    return total===null?run:apply(addOp,total,run);
+  }
+  // What the display shows while a chain is open: all of it after + or −; after × or ÷ only the run of × and ÷
+  // at the end, since a later × or ÷ still belongs to it.
+  function shown(list){
+    var last=list.length-1, start=0;
+    if(mulOp(list[last].op)) for(var i=last-1;i>=0;i--) if(!mulOp(list[i].op)){ start=i+1; break; }
+    return evalTerms(list.slice(start));
+  }
+
   /* ================= state ================= */
   var cur={w:"",n:"",d:"",neg:false};
-  var acc=null, pend=null, justEq=false, err=null;
+  var acc=null, terms=[], justEq=false, err=null;   // acc: the value on show when nothing is being typed
   var parts=[];
   var hist=[];
 
@@ -494,7 +514,7 @@ if(t==="dark") document.body.dataset.theme="night";
     var row=e.target.closest?e.target.closest(".row"):null;
     if(!row) return;
     var h=hist[+row.dataset.i];
-    acc=h.res; pend=null; parts=[]; reset(); justEq=true; err=null;
+    acc=h.res; terms=[]; parts=[]; reset(); justEq=true; err=null;
     closePanel(); render();
   });
   document.addEventListener("keydown",function(e){ if(e.key==="Escape") closePanel(); });
@@ -579,7 +599,7 @@ if(t==="dark") document.body.dataset.theme="night";
     if(err && k!=="clear") err=null;
 
     if(k==="clear"){
-      if(!blank()) reset(); else { acc=null; pend=null; parts=[]; }
+      if(!blank()) reset(); else { acc=null; terms=[]; parts=[]; }
       err=null; justEq=false; render(); return;
     }
     if(k==="wdel"){ cur.w=cur.w.slice(0,-1); render(); return; }
@@ -591,35 +611,30 @@ if(t==="dark") document.body.dataset.theme="night";
       var v = blank() ? (acc||F(0,1)) : curFrac();
       if(!v){ err="A denominator can't be zero."; reset(); render(); return; }
       var full=parts.concat([blank() ? (acc?mixedText(acc):"0") : mixedText(v)]);
-      var r = (pend && acc!==null) ? apply(pend,acc,v) : v;
-      if(!r||r===BIG){ err=r?"Too big to show exactly.":"Can't divide by zero."; reset(); pend=null; parts=[]; render(); return; }
+      var r = terms.length ? evalTerms(terms.concat([{v:v,op:null}])) : v;
+      if(!r||r===BIG){ err=r?"Too big to show exactly.":"Can't divide by zero."; reset(); terms=[]; parts=[]; render(); return; }
       if(parts.length) pushHist(full.join(" "),r);
-      acc=r; pend=null; parts=[]; reset(); justEq=true; render(); return;
+      acc=r; terms=[]; parts=[]; reset(); justEq=true; render(); return;
     }
 
     if("+\u2212\u00d7\u00f7".indexOf(k)>-1){
       if(blank()){
-        if(acc!==null){
-          pend=k;
-          if(!parts.length) parts=[mixedText(acc),k];
-          else parts[parts.length-1]=k;
-        }
+        if(terms.length){ terms[terms.length-1].op=k; parts[parts.length-1]=k; }   // a change of operator
+        else if(acc!==null){ terms=[{v:acc,op:k}]; parts=[mixedText(acc),k]; }       // go on from the answer
+        else { justEq=false; render(); return; }
       } else {
         var val=curFrac();
         if(!val){ err="A denominator can't be zero."; reset(); render(); return; }
         parts.push(mixedText(val)); parts.push(k);
-        if(acc===null||!pend) acc=val;
-        else {
-          var res=apply(pend,acc,val);
-          if(!res||res===BIG){ err=res?"Too big to show exactly.":"Can't divide by zero."; reset(); pend=null; parts=[]; render(); return; }
-          acc=res;
-        }
-        pend=k; reset();
+        terms.push({v:val,op:k}); reset();
       }
+      var res=shown(terms);
+      if(!res||res===BIG){ err=res?"Too big to show exactly.":"Can't divide by zero."; reset(); terms=[]; parts=[]; render(); return; }
+      acc=res;
       justEq=false; render(); return;
     }
 
-    if(justEq){ acc=null; pend=null; parts=[]; reset(); justEq=false; }
+    if(justEq){ acc=null; terms=[]; parts=[]; reset(); justEq=false; }
 
     var field=k.charAt(0), ch=k.slice(1);
     if(field==="w"){
