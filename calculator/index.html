@@ -333,12 +333,19 @@ if(t==="dark") document.body.dataset.theme="night";
   "use strict";
 
   /* ================= exact rational arithmetic ================= */
-  function gcd(a,b){a=Math.abs(a);b=Math.abs(b);while(b){var t=b;b=a%b;a=t;}return a;}
-  function F(n,d){ if(!d) return null; if(d<0){n=-n;d=-d;} var g=gcd(n,d)||1; return {n:n/g,d:d/g}; }
-  function add(a,b){return F(a.n*b.d+b.n*a.d,a.d*b.d);}
-  function sub(a,b){return F(a.n*b.d-b.n*a.d,a.d*b.d);}
-  function mul(a,b){return F(a.n*b.n,a.d*b.d);}
-  function dvd(a,b){return b.n===0?null:F(a.n*b.d,a.d*b.n);}
+  /* The work is in BigInt, so nothing rounds on the way. A result too big for an exact number is BIG. */
+  var Z=BigInt(0), ONE=BigInt(1), BIG={big:true};
+  function B(x){return BigInt(x);}
+  function gcd(a,b){if(a<Z)a=-a;if(b<Z)b=-b;while(b){var t=b;b=a%b;a=t;}return a;}
+  function F(n,d){
+    n=B(n); d=B(d); if(d===Z) return null; if(d<Z){n=-n;d=-d;}
+    var g=gcd(n,d)||ONE, N=Number(n/g), D=Number(d/g);
+    return Number.isSafeInteger(N)&&Number.isSafeInteger(D)?{n:N,d:D}:BIG;
+  }
+  function add(a,b){return F(B(a.n)*B(b.d)+B(b.n)*B(a.d),B(a.d)*B(b.d));}
+  function sub(a,b){return F(B(a.n)*B(b.d)-B(b.n)*B(a.d),B(a.d)*B(b.d));}
+  function mul(a,b){return F(B(a.n)*B(b.n),B(a.d)*B(b.d));}
+  function dvd(a,b){return b.n===0?null:F(B(a.n)*B(b.d),B(a.d)*B(b.n));}
   function apply(o,a,b){return o==="+"?add(a,b):o==="\u2212"?sub(a,b):o==="\u00d7"?mul(a,b):dvd(a,b);}
   function isPow2(d){return (d&(d-1))===0;}
 
@@ -560,8 +567,9 @@ if(t==="dark") document.body.dataset.theme="night";
     var dec=live.n/live.d;
     var bits=['<b>'+live.n+"/"+live.d+'</b>',
               dec.toFixed(4).replace(/0+$/,"").replace(/\.$/,"")];
-    if(!isPow2(live.d)||live.d>64){
-      bits.push('\u2248 '+mixedText(F(Math.round(dec*16),16))+' to 1/16');
+    var near=F(Math.round(dec*16),16);
+    if((!isPow2(live.d)||live.d>64)&&near!==BIG){
+      bits.push('\u2248 '+mixedText(near)+' to 1/16');
     }
     altEl.innerHTML=bits.join('<span class="sep">\u00b7</span>');
   }
@@ -584,7 +592,7 @@ if(t==="dark") document.body.dataset.theme="night";
       if(!v){ err="A denominator can't be zero."; reset(); render(); return; }
       var full=parts.concat([blank() ? (acc?mixedText(acc):"0") : mixedText(v)]);
       var r = (pend && acc!==null) ? apply(pend,acc,v) : v;
-      if(!r){ err="Can't divide by zero."; reset(); pend=null; parts=[]; render(); return; }
+      if(!r||r===BIG){ err=r?"Too big to show exactly.":"Can't divide by zero."; reset(); pend=null; parts=[]; render(); return; }
       if(parts.length) pushHist(full.join(" "),r);
       acc=r; pend=null; parts=[]; reset(); justEq=true; render(); return;
     }
@@ -603,7 +611,7 @@ if(t==="dark") document.body.dataset.theme="night";
         if(acc===null||!pend) acc=val;
         else {
           var res=apply(pend,acc,val);
-          if(!res){ err="Can't divide by zero."; reset(); pend=null; parts=[]; render(); return; }
+          if(!res||res===BIG){ err=res?"Too big to show exactly.":"Can't divide by zero."; reset(); pend=null; parts=[]; render(); return; }
           acc=res;
         }
         pend=k; reset();
