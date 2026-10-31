@@ -86,9 +86,11 @@ function parseFrac(s) {                   // "3", "3.5", "1/2", "3 1/2", "5' 3 1
   const ft = s.match(/^(\d+(?:\.\d+)?)\s*(?:'|ft)\s*(.*)$/i);
   if (ft) { const r = ft[2].replace(/(in|")\s*$/i, '').trim(); const i = r ? parseFrac(r) : 0; return (+ft[1]) * 12 + (isNaN(i) ? 0 : i); }
   s = s.replace(/(in|")\s*$/i, '').trim();
-  const m = s.match(/^(\d+(?:\.\d+)?)?\s*(?:(\d+)\s*\/\s*(\d+))?$/);
-  if (!m || (m[1] == null && m[2] == null)) return parseFloat(s);
-  return (m[1] ? +m[1] : 0) + (m[2] ? (+m[2]) / (+m[3] || 1) : 0);
+  // A whole number and a fraction need a space between them: "15/16" is fifteen sixteenths, not 1 5/16.
+  let m;
+  if ((m = s.match(/^(\d+(?:\.\d+)?)\s+(\d+)\s*\/\s*(\d+)$/))) return +m[3] ? +m[1] + m[2] / m[3] : NaN;
+  if ((m = s.match(/^(\d+)\s*\/\s*(\d+)$/))) return +m[2] ? m[1] / m[2] : NaN;
+  return parseFloat(s);
 }
 function fmt(x) {
   if (!isFinite(x)) return '–';
