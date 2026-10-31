@@ -308,9 +308,10 @@ async function sync() {
   net.busy = true; net.again = false; renderStatus();
   const ops = queue.slice(0, 40);
   ops.forEach(o => net.inflight.add(o.opId));
+  let done = new Set();
   try {
     const data = await call({ key: cfg.key, ops });
-    const done = new Set(data.done || []);
+    done = new Set(data.done || []);
     queue = queue.filter(o => !done.has(o.opId));
     rows = Array.isArray(data.rows) ? data.rows : rows;
     meta = { lastSync: Date.now(), sheetUrl: data.sheetUrl || meta.sheetUrl, settings: data.settings || meta.settings };
@@ -325,7 +326,9 @@ async function sync() {
     net.busy = false;
   }
   render();
-  if (!net.error && (net.again || queue.length)) setTimeout(sync, 50);
+  // Go on at once only when this round got somewhere. A change the sheet keeps refusing waits for the minute timer,
+  // so it is not sent 20 times a second.
+  if (!net.error && (net.again || (queue.length && ops.some(o => done.has(o.opId))))) setTimeout(sync, 50);
   return !net.error;
 }
 
