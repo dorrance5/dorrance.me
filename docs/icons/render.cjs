@@ -5,10 +5,10 @@ const { webkit } = require('playwright');
 const fs = require('node:fs');
 const path = require('node:path');
 const root = path.join(__dirname, '..', '..');
-const APPS = ['calculator', 'counter', 'converter', 'triangle', 'parking', 'tvmount'];
+const APPS = ['calculator', 'counter', 'converter', 'triangle', 'parking', 'tvmount', 'roadtrip'];
 // Light version: white tile, and a deeper glyph color that stands out on white. favicon.svg uses the same colors.
-const HOME = ['calculator', 'counter', 'converter', 'triangle', 'tvmount'];
-const LIGHT = { '#000': '#fff', '#9F8FEF': '#8270DB', '#4BCE97': '#22A06B', '#6CC3E0': '#1D9AAA', '#FEA362': '#E56910', '#579DFF': '#1D7AFC' };
+const HOME = ['calculator', 'counter', 'converter', 'triangle', 'tvmount', 'roadtrip'];
+const LIGHT = { '#000': '#fff', '#9F8FEF': '#8270DB', '#4BCE97': '#22A06B', '#6CC3E0': '#1D9AAA', '#FEA362': '#E56910', '#579DFF': '#1D7AFC', '#E774BB': '#CD519D' };
 
 (async () => {
   const browser = await webkit.launch();

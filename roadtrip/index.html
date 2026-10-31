@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Road Trip">
+<meta name="theme-color" content="#F4F4F5">
+<!-- The theme before the first paint, as App.init sets it, so a dark phone does not flash Day. -->
+<script>try{var t=localStorage.getItem('theme')||'auto';if(t==='auto')t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';if(t==='aurora')t='dark';if(t!=='light')document.documentElement.dataset.mode=t}catch(e){}</script>
+<meta name="description" content="Fill-ups, MPG, costs and service reminders for the household's cars.">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-180.png">
+<link rel="stylesheet" href="../shared/base.css">
+<title>Road Trip</title>
+<style>
+/* header: the car's name opens the list of cars */
+header{padding-bottom:10px}
+.who{display:flex;align-items:center;gap:6px;min-width:0;height:46px;padding:0 4px;border-radius:14px}
+.who h1{font-size:22px}
+.who svg{flex:none;width:18px;height:18px;opacity:.55}
+.who:active{opacity:.7}
+main{padding-bottom:20px}
+.view{max-width:560px;margin:0 auto}
+
+/* the tab bar */
+.tabbar{flex:none;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:6px 12px calc(env(safe-area-inset-bottom,0px) + 6px);background:var(--bg);border-top:.5px solid var(--line);position:relative;z-index:3}
+.tabbar button{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;height:54px;border-radius:15px;font-size:12px;font-weight:650;color:var(--muted)}
+.tabbar svg{width:24px;height:24px}
+.tabbar button.on{color:var(--sel-text);background:var(--sel)}
+.badge{position:absolute;top:3px;left:calc(50% + 6px);min-width:19px;height:19px;border-radius:10px;background:var(--red);color:var(--tile);font-size:11.5px;font-weight:800;display:grid;place-items:center;padding:0 5px}
+
+/* statistics */
+.range{margin-bottom:10px}
+.chart{padding:12px 0 10px}
+.chart .seg{margin:0 12px}
+.chart .seg button{height:34px;font-size:14px}
+.ch-read{display:flex;align-items:baseline;gap:8px;padding:12px 16px 2px;min-height:38px;font-variant-numeric:tabular-nums}
+.ch-read b{font-size:19px;font-weight:650}
+.ch-read span{font-size:13px;color:var(--muted)}
+.ch{display:block;width:100%;height:180px;touch-action:pan-y;-webkit-user-select:none;user-select:none}
+.ch text{font-family:var(--ui);font-size:11px;font-weight:600;fill:var(--muted);font-variant-numeric:tabular-nums}
+.ch .base{stroke:var(--line);stroke-width:1}
+.ch .avg{stroke:var(--muted);stroke-width:1;stroke-dasharray:4 4;opacity:.8}
+.ch .area{fill:var(--c);fill-opacity:.16}
+.ch .top{fill:none;stroke:var(--c);stroke-width:2;stroke-linejoin:round}
+.ch .top.dense{stroke-width:1.25}
+.ch .bar{fill:var(--c);opacity:.75}
+.ch .trend{fill:none;stroke:var(--text);stroke-width:2;stroke-linejoin:round;stroke-linecap:round;opacity:.55}
+.ch .cross{stroke:var(--text);stroke-width:1;opacity:.5}
+.ch .dot{fill:var(--c);stroke:var(--tile);stroke-width:2}
+.ch-x{display:flex;justify-content:space-between;padding:4px 16px 0;font-size:12px;color:var(--muted);line-height:1.35;font-variant-numeric:tabular-nums}
+.ch-x span:last-child{text-align:right}
+.ch-none{padding:46px 16px 40px;text-align:center;color:var(--muted);font-size:15px}
+.c-blue{--c:var(--blue)}.c-yellow{--c:var(--yellow)}.c-green{--c:var(--green)}.c-purple{--c:var(--purple)}
+.hero .v small{font-size:20px;font-weight:650;margin-left:6px;letter-spacing:0}
+.hero .v{font-variant-numeric:normal}
+.tri .fact .k{white-space:nowrap}
+.costs{padding:6px 16px}
+.ct{display:grid;grid-template-columns:1fr auto auto auto;align-items:baseline;font-variant-numeric:tabular-nums}
+.ct>*{padding:9px 0 9px 14px;border-bottom:1px solid var(--line);text-align:right;font-size:15px;white-space:nowrap}
+.ct>:nth-child(4n+1){text-align:left;font-weight:650;padding-left:0}
+.ct .h{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);padding:6px 0}
+.ct .last{border-bottom:0;font-weight:700}
+.k-fuel{color:var(--blue)}.k-service{color:var(--orange)}.k-expense{color:var(--purple)}.k-other{color:var(--teal)}
+
+/* lists: fill-ups and costs */
+.yr{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:16px 4px 8px}
+.yr:first-child{margin-top:4px}
+.rows{padding:0 16px}
+.row{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:center;width:100%;padding:11px 0;border-bottom:1px solid var(--line);text-align:left;font-variant-numeric:tabular-nums}
+.row:last-child{border-bottom:0}
+.row b{display:block;font-size:17px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row span{display:block;font-size:15px;white-space:nowrap}
+.row small{display:block;font-size:13px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .r{text-align:right}
+.row .mpg{color:var(--blue)}
+.row.two{grid-template-columns:minmax(0,1fr) auto}
+.tag{display:inline-block;font-size:12.5px;font-weight:650;padding:2px 8px;border-radius:8px;background:var(--chip);color:var(--muted);white-space:nowrap}
+.tag.reset{background:var(--yellow-bg);color:var(--yellow)}
+.tag.service{background:var(--orange-bg);color:var(--orange)}.tag.expense{background:var(--purple-bg);color:var(--purple)}.tag.other{background:var(--teal-bg);color:var(--teal)}
+.filter{margin:14px 0 2px}
+
+/* reminders */
+.rem{display:flex;align-items:center;gap:10px;width:100%;padding:11px 0;border-bottom:1px solid var(--line);text-align:left}
+.rem:last-of-type{border-bottom:0}
+.rem .t{flex:1;min-width:0}
+.rem b{display:block;font-size:17px;font-weight:650}
+.rem .st{display:block;font-size:15px;font-weight:600;color:var(--orange);margin-top:1px;font-variant-numeric:tabular-nums}
+.rem.late .st{color:var(--red)}
+.rem.ok .st{color:var(--text)}
+.rem small{display:block;font-size:13px;color:var(--muted);margin-top:2px;line-height:1.35}
+.rem .chev{flex:none;width:18px;height:18px;opacity:.4}
+.sec-h .add{margin-left:auto;height:32px;padding:0 12px;border-radius:10px;font-size:14px;font-weight:650;background:var(--hbg);color:var(--hc)}
+.none{color:var(--muted);font-size:15px;line-height:1.45;margin:0;padding:4px 0 2px}
+
+/* one fill-up */
+.layer{position:fixed;inset:0;z-index:6;background:var(--bg);display:flex;flex-direction:column;animation:slide .2s ease-out}
+@keyframes slide{from{transform:translateX(30px);opacity:0}}
+.nb{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.nb button{display:flex;align-items:center;gap:8px;height:56px;padding:0 12px;border-radius:16px;background:var(--tile);border:.5px solid var(--tile-line);box-shadow:var(--tile-shadow);font-size:13px;color:var(--muted);text-align:left;line-height:1.3;font-variant-numeric:tabular-nums}
+.nb button:last-child{flex-direction:row-reverse;text-align:right}
+.nb button:disabled{opacity:.35}
+.nb svg{flex:none;width:22px;height:22px;color:var(--text)}
+.mini{padding:12px 12px 8px}
+.mini svg{display:block;width:100%;height:110px}
+.mini .b{fill:var(--muted);opacity:.35}
+.mini .b.on{fill:var(--blue);opacity:1}
+.mini text{font-family:var(--ui);font-size:11.5px;font-weight:650;fill:var(--muted);text-anchor:middle;font-variant-numeric:tabular-nums}
+.mini text.on{fill:var(--text)}
+
+/* forms in sheets */
+.sheet .grid2,.sheet .grid3{margin-bottom:8px}
+.sheet .fld.wide{margin-bottom:8px}
+.sheet .fld:focus-within{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-bg)}
+.fld input[type=date]{min-height:28px;font-size:18px}
+.fld .fv.auto{color:var(--blue)}
+.fld textarea{width:100%;min-height:96px;border:0;background:none;padding:2px 0;margin:0;outline:none;resize:none;color:var(--text);font-size:17px;line-height:1.4;font-family:inherit;-webkit-user-select:text;user-select:text}
+.sheet .seg{margin:4px 0 10px}
+.sheet .chips{gap:6px;margin:0 0 10px}
+.sheet .chips .chip{height:34px;padding:0 12px;font-size:14px}
+.sheet .hint{margin:0 2px 10px}
+.sheet .actions{margin-top:14px}
+.sheet .actions .primary{flex:1}
+.armed{background:var(--red)!important;color:var(--tile)!important;border-color:var(--red)!important}
+.switch{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:6px 2px;text-align:left}
+.switch .t{flex:1;min-width:0}
+.switch .t b{display:block;font-size:16px;font-weight:600}
+.switch .t small{display:block;font-size:13px;color:var(--muted);line-height:1.35;margin-top:1px}
+.switch .k{flex:none;width:51px;height:31px;border-radius:16px;background:var(--chip-line);position:relative;transition:background .15s}
+.switch .k::after{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .15s}
+.switch[aria-checked="true"] .k{background:var(--primary)}
+.switch[aria-checked="true"] .k::after{transform:translateX(20px)}
+
+/* the list of cars */
+.car{display:flex;align-items:center;gap:12px;width:100%;padding:10px 0;border-bottom:1px solid var(--line);text-align:left}
+.car:last-child{border-bottom:0}
+.car .ic{flex:none;width:44px;height:44px;border-radius:13px;display:grid;place-items:center}
+.car .ic svg{width:26px;height:26px}
+.car .t{flex:1;min-width:0}
+.car b{display:block;font-size:18px;font-weight:650}
+.car small{display:block;font-size:13px;color:var(--muted);margin-top:1px;font-variant-numeric:tabular-nums}
+.car .badge{position:static;flex:none}
+.car .tick{flex:none;width:22px;height:22px;color:var(--blue)}
+.car.off{opacity:.45}.car.off .tick{visibility:hidden}
+.car small + small{margin-top:0}
+.cars{padding:2px 16px;margin-bottom:12px}
+.menu{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:10px 16px;margin-bottom:12px;text-align:left;color:var(--text)}
+.menu .ic{flex:none;width:32px;height:32px;border-radius:10px;display:grid;place-items:center}
+.menu .ic svg{width:19px;height:19px}
+.menu .t{flex:1;min-width:0;font-size:17px;font-weight:600}
+.menu .n{color:var(--muted);font-size:16px;font-variant-numeric:tabular-nums}
+.menu .chev{flex:none;width:18px;height:18px;opacity:.4}
+.arow{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.arow:last-child{border-bottom:0}
+.arow .t{flex:1;min-width:0}
+.arow b{display:block;font-size:16px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.arow small{display:block;font-size:13px;color:var(--muted);margin-top:1px;line-height:1.35;font-variant-numeric:tabular-nums}
+.arow .two{display:flex;gap:6px;flex:none}
+.arow .two button{height:36px;padding:0 12px;font-size:14px;border-radius:11px}
+
+/* More */
+.sec .fld{margin-bottom:8px}
+.sec .actions{margin-top:4px}
+.sec .actions .btn,.sec .actions .danger{flex:1;height:42px;font-size:15px}
+.person{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.person:last-child{border-bottom:0}
+.av{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:700;background:var(--purple-bg);color:var(--purple)}
+.person .t{flex:1;min-width:0;font-size:16px;font-weight:600}
+.person .t small{display:block;font-size:13px;font-weight:400;color:var(--muted)}
+.person .btn{height:36px;font-size:14px;padding:0 12px}
+.ask{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.ask .chip{height:36px;font-size:15px;padding:0 14px}
+.box{border-radius:14px;padding:10px 12px;background:var(--hbg);margin-bottom:8px}
+.box .person{border-bottom:0;padding-top:0}
+.box .two{display:flex;gap:8px;margin-top:8px}
+.box .two button{flex:1;height:40px;font-size:15px}
+.say{font-size:14px;color:var(--muted);line-height:1.45;margin:0 0 10px}
+.say b{color:var(--text)}
+.steps{margin:0 0 12px;padding-left:20px;font-size:14px;line-height:1.5;color:var(--muted)}
+.ver{text-align:center;color:var(--muted);font-size:12px;margin:14px 0 4px}
+
+/* signed out */
+.intro{text-align:center;padding:22px 18px 18px}
+.intro .ic{width:64px;height:64px;border-radius:20px;margin:0 auto 12px;display:grid;place-items:center;color:var(--blue);background:var(--blue-bg)}
+.intro .ic svg{width:38px;height:38px}
+.intro h2{margin:0 0 6px;font-size:24px}
+.intro p{margin:0;color:var(--muted);font-size:15px;line-height:1.45}
+.signin .input{margin-bottom:8px}
+.signin .primary{width:100%;margin-top:4px}
+.signin .link{display:block;margin:12px auto 0;font-size:15px;font-weight:600;color:var(--blue);padding:6px}
+.result{font-size:14px;line-height:1.4;margin:10px 2px 0;color:var(--red)}
+.result.ok{color:var(--green)}
+.note{font-size:14px;line-height:1.4;padding:10px 12px;border-radius:12px;background:var(--yellow-bg);color:var(--yellow);margin-bottom:10px}
+.empty .btn{color:var(--text)}
+.empty .say{margin:18px auto 0;max-width:300px}
+.empty h2{margin:0 0 6px;color:var(--text);font-size:21px}
+.empty .stack{max-width:300px;margin:16px auto 0}
+</style>
+</head>
+<body>
+<header>
+  <button class="round" id="carBtn" type="button" aria-label="Cars" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11l1.6-4.3A2 2 0 0 1 8.5 5.4h7a2 2 0 0 1 1.9 1.3L19 11"/><path d="M3.5 17v-4a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2v4z"/><g fill="currentColor" stroke="none"><rect x="4.4" y="16.6" width="4.4" height="3.8" rx="1.3"/><rect x="15.2" y="16.6" width="4.4" height="3.8" rx="1.3"/><circle cx="7.6" cy="14" r="1.6"/><circle cx="16.4" cy="14" r="1.6"/></g></svg></button>
+  <button class="who" id="whoBtn" type="button"><h1 id="title">Road Trip</h1><svg id="whoChev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" hidden><path d="m6 9 6 6 6-6"/></svg></button>
+  <span class="sp"></span>
+  <button class="round" id="addBtn" type="button" aria-label="Add" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+</header>
+<main id="main">
+  <p class="note" id="syncNote" hidden></p>
+  <section class="view" id="v-stats" hidden></section>
+  <section class="view" id="v-fuel" hidden></section>
+  <section class="view" id="v-costs" hidden></section>
+  <section class="view" id="v-more" hidden></section>
+  <section class="view" id="v-empty" hidden></section>
+  <section class="view" id="v-signin" hidden>
+    <div class="card intro">
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11l1.6-4.3A2 2 0 0 1 8.5 5.4h7a2 2 0 0 1 1.9 1.3L19 11"/><path d="M3.5 17v-4a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2v4z"/><g fill="currentColor" stroke="none"><rect x="4.4" y="16.6" width="4.4" height="3.8" rx="1.3"/><rect x="15.2" y="16.6" width="4.4" height="3.8" rx="1.3"/><circle cx="7.6" cy="14" r="1.6"/><circle cx="16.4" cy="14" r="1.6"/></g></svg></div>
+      <h2>Road Trip</h2>
+      <p>Fill-ups, MPG, costs and service reminders. Sign in with your dorrance.me account, and everyone in your household sees the same cars.</p>
+    </div>
+    <form class="card signin" id="aForm" novalidate>
+      <div class="label" id="aTitle">Sign in</div>
+      <input class="input" id="aName" name="username" autocomplete="username" placeholder="Name" autocapitalize="words" spellcheck="false">
+      <input class="input" id="aPass" name="password" type="password" autocomplete="current-password" placeholder="Password">
+      <button class="primary" id="aGo" type="submit">Sign in</button>
+      <p class="result" id="aResult" role="status" hidden></p>
+      <button class="link" id="aSwap" type="button">New here? Ask for an account</button>
+    </form>
+    <div class="homelink"><a href="../">&lsaquo; dorrance.me</a></div>
+  </section>
+</main>
+<nav class="tabbar" id="tabbar" hidden>
+  <button type="button" data-tab="stats"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.2 17a9 9 0 1 1 15.6 0"/><path d="m12 13 4-5"/><circle cx="12" cy="13" r="1.6" fill="currentColor"/></svg>Stats</button>
+  <button type="button" data-tab="fuel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16"/><path d="M3 21h12M6.5 9h5"/><path d="M14 10h1.5a2 2 0 0 1 2 2v4a1.5 1.5 0 0 0 3 0V8.5L18 6"/></svg>Fuel</button>
+  <button type="button" data-tab="costs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.1L3.6 17.1a2 2 0 1 0 2.8 2.8l5.7-5.7a4 4 0 0 0 5.1-5.4l-2.4 2.4-2.5-.4-.4-2.5z"/></svg>Expenses<span class="badge" id="lateBadge" hidden></span></button>
+  <button type="button" data-tab="more"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>More<span class="badge" id="askBadge" hidden>1</span></button>
+</nav>
+<input type="file" id="importFile" accept=".zip,.csv,text/csv,application/zip" multiple hidden>
+<script src="../shared/base.js"></script>
+<script src="../shared/account.js"></script>
+<script src="data.js"></script>
+<script src="import.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

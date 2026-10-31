@@ -24,9 +24,9 @@ This is a static site of small phone apps. GitHub Pages deploys `main` with `.gi
 ## Layout
 
 - Each app is a folder with its own `index.html`, `manifest.json` and `sw.js`.
-- Converter, Counter, Parking, Triangle and TV Mount use `shared/base.css` and `shared/base.js`. A change in `shared/` affects all five apps.
+- Converter, Counter, Parking, Triangle, TV Mount and Road Trip use `shared/base.css` and `shared/base.js`. A change in `shared/` affects all six apps.
 - Calculator has its own styles and scripts.
-- `shared/account.js` is the dorrance.me sign-in. Only pages that load it use it (Recipes). It does not affect the five apps above.
+- `shared/account.js` is the dorrance.me sign-in. Only pages that load it use it (Recipes and Road Trip). It does not affect the other apps above.
 - All apps share one theme setting, the `theme` key in localStorage.
 
 ## Design
@@ -56,7 +56,7 @@ This is a static site of small phone apps. GitHub Pages deploys `main` with `.gi
 ## Checks for the other apps and the home page
 
 - Each has browser checks. Run the ones for what you changed: `NODE_PATH=<folder with playwright> node <app>/test/flows.cjs` for Calculator, Converter, Counter, Parking and Triangle, and `node test/flows.cjs` for the home page.
-- A change in `shared/` affects Converter, Counter, Parking, Triangle and TV Mount. Run the checks of all five.
+- A change in `shared/` affects Converter, Counter, Parking, Triangle, TV Mount and Road Trip. Run the checks of all six.
 - Each one also checks the offline cache: the page opens with the network off, and an update shows "Updated · Tap to reload".
 
 ## Recipes
@@ -69,6 +69,17 @@ This is a static site of small phone apps. GitHub Pages deploys `main` with `.gi
 - Render the icons: `NODE_PATH=<folder with playwright> node docs/icons/render-recipes.cjs`
 - Each recipe in `recipes/recipes.json` has an `owner`: the name of the account it belongs to. When you add a recipe from chat, set `owner` to the person it is for, and leave out `shared` unless they do not want it shared (`"shared": false`). `docs/recipes-handoff.md` has the format.
 - The browser checks and most unit tests use `recipes/test/fixture-recipes.json`, a frozen copy of the book, so edits to `recipes/recipes.json` do not break them.
+
+## Road Trip
+
+- `roadtrip/` tracks household cars, fill-ups, expenses and reminders. Private data lives in the existing Worker KV, never in the public repository.
+- `roadtrip/data.js` is shared with the Worker. Changes to it require a Worker deploy. `roadtrip/import.js` runs only in the browser.
+- Import accepts Road Trip CSV files or their ZIP export. Reimport skips existing records, including archived ones. Keep real exports and screenshots of real data outside the repository; tests use fictional `roadtrip/test/fixture.json`.
+- Unit tests: `node --test roadtrip/test/*.test.js`
+- API tests: `node --test worker/test/*.test.js`
+- Browser checks: `NODE_PATH=<folder with playwright> node roadtrip/test/flows.cjs` (includes the four Duo sizes, offline edits and updates).
+- Screenshots: `NODE_PATH=<folder with playwright> node roadtrip/test/shots.cjs <output folder outside the repository>`. Look at them before pushing.
+- Increase `roadtrip/sw.js` CACHE after changing Road Trip files or shared files it uses.
 
 ## Accounts and the API Worker
 

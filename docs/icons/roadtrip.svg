@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<!-- Road Trip icon: a magenta car seen from the front, with wide tires, on black. The same car as ICON.car in
+     roadtrip/app.js, at 18 times the size. Render with docs/icons/render.cjs. -->
+<rect width="512" height="512" fill="#000"/>
+<g transform="translate(40 30) scale(18)">
+<g fill="none" stroke="#E774BB" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11l1.6-4.3A2 2 0 0 1 8.5 5.4h7a2 2 0 0 1 1.9 1.3L19 11"/><path d="M3.5 17v-4a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2v4z"/></g>
+<g fill="#E774BB"><rect x="4.4" y="16.6" width="4.4" height="3.8" rx="1.3"/><rect x="15.2" y="16.6" width="4.4" height="3.8" rx="1.3"/><circle cx="7.6" cy="14" r="1.6"/><circle cx="16.4" cy="14" r="1.6"/></g>
+</g>
+</svg>

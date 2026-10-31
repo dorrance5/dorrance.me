@@ -23,6 +23,8 @@ const server = http.createServer((req, res) => {
   res.end(body);
 });
 
+// The app icons on the home page, each in a dark and a light version
+const ICONS = fs.readFileSync(path.join(root, 'index.html'), 'utf8').match(/<a class="app"/g).length;
 const results = [];
 const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}${info !== undefined && !ok ? ' — ' + JSON.stringify(info) : ''}`); };
 
@@ -43,7 +45,7 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
     p.on('request', r => { if (/icon-180/.test(r.url())) icons.push(r.url()); });
     await p.goto(base); await p.waitForLoadState('networkidle');
     const light = icons.filter(u => u.includes('-light')).length;
-    check(`${scheme}: only the ${scheme} icons are fetched`, icons.length === 5 && light === (scheme === 'light' ? 5 : 0), icons);
+    check(`${scheme}: only the ${scheme} icons are fetched`, icons.length === ICONS && light === (scheme === 'light' ? ICONS : 0), icons);
     await c.close();
   }
 
@@ -59,10 +61,10 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
   const status = await p.reload().then(r => r && r.status(), () => 0);
   await p.waitForTimeout(800);
   const shown = () => p.$$eval('.app img', im => im.filter(i => i.offsetParent).map(i => i.complete && i.naturalWidth > 0));
-  check('opens with the network off, with its icons', status === 200 && (await shown()).filter(Boolean).length === 5);
+  check('opens with the network off, with its icons', status === 200 && (await shown()).filter(Boolean).length === ICONS);
   await p.evaluate(() => localStorage.setItem('theme', document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'));
   await p.reload(); await p.waitForTimeout(800);
-  check('the other theme\'s icons are there offline too', (await shown()).filter(Boolean).length === 5);
+  check('the other theme\'s icons are there offline too', (await shown()).filter(Boolean).length === ICONS);
   await p.evaluate(() => localStorage.removeItem('theme'));
   await c.setOffline(false);
   check('pages it does not keep come from the network (mycat.html)', (await p.goto(base + 'mycat.html').then(r => r.status())) === 200);
@@ -82,7 +84,7 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
   swBump = null;
 
   // A first visit to an app or Recipes while the home page's worker is in charge: its own worker takes over quietly
-  for (const app of ['calculator', 'counter', 'converter', 'triangle', 'tvmount', 'parking', 'recipes']) {
+  for (const app of ['calculator', 'counter', 'converter', 'triangle', 'tvmount', 'roadtrip', 'parking', 'recipes']) {
     await p.goto(base + app + '/');
     await p.waitForFunction(a => (navigator.serviceWorker.controller?.scriptURL || '').endsWith(`/${a}/sw.js`), app, { timeout: 8000 }).catch(() => {});
     await p.waitForTimeout(400);
