@@ -65,6 +65,19 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
     await c.close();
   }
 
+  // iPhone Duo sizes: closed upright and sideways, open upright and sideways (CSS px)
+  const sized = async (w, h) => { const c = await browser.newContext({ viewport: { width: w, height: h }, isMobile: true, hasTouch: true, serviceWorkers: 'block' }); return { c, p: watch(await c.newPage()) }; };
+  const box = (p, sel) => p.$eval(sel, e => { const r = e.getBoundingClientRect(); return { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) }; });
+  const sideways = p => p.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+  for (const [w, h, wide] of [[382, 580, false], [594, 368, true], [669, 867, true], [951, 585, true]]) {
+    const { c, p } = await sized(w, h);
+    await p.goto(base); await p.waitForSelector('#val');
+    const card = await box(p, '#card'), out = await box(p, '#outCard'), table = await box(p, '#table');
+    check(`${w}×${h}: ${wide ? 'every unit beside the amount and the answer' : 'one column'}`, wide ? table.x > card.x + card.w && out.y >= card.y + card.h && out.x === card.x : out.y >= card.y + card.h && table.y >= out.y + out.h, { card, out, table });
+    check(`${w}×${h}: no sideways scrolling`, (await sideways(p)) <= 0);
+    await c.close();
+  }
+
   // Offline, and an update, with the service worker on
   {
     const c = await browser.newContext({ ...devices['iPhone 13'] }), p = watch(await c.newPage());

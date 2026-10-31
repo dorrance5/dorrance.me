@@ -32,6 +32,13 @@
 .ur .u small{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-left:8px}
 .ur .v{font-size:18px;font-weight:550;text-align:right;overflow-wrap:anywhere}
 .ur.on .u,.ur.on .v{color:var(--blue)}
+/* Open (a wide screen, like the inside of iPhone Duo): the amount and the answer on the left, every unit on the right */
+@media (min-width:560px){
+  main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-auto-rows:max-content;column-gap:12px;align-items:start;align-content:start}
+  #card{grid-column:1;grid-row:1}
+  #outCard{grid-column:1;grid-row:2}
+  #table{grid-column:2;grid-row:1/span 2}
+}
 </style>
 </head>
 <body>

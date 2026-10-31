@@ -81,6 +81,20 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
     await c.close();
   }
 
+  // iPhone Duo sizes: closed upright and sideways, open upright and sideways (CSS px)
+  const sized = async (w, h) => { const c = await browser.newContext({ viewport: { width: w, height: h }, isMobile: true, hasTouch: true, serviceWorkers: 'block' }); return { c, p: watch(await c.newPage()) }; };
+  const box = (p, sel) => p.$eval(sel, e => { const r = e.getBoundingClientRect(); return { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) }; });
+  const sideways = p => p.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+  for (const [w, h, cols] of [[382, 580, 1], [594, 368, 1], [669, 867, 2], [951, 585, 3]]) {
+    const { c, p } = await sized(w, h);
+    await p.addInitScript(() => localStorage.setItem('counter-v1', JSON.stringify({ sort: 'manual', counters: ['a', 'b', 'c', 'd'].map(id => ({ id, name: 'Counter ' + id, color: '#0A57D0', n: 7 })) })));
+    await p.goto(base); await p.waitForSelector('#n-a');
+    const xs = new Set((await p.$$eval('#list .card', cs => cs.map(c => Math.round(c.getBoundingClientRect().left)))));
+    check(`${w}×${h}: ${cols} ${cols === 1 ? 'column' : 'columns'} of counters`, xs.size === cols, [...xs]);
+    check(`${w}×${h}: no sideways scrolling`, (await sideways(p)) <= 0);
+    await c.close();
+  }
+
   // Offline, and an update, with the service worker on
   {
     const c = await browser.newContext({ ...devices['iPhone 13'] }), p = watch(await c.newPage());

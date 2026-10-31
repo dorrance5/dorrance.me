@@ -40,6 +40,13 @@
 .btns .btn{flex:1;height:42px;font-size:15px}
 .tri .s{white-space:nowrap}
 [data-mode="aurora"] .fact{-webkit-backdrop-filter:blur(26px) saturate(190%);backdrop-filter:blur(26px) saturate(190%)}
+/* Sideways (open or closed iPhone Duo, or any phone): the drawing on the left stays in view, the rest on the right.
+   Upright, the drawing on top is bigger and everything still fits, so it stays as it is. */
+@media (orientation:landscape) and (min-width:560px){
+  main{display:grid;grid-template-columns:minmax(0,1fr) minmax(360px,1.2fr);grid-auto-rows:max-content;column-gap:12px;align-items:start;align-content:start}
+  main>.draw{grid-column:1;grid-row:1/span 6;position:sticky;top:0}
+  main>:not(.draw){grid-column:2}
+}
 </style>
 </head>
 <body>

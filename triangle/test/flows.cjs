@@ -66,6 +66,21 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
     await c.close();
   }
 
+  // iPhone Duo sizes: closed upright and sideways, open upright and sideways (CSS px)
+  const sized = async (w, h) => { const c = await browser.newContext({ viewport: { width: w, height: h }, isMobile: true, hasTouch: true, serviceWorkers: 'block' }); return { c, p: watch(await c.newPage()) }; };
+  const box = (p, sel) => p.$eval(sel, e => { const r = e.getBoundingClientRect(); return { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) }; });
+  const sideways = p => p.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+  for (const [w, h, side] of [[382, 580, false], [594, 368, true], [669, 867, false], [951, 585, true]]) {
+    const { c, p } = await sized(w, h);
+    await p.goto(base); await p.waitForSelector('#a');
+    await p.fill('#a', '3'); await p.fill('#b', '4'); await p.fill('#c', '5');
+    const d = await box(p, '.draw'), s = await box(p, '.sec.hue-orange'), t = await box(p, '.sec.hue-teal');
+    check(`${w}×${h}: ${side ? 'drawing on the left, sides beside it' : 'drawing on top, sides below'}`, side ? s.x > d.x + d.w && Math.abs(s.y - d.y) < 4 : s.y >= d.y + d.h, { d, s });
+    check(`${w}×${h}: the cards do not overlap`, t.y >= s.y + s.h, { s, t });
+    check(`${w}×${h}: no sideways scrolling`, (await sideways(p)) <= 0);
+    await c.close();
+  }
+
   // Offline, and an update, with the service worker on
   {
     const c = await browser.newContext({ ...devices['iPhone 13'] }), p = watch(await c.newPage());

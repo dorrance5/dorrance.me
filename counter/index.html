@@ -38,6 +38,13 @@
 .move button:disabled{opacity:.35}
 .move svg{width:20px;height:20px}
 .cnt,.sw{--cbox:var(--tile)}
+/* Open (a wide screen, like the inside of iPhone Duo): the counters in two or three columns */
+@media (min-width:560px){
+  #list{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:10px;align-content:start;align-items:start}
+  #list .cnt{margin:0}
+  #list .num{min-width:140px}
+  #list .empty{grid-column:1/-1}
+}
 .c-blue{--c:var(--blue);--cbg:var(--blue-bg)}.c-red{--c:var(--red);--cbg:var(--red-bg)}.c-yellow{--c:var(--yellow);--cbg:var(--yellow-bg)}
 .c-green{--c:var(--green);--cbg:var(--green-bg)}.c-purple{--c:var(--purple);--cbg:var(--purple-bg)}.c-orange{--c:var(--orange);--cbg:var(--orange-bg)}
 .c-gray{--c:var(--muted);--cbg:var(--tile);--cbox:var(--chip)}
