@@ -117,6 +117,7 @@ main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:4px 12px ca
 
 .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 26px);z-index:20;transform:translate(-50%,14px);opacity:0;pointer-events:none;padding:11px 20px;border-radius:20px;font-size:14px;font-weight:600;background:var(--sheet);border:.5px solid var(--line);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);transition:opacity .22s,transform .22s;white-space:nowrap}
 .toast.on{opacity:1;transform:translate(-50%,0)}
+.toast.tap{pointer-events:auto;cursor:pointer}
 
 /* ---- from TV Mount ---- */
 /* tabs: a row of choices under the header, outside the cards */

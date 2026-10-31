@@ -1,11 +1,11 @@
 /* Calculator — offline cache.
    Bump CACHE below whenever you upload a changed index.html,
    otherwise phones may keep serving the old copy. */
-const CACHE = "calculator-v13";
+const CACHE = "calculator-v14";
 const FILES = ["./", "./index.html", "./manifest.json", "./icon-180.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES.map(f => new Request(f, { cache: "reload" })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", e => {

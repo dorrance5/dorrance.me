@@ -402,6 +402,8 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
       return Promise.race([changed, new Promise(r => setTimeout(() => r(false), 8000))]);
     });
     check('new version takes over', updated);
+    const notice = await page.waitForSelector('.toast.tap.on', { timeout: 3000 }).then(() => page.textContent('.toast'), () => null);
+    check('it says "Updated · Tap to reload"', notice === 'Updated · Tap to reload', notice);
     await page.reload(); await page.waitForSelector('#res .hero');
     const keysNow = await page.evaluate(() => caches.keys());
     check('old cache removed, new one in place', keysNow.includes('tvmount-v999') && !keysNow.some(k => k.startsWith('tvmount-') && k !== 'tvmount-v999'), keysNow);

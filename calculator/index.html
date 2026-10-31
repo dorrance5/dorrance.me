@@ -154,6 +154,7 @@
          -webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);
          transition:opacity .22s,transform .22s}
   .toast.on{opacity:1;transform:translate(-50%,0)}
+  .toast.tap{pointer-events:auto;cursor:pointer}
 
   .pfoot{flex:0 0 auto;display:flex;justify-content:center;padding:8px 15px calc(env(safe-area-inset-bottom) + 14px)}
   .pfoot a{color:var(--dim);text-decoration:none;font-size:13px;font-weight:600;padding:8px 14px;border-radius:14px;
@@ -411,7 +412,7 @@ if(t==="dark") document.body.dataset.theme="night";
   /* ================= toast ================= */
   var toastT;
   function toast(msg){
-    toastEl.textContent=msg; toastEl.classList.add("on");
+    toastEl.textContent=msg; toastEl.classList.add("on"); toastEl.classList.remove("tap"); toastEl.onclick=null;
     clearTimeout(toastT); toastT=setTimeout(function(){toastEl.classList.remove("on");},1900);
   }
 
@@ -665,8 +666,14 @@ if(t==="dark") document.body.dataset.theme="night";
   paintHist();
   render();
 
-  /* keeps it working with no signal */
+  /* keeps it working with no signal; after an update, offer a reload (not on the first install) */
   if("serviceWorker" in navigator){
+    var ctl=navigator.serviceWorker.controller;
+    if(ctl&&ctl.scriptURL===new URL("sw.js",location).href)
+      navigator.serviceWorker.addEventListener("controllerchange",function(){
+        toast("Updated · Tap to reload"); clearTimeout(toastT);
+        toastEl.classList.add("tap"); toastEl.onclick=function(){location.reload()};
+      },{once:true});
     window.addEventListener("load",function(){
       navigator.serviceWorker.register("sw.js").catch(function(){});
     });

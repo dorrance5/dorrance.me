@@ -76,7 +76,7 @@ window.App = (function () {
   let toastEl, toastT;
   function toast(msg) {
     if (!toastEl) { toastEl = document.createElement('div'); toastEl.className = 'toast'; document.body.appendChild(toastEl); }
-    toastEl.textContent = msg; toastEl.classList.add('on');
+    toastEl.textContent = msg; toastEl.classList.add('on'); toastEl.classList.remove('tap'); toastEl.onclick = null;
     clearTimeout(toastT); toastT = setTimeout(() => toastEl.classList.remove('on'), 1900);
   }
 
@@ -96,7 +96,19 @@ window.App = (function () {
       '<div class="field"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div><div class="blob b4"></div></div><div class="veil"></div>');
   }
 
-  function sw() { if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {}); }
+  // A new version takes over in the background while the page still shows the old files, so offer a reload.
+  // Only when this app's own worker was in charge already: its first install is not an update.
+  function sw() {
+    if (!('serviceWorker' in navigator)) return;
+    if (navigator.serviceWorker.controller?.scriptURL === new URL('sw.js', location).href)
+      navigator.serviceWorker.addEventListener('controllerchange', updated, { once: true });
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+  function updated() {
+    toast('Updated · Tap to reload');
+    clearTimeout(toastT);
+    toastEl.classList.add('tap'); toastEl.onclick = () => location.reload();
+  }
 
   function init(o) { if (o && o.aurora === false) aurora = false; if (aurora) backdrop(); applyTheme(); sw(); }
 
