@@ -105,13 +105,15 @@ const S = Object.assign({ cat: 'Length', pick: {}, val: '1', prec: 16 }, load(KE
 const persist = () => save(KEY, S);
 
 /* ---- parsing ---- */
-function parseFrac(s) {            // "3", "3.5", "1/2", "3 1/2", "-1 1/2"
+function parseFrac(s) {            // "3", "3.5", "1/2", "15/16", "3 1/2", "-1 1/2"
   s = s.trim(); if (!s) return NaN;
-  const m = s.match(/^(-)?\s*(\d+(?:\.\d+)?)?(?:\s+|^)?(?:(\d+)\s*\/\s*(\d+))?$/);
-  if (!m || (m[2] == null && m[3] == null)) return parseFloat(s.replace(/,/g, ''));
-  let v = m[2] ? parseFloat(m[2]) : 0;
-  if (m[3]) v += (+m[3]) / (+m[4] || 1);
-  return m[1] ? -v : v;
+  const neg = s[0] === '-', t = neg ? s.slice(1).trim() : s;
+  let m, v;
+  // A whole number and a fraction need a space between them: "15/16" is fifteen sixteenths, not 1 5/16.
+  if ((m = t.match(/^(\d+(?:\.\d+)?)\s+(\d+)\s*\/\s*(\d+)$/))) v = +m[3] ? +m[1] + m[2] / m[3] : NaN;
+  else if ((m = t.match(/^(\d+)\s*\/\s*(\d+)$/))) v = +m[2] ? m[1] / m[2] : NaN;
+  else return parseFloat(s.replace(/,/g, ''));
+  return neg ? -v : v;
 }
 function parseFtIn(s) {            // 5'3", 5' 3 1/2", 5 ft 3.5 in, 5-3, 63 (inches)
   s = s.trim().replace(/[”″]/g, '"').replace(/[’′]/g, "'");
