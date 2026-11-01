@@ -32,10 +32,11 @@ This is a static site of small phone apps. GitHub Pages deploys `main` with `.gi
 ## Design
 
 - TV Mount is the model for how every app looks. `docs/design-handoff.md` tells how to restyle the other apps.
-- Wide screens, like the open iPhone Duo (669 px upright, 951 px sideways; closed it is 382 px): at `min-width:560px` an app may use two panes. Triangle, Converter and Counter do. TV Mount does from 640 px (sketch and results left, form right, each scrolling by itself, the keypad over the form only). Recipes: from 640 px ingredients and steps both show with no tab bar (side by side upright); sideways from 800 px the box stays on the left and the open recipe sits beside it (`html.side`). Calculator fills the width at every size and shows history on the left only when the open Duo is sideways (`orientation:landscape` and `min-width:800px`). Below that, keep the phone layout as it is. Two apps side by side on the open Duo get about 385 px each, so they show the phone layout. Each app's checks test the four Duo sizes.
+- Wide screens, like the open iPhone Duo (669 px upright, 951 px sideways; closed it is 382 px): at `min-width:560px` an app may use two panes. Triangle, Converter and Counter do. TV Mount does from 640 px (sketch and results left, form right, each scrolling by itself, the keypad over the form only). Recipes: from 640 px ingredients and steps both show with no tab bar (side by side upright); sideways from 800 px the box stays on the left and the open recipe sits beside it (`html.side`). Road Trip sideways from 800 px moves its tab bar to a rail on the right and puts Stats, Expenses and More in two columns. Calculator fills the width at every size and shows history on the left only when the open Duo is sideways (`orientation:landscape` and `min-width:800px`). Below that, keep the phone layout as it is. Two apps side by side on the open Duo get about 385 px each, so they show the phone layout. Each app's checks test the four Duo sizes.
 
 ## Choices
 
+- Menu bars and tab bars go at the bottom or on the right side, never on the left or at the top.
 - In every row of choice buttons, put the default option on the left.
 
 ## Offline cache
@@ -77,7 +78,7 @@ This is a static site of small phone apps. GitHub Pages deploys `main` with `.gi
 - Import accepts Road Trip CSV files or their ZIP export. Reimport skips existing records, including archived ones. Keep real exports and screenshots of real data outside the repository; tests use fictional `roadtrip/test/fixture.json`.
 - Unit tests: `node --test roadtrip/test/*.test.js`
 - API tests: `node --test worker/test/*.test.js`
-- Browser checks: `NODE_PATH=<folder with playwright> node roadtrip/test/flows.cjs` (includes the four Duo sizes, offline edits and updates).
+- Browser checks: `NODE_PATH=<folder with playwright> node roadtrip/test/flows.cjs` (includes the five Duo sizes, offline edits and updates).
 - Screenshots: `NODE_PATH=<folder with playwright> node roadtrip/test/shots.cjs <output folder outside the repository>`. Look at them before pushing.
 - Increase `roadtrip/sw.js` CACHE after changing Road Trip files or shared files it uses.
 

@@ -32,6 +32,28 @@ main{padding-bottom:20px}
 .tabbar svg{width:24px;height:24px}
 .tabbar button.on{color:var(--sel-text);background:var(--sel)}
 .badge{position:absolute;top:3px;left:calc(50% + 6px);min-width:19px;height:19px;border-radius:10px;background:var(--red);color:var(--tile);font-size:11.5px;font-weight:800;display:grid;place-items:center;padding:0 5px}
+/* sideways on a wide screen (the open iPhone Duo, 951×585): the tab bar is a rail on the right, so the short screen
+   keeps its height, and Stats, Expenses and More use two columns */
+@media (orientation:landscape) and (min-width:800px){
+  body{display:grid;grid-template-columns:minmax(0,1fr) 92px;grid-template-rows:auto minmax(0,1fr)}
+  header{grid-column:1/-1}
+  main{grid-column:1;grid-row:2;padding-left:calc(env(safe-area-inset-left,0px) + 14px)}
+  .tabbar:not([hidden]){grid-column:2;grid-row:2;grid-template-columns:none;grid-auto-rows:64px;align-content:start;border-top:0;padding:4px calc(env(safe-area-inset-right,0px) + 10px) calc(env(safe-area-inset-bottom,0px) + 8px) 10px}
+  .tabbar button{height:64px}
+  .view{max-width:none}
+  #v-stats:not([hidden]){display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);grid-auto-rows:max-content;column-gap:14px;align-items:start;align-content:start}
+  #v-stats>.range{grid-column:1;grid-row:1}
+  #v-stats>.chart{grid-column:1;grid-row:2/span 6;position:sticky;top:0}
+  #v-stats>:not(.range):not(.chart){grid-column:2}
+  #v-stats>.hero{grid-row:1/span 2}
+  #v-fuel{max-width:640px}
+  #v-costs:not([hidden]){display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);grid-auto-rows:max-content;column-gap:14px;align-items:start;align-content:start}
+  #v-costs>.sec{grid-column:1;grid-row:1/span 40;position:sticky;top:0}
+  #v-costs>:not(.sec){grid-column:2}
+  #v-more:not([hidden]){columns:2;column-gap:14px}
+  #v-more>*{break-inside:avoid}
+  #v-more>.sec{display:inline-block;width:100%}
+}
 
 /* statistics */
 .range{margin-bottom:10px}

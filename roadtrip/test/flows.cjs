@@ -61,15 +61,27 @@ const server = http.createServer(async (req,res)=>{
  await p.waitForFunction(id=>JSON.parse(localStorage.roadtrip).queue.length===0&&JSON.parse(localStorage.roadtrip).state.cars.some(c=>c.fuel.some(f=>f.id===id&&!f.gone)),saved.id);
  console.log('ok automatic decimal, fuel save, archive and restore');
  await p.reload(); await p.evaluate(()=>navigator.serviceWorker.ready); await p.reload();
- for(const [width,height] of [[382,844],[669,951],[951,669],[385,844]]){
+ // iPhone Duo: closed upright and sideways, open upright and sideways, and half the open screen. Only open sideways
+ // moves the tab bar to a rail on the right and puts Stats and Expenses in two columns.
+ const box=sel=>p.$eval(sel,el=>{const r=el.getBoundingClientRect();return{l:r.left,r:r.right,t:r.top,b:r.bottom};});
+ for(const [width,height] of [[382,580],[594,368],[669,867],[951,585],[385,867]]){
   await p.setViewportSize({width,height});
+  const wide=width===951;
   for(const tab of ['stats','fuel','costs','more']){
    await p.click(`[data-tab="${tab}"]`);
    assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`${width} ${tab}: horizontal overflow`);
    assert.ok(await p.locator(`#v-${tab}`).isVisible());
+   const bar=await box('#tabbar'),view=await box(`#v-${tab}`);
+   assert.ok(wide?bar.l>=view.r&&bar.r<=width+0.5:bar.t>=view.t&&bar.b<=height+0.5,`${width}×${height} ${tab}: tab bar ${wide?'on the right':'at the bottom'}`);
   }
+  await p.click('[data-tab="stats"]');
+  const chart=await box('#v-stats .chart'),hero=await box('#v-stats .hero');
+  assert.ok(wide?hero.l>=chart.r:hero.t>=chart.b,`${width}×${height}: stats ${wide?'in two columns':'in one column'}`);
+  await p.click('[data-tab="costs"]');
+  const rem=await box('#v-costs .sec'),list=await box('#v-costs .rows');
+  assert.ok(wide?list.l>=rem.r:list.t>=rem.b,`${width}×${height}: expenses ${wide?'in two columns':'in one column'}`);
  }
- console.log('ok four Duo sizes, all tabs');
+ console.log('ok five Duo sizes, all tabs; a rail on the right only when open sideways');
  await p.click('[data-tab="stats"]');
  api.gh.offline=true; await ctx.setOffline(true); await p.reload(); await p.waitForSelector('#v-stats:not([hidden])');
  await p.click('#addBtn'); await p.fill('#fOdo','200100'); await p.locator('#fGal').pressSequentially('5000'); await p.locator('#fPrice').pressSequentially('3000'); await p.click('#fSave');

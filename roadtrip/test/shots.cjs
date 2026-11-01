@@ -45,7 +45,7 @@ const chart = c => async p => { await ready(p); await p.waitForSelector('#v-stat
 const end = async p => { await p.evaluate(() => { const m = document.getElementById('main'); m.scrollTop = m.scrollHeight; }); };
 const fillOn = date => async p => { await tab('fuel')(p); await p.click(`#v-fuel .row:has-text("${date}") >> nth=0`); await p.waitForSelector('#fillLayer'); };
 const scenes = [
-  ...[[382,844],[669,951],[951,669],[385,844]].flatMap(([width,height]) => ['stats','fuel','costs','more'].map(t => ({ name: `duo-${width}-${t}`, viewport: {width,height}, act: tab(t) }))),
+  ...[[382,580],[594,368],[669,867],[951,585],[385,867]].flatMap(([width,height]) => ['stats','fuel','costs','more'].map(t => ({ name: `duo-${width}-${t}`, viewport: {width,height}, act: tab(t) }))),
   { name: '01-stats-day', act: ready },
   { name: '02-stats-night', theme: 'dark', act: ready },
   { name: '03-stats-touch-day', act: async p => { await ready(p); const b = await p.locator('#ch').boundingBox(); await p.mouse.move(b.x + b.width * 0.62, b.y + 90); } },
