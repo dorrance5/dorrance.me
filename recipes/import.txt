@@ -73,7 +73,7 @@ RULES
 HOW THE PERSON IMPORTS IT
 
 1. Open https://dorrance.me/recipes and sign in.
-2. Open Settings and tap "Import recipes". (Or tap + and then "Import a file".)
+2. Open Settings and tap "Import recipes". (Or tap + and then "Want an AI to fill this out for you?")
 3. Choose the file, or paste what you wrote.
 4. Check the list, untick anything they don't want, and tap Import.
 
