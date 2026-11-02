@@ -448,8 +448,35 @@
       "id": "lasagna-soup",
       "name": "Lasagna soup",
       "servings": "8",
-      "ingredients": [],
-      "source": "https://bellyfull.net/lasagna-soup/#comments",
+      "tags": [
+        "Soup"
+      ],
+      "ingredients": [
+        "1 lb Italian sausage",
+        "1 small onion (diced)",
+        "3 cloves garlic (minced)",
+        "32 oz low-sodium chicken broth",
+        "24 oz marinara sauce",
+        "1 can (15 oz) crushed tomatoes",
+        "2 tbsp pesto (plus more for serving)",
+        "1 tsp black pepper (half for the soup, half for the cheese)",
+        "1/2 tsp kosher salt",
+        "1/4 tsp red pepper flakes",
+        "8 lasagna noodles (broken into bite-size pieces)",
+        "15 oz ricotta",
+        "1 cup shredded mozzarella",
+        "Grated parmesan (for serving)"
+      ],
+      "steps": [
+        "Brown the sausage and onion in a Dutch oven on medium-high, breaking up the sausage, about 5 minutes, until no pink is left and the onion is soft.",
+        "Add the garlic and cook 20 seconds, until fragrant. Drain off the extra fat.",
+        "Pour in the broth and scrape up the bits from the bottom. Stir in the marinara, crushed tomatoes, pesto, 1/2 tsp of the pepper, the salt and the red pepper flakes.",
+        "Bring to a boil and add the broken noodles. Turn down to a gentle bubble and cook uncovered about 15 minutes, stirring now and then, until the pasta is tender. Add a splash of broth if it gets too thick.",
+        "While it simmers, stir the ricotta, mozzarella and the other 1/2 tsp of pepper together in a bowl.",
+        "Ladle the soup into bowls and top each with a big spoonful of the cheese mix. Add more pesto if you like and grate parmesan over the top."
+      ],
+      "notes": "If you won't eat the whole pot at once, cook the noodles separately and add them to each bowl, so the leftovers don't get soggy. Keep the cheese mix separate too and add it when serving. 12 oz of small pasta like rotini or bow ties works in place of the lasagna noodles. Ground beef or turkey works in place of the sausage. Keeps 3 days in the fridge, or 3 months in the freezer without the noodles and cheese.",
+      "source": "https://bellyfull.net/lasagna-soup/",
       "owner": "GiGi"
     }
   ],
