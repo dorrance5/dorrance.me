@@ -101,7 +101,8 @@
         "Bacon",
         "Large tortillas"
       ],
-      "owner": "Nicole"
+      "owner": "Nicole",
+      "shared": false
     },
     {
       "id": "pepperoncini-roast",
