@@ -26,7 +26,7 @@
    leaving are a few writes. KV takes one write a second to one key: a write that meets another answers 429
    { error: 'busy' }, and the page sends again. Over the day's free writes, it answers 503 { error: 'full' }. */
 import M from '../recipes/meals.js';
-import { json, who, users, adminName, keyOf } from './auth.js';
+import { json, who, users, adminName, keyOf, nice } from './auth.js';
 
 const PLAN = 'meals:plan:', ME = 'meals:me:', USER = 'auth:user:';
 const today = () => new Date().toISOString().slice(0, 10);
@@ -40,13 +40,13 @@ async function body(req) {
 // A person is { key, id, name }.
 const person = me => ({ key: me.key, id: me.admin ? 'admin' : me.id, name: me.name });
 const same = (a, b) => !!a && !!b && a.key === b.key && a.id === b.id;
-const shown = p => p ? { key: p.key, name: p.name } : null;
+const shown = p => p ? { key: p.key, name: nice(p.name) } : null;
 
 // The person with this key, if the account can sign in.
 async function account(env, key) {
   if (key === keyOf(adminName(env))) return { key, id: 'admin', name: adminName(env) };
   const u = await env.LIB.get(USER + key, 'json');
-  return u && u.status === 'approved' ? { key, id: u.id, name: u.name } : null;
+  return u && u.status === 'approved' ? { key, id: u.id, name: nice(u.name) } : null;
 }
 const alive = async (env, p) => same(await account(env, p.key), p);
 
@@ -76,7 +76,7 @@ async function partnerIn(env, p, at) {
 
 async function answer(env, me, r, at) {
   const p = person(me), d = M.tidy(at.plan), partner = await partnerIn(env, p, at);
-  const people = partner ? at.plan.members.map(m => same(m, p) ? me.name : m.name) : [me.name];
+  const people = partner ? at.plan.members.map(m => same(m, p) ? me.name : nice(m.name)) : [me.name];
   return json({ people, days: d.days, list: d.list, share: { with: shown(partner), invite: shown(r.invite), asked: shown(r.asked) } });
 }
 

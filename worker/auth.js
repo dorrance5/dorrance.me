@@ -45,8 +45,11 @@ function same(a, b) {
 // The name as typed, tidied: 2 to 24 letters, numbers, spaces and . ' _ -, starting with a letter or number.
 function cleanName(s) {
   const name = String(s || '').normalize('NFC').trim().replace(/\s+/g, ' ');
-  return /^[\p{L}\p{N}][\p{L}\p{N} .'’_-]{1,23}$/u.test(name) ? name : null;
+  return /^[\p{L}\p{N}][\p{L}\p{N} .'’_-]{1,23}$/u.test(name) ? nice(name) : null;
 }
+// Each word starts with a capital ("hayden" shows as "Hayden"). Accounts made before this keep their name as typed
+// in KV, so every name read from KV goes through it too.
+export const nice = name => String(name).replace(/(^| )(\p{Ll})/gu, (_, a, b) => a + b.toUpperCase());
 export const keyOf = name => name.toLowerCase();
 export const adminName = env => cleanName(env.ADMIN) || 'Mitchell';
 const isAdminName = (env, name) => keyOf(name) === keyOf(adminName(env));
@@ -65,7 +68,7 @@ export async function users(env) {
   let cursor;
   do {
     const page = await env.LIB.list({ prefix: USER, cursor });
-    for (const k of page.keys) out.push({ key: k.name.slice(USER.length), ...k.metadata });
+    for (const k of page.keys) out.push({ key: k.name.slice(USER.length), ...k.metadata, name: nice(k.metadata?.name || '') });
     cursor = page.list_complete ? null : page.cursor;
   } while (cursor);
   return out;
@@ -85,7 +88,7 @@ export async function who(req, env) {
     return ok ? { sid, key: s.key, name: adminName(env), admin: true } : null;
   }
   const u = await env.LIB.get(USER + s.key, 'json');
-  return u && u.id === s.id && u.status === 'approved' ? { sid, key: s.key, id: u.id, name: u.name, admin: false } : null;
+  return u && u.id === s.id && u.status === 'approved' ? { sid, key: s.key, id: u.id, name: nice(u.name), admin: false } : null;
 }
 
 async function signup(req, env) {
@@ -119,7 +122,7 @@ async function login(req, env) {
     if (u && same(await pbkdf2(pw, u.salt), u.hash)) {
       if (u.status !== 'approved') return json({ error: 'waiting' }, 403);
       session = { key: keyOf(n), id: u.id };
-      shown = u.name;
+      shown = nice(u.name);
     }
   }
   if (!session) { await tried(env, req); return json({ error: 'wrong' }, 401); }

@@ -62,6 +62,21 @@ test('names and passwords are checked', async () => {
   assert.deepEqual(await c.login('Mitchell', 'madi-password'), { status: 401, body: { error: 'wrong' } });
 });
 
+test('names start with a capital, also accounts made before that', async () => {
+  const api = await makeApi(FILE), c = client(api);
+  assert.deepEqual((await c.signup('hayden smith', 'long-enough')).body, { name: 'Hayden Smith', admin: 'Mitchell' });
+  assert.equal((await api.kv.get('auth:user:hayden smith', 'json')).name, 'Hayden Smith');
+  // An older account, saved as typed
+  const old = await api.kv.get('auth:user:hayden smith', 'json');
+  await api.kv.put('auth:user:hayden smith', JSON.stringify({ ...old, name: 'hayden smith', status: 'approved' }), { metadata: { name: 'hayden smith', status: 'approved', created: old.created } });
+  const h = (await c.login('HAYDEN SMITH', 'long-enough')).body;
+  assert.equal(h.name, 'Hayden Smith');
+  assert.equal((await c.send('GET', 'me', { token: h.token })).body.name, 'Hayden Smith');
+  const admin = (await c.login('Mitchell', api.ADMIN_PASSWORD)).body;
+  assert.deepEqual((await c.send('GET', 'users', { token: admin.token })).body.users.map(x => x.name), ['Hayden Smith']);
+  assert.equal((await c.signup("jo o'Neil", 'long-enough')).body.name, "Jo O'Neil", 'only the start of each word changes');
+});
+
 test('too many tries lock one address for a while', async () => {
   const api = await makeApi(FILE), c = client(api, '9.9.9.9');
   await api.addUser('Madi', 'madi-password');
