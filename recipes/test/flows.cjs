@@ -912,8 +912,8 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
   await ep.reload();
   await inDeck(ep, 'Pepperoncini roast');
   await openRecipe('Pepperoncini roast', ep);
-  check('the roast follows Hayden’s changes, says whose it is, and offers Remove and a copy',
-    (await ep.textContent('#vBody .notes p')) === 'Hayden’s tip: a splash of the jar juice.' && (await ep.$$eval('#vBody .chip', cs => cs.map(c => c.textContent))).includes('Hayden’s recipe')
+  check('the roast follows Hayden’s changes, says who contributed it, and offers Remove and a copy',
+    (await ep.textContent('#vBody .notes p')) === 'Hayden’s tip: a splash of the jar juice.' && (await ep.textContent('#vBody .by')) === 'Contributed by Hayden'
     && (await ep.textContent('#vBody .bookbtn')) === 'Remove from my book' && (await ep.getAttribute('#editBtn', 'aria-label')) === 'Make your own copy');
   await ep.tap('#editBtn');
   await opened('editor', ep);

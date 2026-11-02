@@ -34,9 +34,13 @@
 
   /* ---- colors: each category has one; a recipe takes the color of its first category ---- */
   const BUTTER = ['#F6C945', '#2A1D17'];
-  const FIXED = { soup: ['#C63A24', '#FFF6E6'], 'crock pot': ['#E07B2E', '#2A1D17'] };
-  // basil, blueberry, plum, teal and cinnamon, each with cream text at 4.5:1 or more
-  const MORE = [['#4F7A3A', '#FFF6E6'], ['#3B5B8C', '#FFF6E6'], ['#7A3B69', '#FFF6E6'], ['#2F6B66', '#FFF6E6'], ['#8A4B2A', '#FFF6E6']];
+  // Warm shades of red, orange and yellow, with Salads in plum. Each text color is at 4.5:1 or more on its color.
+  const FIXED = {
+    soup: ['#C63A24', '#FFF6E6'], grill: ['#8E2817', '#FFF6E6'], 'crock pot': ['#E07B2E', '#2A1D17'], bowls: ['#F28C6B', '#2A1D17'],
+    'one pan': ['#A94A1A', '#FFF6E6'], 'sandwiches & tacos': ['#F2A93B', '#2A1D17'], breakfast: ['#F6C945', '#2A1D17'], salads: ['#7A3B69', '#FFF6E6']
+  };
+  // Any other category: coral, wine, gold or rust, picked by a hash of its name
+  const MORE = [['#E5684A', '#2A1D17'], ['#9E2B3A', '#FFF6E6'], ['#D99A1E', '#2A1D17'], ['#A94A1A', '#FFF6E6']];
   const hash = s => { let h = 0; for (const ch of s) h = (h * 31 + ch.codePointAt(0)) >>> 0; return h; };
   function colorOf(tag) {
     if (!tag) return BUTTER;
@@ -45,7 +49,7 @@
   }
   const ALL = ['var(--solid)', 'var(--on-solid)'];   // the All divider: ink by day, cream at night
   const paint = ([c, f]) => `--c:${c};--cf:${f}`;
-  const FACES = [['#C63A24', '#FFF6E6'], BUTTER, ['#E07B2E', '#2A1D17'], ['#2A1D17', '#FFF6E6'], ['#FCE7A6', '#2A1D17'], ...MORE];
+  const FACES = [['#C63A24', '#FFF6E6'], BUTTER, ['#E07B2E', '#2A1D17'], ['#2A1D17', '#FFF6E6'], ['#FCE7A6', '#2A1D17'], ['#4F7A3A', '#FFF6E6'], ['#3B5B8C', '#FFF6E6'], ['#7A3B69', '#FFF6E6'], ['#2F6B66', '#FFF6E6'], ['#8A4B2A', '#FFF6E6']];
   const face = name => FACES[hash(String(name).toLowerCase()) % FACES.length];
 
   /* ---- theme: the site setting, key "theme" = auto | light | dark | aurora ---- */
@@ -374,14 +378,13 @@
     const me = viewer(), mine = !!me && D.canEdit(r, me);
     const chips = r.tags.map(t => `<span class="chip" style="${paint(colorOf(t))}">${D.esc(t)}</span>`);
     if (r.servings) chips.push(`<span class="chip plain">${D.esc(/^\d/.test(r.servings) ? 'Serves ' + r.servings : r.servings)}</span>`);
-    if (me && !mine && r.owner) chips.push(`<span class="chip plain">${D.esc(r.owner)}’s recipe</span>`);
     if (!r.shared) chips.push('<span class="chip plain">Not shared</span>');
     const ings = (r.steps.length ? '<h2 class="htitle serif">Ingredients</h2>' : '') + (r.ingredients.length ? `<ul class="lines">${r.ingredients.map(ingLine).join('')}</ul>` : '<p class="empty">No ingredients yet.</p>');
     const steps = `<h2 class="htitle serif">Steps</h2><ol class="lines steps">${r.steps.map((s, i) => `<li><span class="num serif">${i + 1}</span><span>${D.esc(s)}</span></li>`).join('')}</ol>`;
     const seg = r.steps.length
       ? `<div class="seg" role="group" aria-label="Show"><button type="button" data-half="ing" aria-pressed="${half === 'ing'}">Ingredients · ${r.ingredients.length}</button><button type="button" data-half="steps" aria-pressed="${half === 'steps'}">Steps · ${r.steps.length}</button></div>`
       : '';
-    let html = `<article class="index" style="${paint(colorOf(r.tags[0]))}"><div class="strip"></div><div class="head">${chips.length ? `<div class="chips">${chips.join('')}</div>` : ''}<h1 class="serif" id="vName">${D.esc(r.name)}</h1></div><div class="rule"></div>${r.steps.length
+    let html = `<article class="index" style="${paint(colorOf(r.tags[0]))}"><div class="strip"></div><div class="head">${r.owner ? `<p class="by">Contributed by ${D.esc(r.owner)}</p>` : ''}${chips.length ? `<div class="chips">${chips.join('')}</div>` : ''}<h1 class="serif" id="vName">${D.esc(r.name)}</h1></div><div class="rule"></div>${r.steps.length
       // On a wide screen both halves show and the tab bar hides; on the phone the tab bar picks one
       ? `<div class="body both show-${half}">${seg}<div class="half ing">${ings}</div><div class="half steps">${steps}</div></div>`
       : `<div class="body">${ings}</div>`}</article>`;

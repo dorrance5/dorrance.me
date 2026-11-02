@@ -1,7 +1,7 @@
 /* Recipes — offline cache. Bump CACHE when a file the page uses changes.
    The recipes and the meal plan (recipes.json and /api/) always go to the network: the page keeps its own copy
    of them on the phone and says when it shows that copy. */
-const CACHE = 'recipes-v4';
+const CACHE = 'recipes-v5';
 const FILES = ['./', './index.html', './app.js', './data.js', './meals.js', '../shared/account.js',
   './favicon.svg', './favicon-32.png', './apple-touch-icon.png', './fonts/figtree-latin.woff2', './fonts/fraunces-latin.woff2'];
 
