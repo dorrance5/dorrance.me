@@ -87,13 +87,13 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
       return { padL: pad.left, padR: pad.right, padB: pad.bottom, vT: v.top, vB: v.bottom, panelR: pn.right, panelL: pn.left, menu: getComputedStyle(document.getElementById('menuBtn')).display !== 'none' }; });
     check(`${w}×${h}: the keypad fits on screen`, r.padB <= h + 0.5 && r.vT >= 0 && r.vB <= h, r);
     check(`${w}×${h}: the keypad spans the width`, w - r.padR <= 13 && r.padL - (docked ? r.panelR : 0) <= 13, r);
-    check(`${w}×${h}: ${docked ? 'history open on the left, no menu button' : 'history behind the menu button'}`, docked ? r.panelR > 200 && !r.menu : r.panelL >= w && r.menu, r);
-    if (!docked) {   // the menu button on the right, and history slides in from the right
+    check(`${w}×${h}: ${docked ? 'history open on the left, no menu button' : 'history behind the menu button'}`, docked ? r.panelR > 200 && !r.menu : r.panelR <= 0 && r.menu, r);
+    if (!docked) {   // the menu button on the left, and history slides in from the left
       const m = await p.$eval('#menuBtn', el => el.getBoundingClientRect().left);
       await p.tap('#menuBtn'); await p.waitForTimeout(450);
       const pn = await p.$eval('#panel', el => { const b = el.getBoundingClientRect(); return { l: b.left, r: b.right }; });
-      check(`${w}×${h}: the menu button on the right opens history from the right`, m > w / 2 && Math.abs(pn.r - w) <= 1 && pn.l > 0, { m, pn });
-      await p.tap('#scrim', { position: { x: 10, y: 10 } });
+      check(`${w}×${h}: the menu button on the left opens history from the left`, m < w / 2 && Math.abs(pn.l) <= 1 && pn.r < w, { m, pn });
+      await p.tap('#scrim', { position: { x: w - 10, y: 10 } });
     }
     if (docked) {
       await p.evaluate(() => localStorage.setItem('calculator.hist', JSON.stringify([{ expr: '1 + 2', res: { n: 3, d: 1 } }])));

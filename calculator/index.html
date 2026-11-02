@@ -49,13 +49,15 @@
   .glass::before{content:"";position:absolute;inset:0;pointer-events:none;
     background:linear-gradient(160deg,rgba(255,255,255,.32) 0%,rgba(255,255,255,.05) 34%,transparent 60%)}
 
-  /* Pinned to the screen's edges: on the home screen, iOS makes 100% height shorter than the screen by the status bar
-     and the home bar, which squeezed the display and left a gap under the keypad. */
+  /* Pinned to the screen's edges. On the home screen iOS makes the page (and so inset:0) shorter than the screen by
+     about the status bar and the home bar, which left a gap under the keypad; there 100vh is the whole screen, so the
+     home screen app takes that. In Safari 100vh would go under the toolbar, so the page keeps inset:0. */
   #app{position:fixed;inset:0;z-index:2;
        display:flex;flex-direction:column;
        padding:calc(env(safe-area-inset-top) + 8px) 12px calc(env(safe-area-inset-bottom) + 10px)}
 
   /* ---- display ---- */
+  @media (display-mode:standalone){ #app{bottom:auto;height:100vh} }
   .display{flex:1 0 auto;display:flex;flex-direction:column;justify-content:flex-end;
            padding:16px 16px 15px;border-radius:26px;margin-bottom:9px}
   .expr{font-size:15px;color:var(--dim);text-align:right;min-height:20px;font-variant-numeric:tabular-nums}
@@ -74,7 +76,7 @@
   .alt .sep{padding:0 6px;opacity:.45}
 
   /* ---- hamburger ---- */
-  .menu{position:absolute;top:13px;right:13px;width:40px;height:40px;border-radius:14px;
+  .menu{position:absolute;top:13px;left:13px;width:40px;height:40px;border-radius:14px;
         display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
         cursor:pointer;z-index:3;border:.5px solid rgba(255,255,255,.28)}
   .menu i{display:block;width:16px;height:1.6px;border-radius:1px;background:rgba(255,255,255,.85)}
@@ -125,17 +127,17 @@
   .scrim{position:fixed;inset:0;z-index:8;background:rgba(6,3,16,.5);opacity:0;pointer-events:none;
          transition:opacity .26s;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
   .scrim.on{opacity:1;pointer-events:auto}
-  .panel{position:fixed;top:0;bottom:0;right:0;z-index:9;width:min(350px,87vw);
-         border-radius:26px 0 0 26px;border-right-style:none;
+  .panel{position:fixed;top:0;bottom:0;left:0;z-index:9;width:min(350px,87vw);
+         border-radius:0 26px 26px 0;border-left-style:none;
          display:flex;flex-direction:column;
-         transform:translateX(101%);transition:transform .3s cubic-bezier(.3,.9,.25,1)}
+         transform:translateX(-101%);transition:transform .3s cubic-bezier(.3,.9,.25,1)}
   .panel.on{transform:translateX(0)}
   @media (prefers-reduced-motion:reduce){.panel{transition:none}.scrim{transition:none}}
 
   /* ---- full width at every size; wide and short screens (iPhone Duo: open 669×867 / 951×585, closed sideways 594×368) ---- */
   @media (orientation:portrait){ .pad{height:clamp(420px,72vh,680px)} }
   @media (orientation:landscape) and (min-width:800px){
-    .panel{transform:none;width:min(320px,34vw);transition:none;right:auto;left:0;border-radius:0 26px 26px 0;border-right-style:solid;border-left-style:none}
+    .panel{transform:none;width:min(320px,34vw);transition:none}
     .scrim,#menuBtn{display:none}
     #app{margin-left:min(320px,34vw)}
   }
@@ -145,8 +147,8 @@
     .expr{min-height:16px;font-size:13px}
     .value{font-size:34px;margin-top:0}
     .alt{margin-top:2px;min-height:14px}
-    .menu{top:9px;right:9px}
-    .display{padding-right:62px}
+    .menu{top:9px;left:9px}
+    .display{padding-left:62px}
     .pad{flex:1 1 0;height:auto}
     .zone.whole button,.zone.ops button{font-size:24px}
     .subpad button{font-size:19px}
