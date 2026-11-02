@@ -138,6 +138,9 @@ const scenes = [
   { name: '48-import-found-day', as: 'Madi', act: async p => { await openImport(p); await importFile(p); } },
   { name: '49-import-found-night', theme: 'dark', as: 'Madi', act: async p => { await openImport(p); await importFile(p); await layerEnd('importer')(p); } },
   { name: '50-settings-import-day', as: 'Madi', act: async p => { await settings(p); await p.$eval('#sImport', el => el.scrollIntoView({ block: 'center' })); } },
+  { name: '51-settings-categories-day', as: 'Mitchell', act: async p => { await settings(p); await p.$eval('#sCats', el => el.scrollIntoView({ block: 'center' })); } },
+  { name: '52-category-edit-day', as: 'Mitchell', act: async p => { await settings(p); await p.tap('#sCatList [data-cat="Soup"]'); await p.$eval('#sCats', el => el.scrollIntoView({ block: 'center' })); } },
+  { name: '53-category-edit-night', as: 'Mitchell', theme: 'dark', act: async p => { await settings(p); await p.tap('#sCatList [data-cat="Soup"]'); await p.$eval('#sCats', el => el.scrollIntoView({ block: 'center' })); } },
   { name: '47-box-shared-with-you-night', theme: 'dark', as: 'Madi', act: sharedWithYou }
 ];
 let signOutAll;   // ends every sign-in on the Worker, for the scene where a save finds the sign-in gone

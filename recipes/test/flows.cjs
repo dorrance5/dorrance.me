@@ -512,6 +512,7 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
   const beforeImport = gh.text, putsI = gh.puts.length;
   await tap('#nav [data-go="settings"]');
   await opened('settings');
+  check('Categories is only for the admin', await page.isHidden('#sCats'));
   await tap('#sImportBtn');
   await opened('importer');
   check('import: the message for the AI points at import.txt, and Import waits for a file', (await text('#iPrompt')).includes('/recipes/import.txt') && await page.isDisabled('#iGo'));
@@ -586,6 +587,31 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
   await tap('#sPeople [data-remove="madi"]');
   await page.waitForFunction(() => document.getElementById('sSay').textContent.includes('Madi'));
   check('Remove takes an account away', (await text('#sSay')) === 'Madi can no longer sign in.' && !(await user('madi')) && (await page.$$eval('#sPeople .who b', bs => bs.map(b => b.textContent))).join() === 'Jen');
+  // Categories: the admin renames, colors and deletes them, for every recipe
+  const beforeCats = gh.text;
+  const catNames = () => page.$$eval('#sCatList .who b', bs => bs.map(b => b.textContent));
+  check('Categories: each one, A to Z, with its count', (await catNames()).join() === 'Crock pot,Soup' && (await text('#sCatList .who small')) === '1 recipe', await catNames());
+  await tap('#sCatList [data-cat="Crock pot"]');
+  check('Edit: the name, four colors with carrot picked, Save, Cancel and Delete', (await page.inputValue('#catName')) === 'Crock pot'
+    && (await page.$$eval('#sCatList [data-color]', bs => bs.map(b => b.dataset.color + ':' + b.getAttribute('aria-checked')))).join() === 'tomato:false,carrot:true,butter:false,rust:false');
+  await phoneRules('settings, a category');
+  await page.fill('#catName', 'Slow cooker');
+  await tap('#sCatList [data-color="rust"]');
+  await tap('#sCatList [data-catsave]');
+  await page.waitForFunction(() => !document.getElementById('sCatSay').hidden);
+  let cf = JSON.parse(gh.text), cp = cf.recipes.find(r => r.id === 'pepperoncini-roast');
+  check('Save: one commit renames it on its recipes and keeps the color in the file', gh.puts.at(-1).message === 'Recipes: rename category Crock pot to Slow cooker rust (Mitchell)'
+    && cp.tags.join() === 'Slow cooker' && JSON.stringify(cf.colors) === '{"slow cooker":"rust"}' && (await text('#sCatSay')) === 'Crock pot is called Slow cooker now. The site updates in about a minute.', [gh.puts.at(-1).message, await text('#sCatSay')]);
+  check('the box has the new divider, in rust', (await page.$eval('#tabs [data-tab="Slow cooker"]', b => b.style.getPropertyValue('--c'))) === '#A94A1A');
+  await tap('#sCatList [data-cat="Slow cooker"]');
+  await tap('#sCatList [data-catdel]');
+  check('Delete asks for a second tap', (await text('#sCatList [data-catdel]')) === 'Tap again' && !!JSON.parse(gh.text).recipes.find(r => r.id === 'pepperoncini-roast').tags);
+  await tap('#sCatList [data-catdel]');
+  await page.waitForFunction(() => document.getElementById('sCatSay').textContent.includes('gone'));
+  cf = JSON.parse(gh.text);
+  check('Delete: off every recipe, the recipes stay, and the color goes', gh.puts.at(-1).message === 'Recipes: delete category Slow cooker (Mitchell)'
+    && !('tags' in cf.recipes.find(r => r.id === 'pepperoncini-roast')) && !('colors' in cf) && (await catNames()).join() === 'Soup');
+  gh.text = beforeCats;
   const me0 = meCalls();
   await page.reload();
   await page.waitForSelector('#deck .rc');

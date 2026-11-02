@@ -304,3 +304,28 @@ test('an import is one change: new ids, the importer as owner, sharing for all',
   assert.equal(D.apply(data, { type: 'import', forms: forms.slice(1), shared: true }, { key: 'nicole', name: 'Nicole' }).message, 'Recipes: import Pancakes');
   assert.equal(D.apply(data, { type: 'import', forms: [], shared: true }, null).message, null);
 });
+
+test('categories: rename, color and delete on every recipe, in one change', () => {
+  const data = { recipes: [
+    { id: 'a', name: 'A', tags: ['Grill', 'Soup'], ingredients: [] },
+    { id: 'b', name: 'B', tags: ['grill'], ingredients: [] },
+    { id: 'c', name: 'C', tags: ['BBQ', 'Grill'], ingredients: [] },
+    { id: 'd', name: 'D', ingredients: [] }
+  ], colors: { grill: 'rust' } };
+  const ren = D.apply(data, { type: 'category', name: 'Grill', to: '  BBQ ' }, null);
+  assert.equal(ren.message, 'Recipes: rename category Grill to BBQ');
+  assert.deepEqual(ren.data.recipes.map(r => r.tags), [['BBQ', 'Soup'], ['BBQ'], ['BBQ'], undefined], 'in its place, and once when a recipe has both');
+  assert.deepEqual(ren.data.colors, { bbq: 'rust' }, 'the color goes with the name');
+  assert.ok(!('tags' in ren.data.recipes[3]));
+  const col = D.apply(data, { type: 'category', name: 'Grill', to: 'Grill', color: 'butter' }, null);
+  assert.equal(col.message, 'Recipes: color category Grill butter');
+  assert.deepEqual(col.data.colors, { grill: 'butter' });
+  assert.equal(D.apply(data, { type: 'category', name: 'Grill', to: 'Grill', color: 'rust' }, null).message, null, 'no change, no commit');
+  assert.equal(D.apply(data, { type: 'category', name: 'Soup', to: 'Soups', color: 'nope' }, null).data.colors.soups, undefined, 'only the four colors');
+  assert.deepEqual(D.apply(data, { type: 'category', name: 'Soup', to: 'a, b' }, null).data.recipes[0].tags, ['Grill', 'a b'], 'no commas: they split categories');
+  const del = D.apply(data, { type: 'uncategory', name: 'grill' }, null);
+  assert.equal(del.message, 'Recipes: delete category grill');
+  assert.deepEqual(del.data.recipes.map(r => r.tags), [['Soup'], undefined, ['BBQ'], undefined]);
+  assert.ok(!('colors' in del.data) && !('tags' in del.data.recipes[1]));
+  assert.equal(D.apply(data, { type: 'uncategory', name: 'Nothing' }, null).message, null);
+});

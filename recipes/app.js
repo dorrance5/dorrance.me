@@ -36,13 +36,16 @@
   const BUTTER = ['#F6C945', '#2A1D17'];
   // Four colors: tomato, carrot, butter and rust. Soup and Crock pot keep theirs; any other category gets one of
   // the four, picked by a hash of its name, so it keeps its color. Each text color is at 4.5:1 or more on its color.
-  const FIXED = { soup: ['#C63A24', '#FFF6E6'], 'crock pot': ['#E07B2E', '#2A1D17'] };
-  const MORE = [['#C63A24', '#FFF6E6'], ['#E07B2E', '#2A1D17'], BUTTER, ['#A94A1A', '#FFF6E6']];
+  // The admin can pick one of the four for a category in Settings; the picks are `colors` in recipes.json.
+  const PALETTE = { tomato: ['#C63A24', '#FFF6E6'], carrot: ['#E07B2E', '#2A1D17'], butter: BUTTER, rust: ['#A94A1A', '#FFF6E6'] };
+  const FIXED = { soup: PALETTE.tomato, 'crock pot': PALETTE.carrot };
+  const MORE = D.COLORS.map(c => PALETTE[c]);
+  let picks = {};   // data.colors
   const hash = s => { let h = 0; for (const ch of s) h = (h * 31 + ch.codePointAt(0)) >>> 0; return h; };
   function colorOf(tag) {
     if (!tag) return BUTTER;
     const k = tag.toLowerCase();
-    return FIXED[k] || MORE[hash(k) % MORE.length];
+    return PALETTE[picks[k]] || FIXED[k] || MORE[hash(k) % MORE.length];
   }
   const ALL = ['var(--solid)', 'var(--on-solid)'];   // the All divider: ink by day, cream at night
   const paint = ([c, f]) => `--c:${c};--cf:${f}`;
@@ -87,6 +90,7 @@
   }
   function setData(d, fromCache) {
     data = d;
+    picks = d.colors && typeof d.colors === 'object' ? d.colors : {};
     recipes = D.forView(d);
     loaded = true;
     if (!fromCache) store.set(CACHE, JSON.stringify(d));
@@ -94,6 +98,7 @@
     if (viewId && isOpen(view) && !renderView(viewId) && top() === view) back(true);   // deleted on another phone
     if (isOpen(cook)) renderCook();
     drawMeals();   // the names and colors of the planned dinners
+    if (session() && session().admin) drawCatList();
   }
   function note(msg) { $('notice').hidden = !msg; $('notice').textContent = msg; }
 
@@ -381,7 +386,7 @@
     const seg = r.steps.length
       ? `<div class="seg" role="group" aria-label="Show"><button type="button" data-half="ing" aria-pressed="${half === 'ing'}">Ingredients · ${r.ingredients.length}</button><button type="button" data-half="steps" aria-pressed="${half === 'steps'}">Steps · ${r.steps.length}</button></div>`
       : '';
-    let html = `<article class="index" style="${paint(colorOf(r.tags[0]))}"><div class="strip"></div><div class="head">${r.owner ? `<p class="by">Contributed by ${D.esc(r.owner)}</p>` : ''}${chips.length ? `<div class="chips">${chips.join('')}</div>` : ''}<h1 class="serif" id="vName">${D.esc(r.name)}</h1></div><div class="rule"></div>${r.steps.length
+    let html = `<article class="index" style="${paint(colorOf(r.tags[0]))}"><div class="strip"></div><div class="head">${chips.length || r.owner ? `<div class="topline">${chips.length ? `<div class="chips">${chips.join('')}</div>` : ''}${r.owner ? `<p class="by">Contributed by ${D.esc(r.owner)}</p>` : ''}</div>` : ''}<h1 class="serif" id="vName">${D.esc(r.name)}</h1></div><div class="rule"></div>${r.steps.length
       // On a wide screen both halves show and the tab bar hides; on the phone the tab bar picks one
       ? `<div class="body both show-${half}">${seg}<div class="half ing">${ings}</div><div class="half steps">${steps}</div></div>`
       : `<div class="body">${ings}</div>`}</article>`;
@@ -902,6 +907,8 @@
     $('sImport').hidden = !s;
     $('aBox').hidden = !!s;
     $('sAdmin').hidden = !(s && s.admin);
+    $('sCats').hidden = !(s && s.admin);
+    if (s && s.admin) drawCatList();
     if (s) {
       $('sMeAv').textContent = (s.name[0] || '?').toUpperCase();
       $('sMeAv').style.cssText = paint(face(s.name));
@@ -919,6 +926,78 @@
     drawNav();
     renderBox();
   }
+  /* ---- the admin's categories: rename, pick a color, delete. Each is one save, for every recipe in the file. ---- */
+  const catList = $('sCatList'), catSay = $('sCatSay');
+  let catOpen = null, catColor = null, catBusy = false;   // the category being edited, and the color picked for it
+  const catSaid = msg => { catSay.hidden = !msg; catSay.textContent = msg; };
+  const colorName = tag => D.COLORS.find(c => PALETTE[c] === colorOf(tag));
+  function allCats() {   // every category in the file, A to Z, with how many recipes have it
+    const by = new Map();
+    for (const r of recipes) for (const t of r.tags) {
+      const k = t.toLowerCase(), c = by.get(k) || { name: t, n: 0 };
+      c.n++;
+      by.set(k, c);
+    }
+    return [...by.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }
+  function drawCatList() {
+    const cats = allCats();
+    if (catOpen && !cats.some(c => c.name === catOpen)) catOpen = null;
+    catList.innerHTML = cats.length ? cats.map(c => {
+      const nm = D.esc(c.name), count = `${c.n} recipe${c.n === 1 ? '' : 's'}`;
+      if (c.name !== catOpen) return `<div class="row"><span class="dot" style="${paint(colorOf(c.name))}"></span><span class="who"><b>${nm}</b><small>${count}</small></span><button class="pill" type="button" data-cat="${nm}" aria-label="Edit ${nm}">Edit</button></div>`;
+      const swatches = D.COLORS.map(k => `<button type="button" role="radio" data-color="${k}" aria-checked="${k === catColor}" aria-label="${k[0].toUpperCase() + k.slice(1)}" style="${paint(PALETTE[k])}"></button>`).join('');
+      return `<div class="row catedit"><div class="field"><label for="catName">Name</label><input id="catName" type="text" maxlength="40" autocomplete="off" enterkeyhint="done" value="${nm}"></div>`
+        + `<div class="swatches" role="radiogroup" aria-label="Color">${swatches}</div>`
+        + `<div class="catacts"><button class="pill solid" type="button" data-catsave>Save</button><button class="pill" type="button" data-catcancel>Cancel</button>`
+        + `<button class="pill del" type="button" data-catdel data-label="Delete" aria-label="Delete ${nm} from ${count}">Delete</button></div></div>`;
+    }).join('') : '<p class="nobody">No categories yet. Pick one when you add or edit a recipe.</p>';
+  }
+  async function saveCat(change, done) {
+    if (catBusy) return;
+    catBusy = true;
+    catList.querySelectorAll('button').forEach(b => { b.disabled = true; });
+    catSaid('');
+    try {
+      const out = await worker().save(change, viewer());
+      catOpen = null;
+      setData(out.data);
+      if (out.message) catSaid(`${done} The site updates in about a minute.`);
+    } catch (e) {
+      catSaid(failText(e, 'The change is not saved.'));
+      needsSignIn(e);
+    } finally {
+      catBusy = false;
+      drawCatList();
+    }
+  }
+  catList.addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if (!b || b.disabled) return;
+    if (b.dataset.cat != null) { catOpen = b.dataset.cat; catColor = colorName(catOpen); catSaid(''); drawCatList(); $('catName').focus(); return; }
+    if (b.dataset.color) {
+      catColor = b.dataset.color;
+      catList.querySelectorAll('[data-color]').forEach(x => x.setAttribute('aria-checked', x === b));
+      return;
+    }
+    if (b.dataset.catcancel != null) { catOpen = null; drawCatList(); return; }
+    const name = catOpen;
+    if (b.dataset.catsave != null) {
+      const to = $('catName').value.trim();
+      if (!to) return catSaid('Type a name, or use Delete.');
+      const recolor = catColor !== colorName(name);
+      saveCat({ type: 'category', name, to, color: recolor ? catColor : undefined }, to === name ? `${name} is ${catColor} now.` : `${name} is called ${to} now.`);
+      return;
+    }
+    if (b.dataset.catdel != null) {
+      if (!b.classList.contains('armed')) { b.classList.add('armed'); b.textContent = 'Tap again'; return; }   // asks for a second tap
+      saveCat({ type: 'uncategory', name }, `${name} is gone. Its recipes are still in the book.`);
+    }
+  });
+  catList.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.target.id === 'catName') { e.preventDefault(); catList.querySelector('[data-catsave]').click(); }
+  });
+
   // `tabbed`: from the tab bar, where Settings is a tab; else it opens over the screen that is open.
   function openSettings(need, tabbed) {
     $('sNeed').hidden = !need;

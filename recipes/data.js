@@ -147,6 +147,8 @@
   //   { type: 'copy', id, form }: a copy of someone else's recipe, in the place of theirs in the book
   //   { type: 'pull', id }: someone else's shared recipe into the book    { type: 'unpull', id }: out of the book
   //   { type: 'import', forms, shared }: the recipes of an import file (parseImport), each as a new recipe
+  //   { type: 'category', name, to, color }: rename the category `name` to `to` on every recipe (into another category
+  //     if one has that name), and give it a color from COLORS     { type: 'uncategory', name }: off every recipe
   function apply(data, change, who) {
     const list = data.recipes.slice();
     const at = list.findIndex(r => r && r.id === change.id), old = list[at];
@@ -196,7 +198,38 @@
       const what = added.length === 1 ? added[0].name : `${added.length} recipes`;
       return { data: { ...data, recipes: list }, recipe: added[0], recipes: added, message: `Recipes: import ${what}`.slice(0, 150) };
     }
+    if (change.type === 'category' || change.type === 'uncategory') return recategory(data, change);
     throw new Error('unknown change ' + change.type);
+  }
+
+  /* ---- categories: the admin renames, colors and deletes them. Picked colors are in `colors`, by the category in
+     lower case: "colors": { "grill": "rust" }. ---- */
+  const COLORS = ['tomato', 'carrot', 'butter', 'rust'];
+  const low = s => String(s).toLowerCase();
+  function recategory(data, change) {
+    const name = String(change.name), k = low(name), drop = change.type === 'uncategory';
+    const to = drop ? '' : String(change.to || '').replace(/,/g, ' ').trim().replace(/\s+/g, ' ').slice(0, 40) || name;
+    let used = 0;
+    const recipes = data.recipes.map(r => {
+      if (!r || !Array.isArray(r.tags) || !r.tags.some(t => low(t) === k)) return r;
+      used++;
+      const tags = [];
+      for (const t of r.tags) { const v = low(t) === k ? to : String(t); if (v && !tags.some(x => low(x) === low(v))) tags.push(v); }
+      const out = { ...r, tags };
+      if (!tags.length) delete out.tags;
+      return out;
+    });
+    const colors = { ...(data.colors && typeof data.colors === 'object' ? data.colors : {}) }, had = colors[k];
+    delete colors[k];
+    const color = drop ? null : COLORS.includes(change.color) ? change.color : colors[low(to)] || had;
+    if (color) colors[low(to)] = color;
+    const out = { ...data, recipes };
+    if (Object.keys(colors).length) out.colors = colors; else delete out.colors;
+    const renamed = to !== name, recolored = !drop && !!change.color && color !== had;
+    if (drop ? !used && !had : !renamed && !recolored) return { data, recipe: null, message: null };
+    const message = drop ? `Recipes: delete category ${name}`
+      : `Recipes: ${renamed ? `rename category ${name} to ${to}` : `color category ${name}`}${recolored ? ` ${color}` : ''}`;
+    return { data: out, recipe: null, recipes: [], message: message.slice(0, 150) };
   }
 
   /* ---- import files ---- */
@@ -418,6 +451,6 @@
     return { read, save };
   }
 
-  return { REPO, API, slug, uniqueId, cleanLine, cleanPaste, lines, tagList, normUrl, safeUrl, fromForm, toForm, parse, serialize,
+  return { COLORS, REPO, API, slug, uniqueId, cleanLine, cleanPaste, lines, tagList, normUrl, safeUrl, fromForm, toForm, parse, serialize,
     forView, canEdit, shelves, versionName, apply, parseImport, MAX_IMPORT, hl, esc, match, amount, timerFor, clock, toBase64, fromBase64, fail, api };
 });
