@@ -149,7 +149,8 @@
         "Buns",
         "Fries"
       ],
-      "owner": "Nicole"
+      "owner": "Nicole",
+      "shared": false
     },
     {
       "id": "megans-zuppa-toscana",
