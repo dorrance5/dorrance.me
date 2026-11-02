@@ -367,7 +367,16 @@ p.source { margin: 0; color: var(--soft); }
 .danger.armed { background: var(--link); color: var(--ground); }
 
 /* import */
-.manylink { align-self: flex-start; margin: -10px -14px 0; }
+.aicard {
+  display: flex; align-items: center; gap: 14px; width: 100%; min-height: 64px; padding: 14px 14px 14px 16px; border: 0; border-radius: 18px;
+  background: var(--note); color: var(--ink); text-align: left; box-shadow: 0 1px 0 var(--lift-edge);
+}
+.aicard > svg:first-child { flex: none; color: var(--carrot); }
+.aicard .aitext { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.aicard b { font-size: 16px; font-weight: 800; }
+.aicard small { font-size: 14px; line-height: 1.35; color: var(--soft); }
+.aicard .chev { flex: none; color: var(--soft); }
+.aicard:active { transform: scale(.98); }
 .howto h2 { font-size: 21px; font-weight: 800; }
 .howto ol { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 6px; font-size: 16px; line-height: 1.45; }
 .prompt { margin: 0; padding: 12px 14px; border-radius: 14px; background: var(--tint); font-size: 15px; line-height: 1.45; overflow-wrap: anywhere; -webkit-user-select: text; user-select: text; }
@@ -696,7 +705,11 @@ body.has-nav #plan .planbody, body.has-nav #grocery .grobody { padding-bottom: c
       <button class="pill tomato" id="eSave" type="button">Save</button>
     </div>
     <p class="alert" id="eError" role="alert" hidden></p>
-    <button class="pill quiet manylink" id="eMany" type="button" hidden>Want an AI to fill this out for you?</button>
+    <button class="aicard" id="eMany" type="button" hidden>
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 3.5l1.6 4.4a3 3 0 0 0 1.8 1.8L17.8 11.3l-4.4 1.6a3 3 0 0 0-1.8 1.8L10 19.1l-1.6-4.4a3 3 0 0 0-1.8-1.8L2.2 11.3l4.4-1.6a3 3 0 0 0 1.8-1.8z"/><path d="M18.5 2.5l.7 1.8a1.2 1.2 0 0 0 .7.7l1.8.7-1.8.7a1.2 1.2 0 0 0-.7.7l-.7 1.8-.7-1.8a1.2 1.2 0 0 0-.7-.7L15.3 5.7l1.8-.7a1.2 1.2 0 0 0 .7-.7z"/></svg>
+      <span class="aitext"><b>Want an AI to fill this out for you?</b><small>Send it a photo, a link or notes, and bring the recipe in here.</small></span>
+      <svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+    </button>
     <div class="field">
       <label for="fName">Name</label>
       <input id="fName" type="text" autocomplete="off" autocapitalize="sentences" enterkeyhint="next">
