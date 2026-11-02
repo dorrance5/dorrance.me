@@ -266,3 +266,41 @@ test('adding to the book, taking out, and a copy in place of someone else’s re
   const gone = D.apply({ ...BOOK, books: { nicole: ['chili'], madi: ['chili', 'tacos'] } }, { type: 'delete', id: 'chili' }, HAYDEN);
   assert.deepEqual(gone.data.books, { madi: ['tacos'] }, 'a deleted recipe leaves every book');
 });
+
+test('an import file: the format in import.txt, and what AI assistants send instead', () => {
+  const one = D.parseImport('{"dorranceRecipes":1,"recipes":[{"name":"Banana bread","servings":"1 loaf","tags":["Bread"],"ingredients":["3 bananas"],"steps":["1. Mash.","2) Bake 60 minutes."],"notes":"Ripe ones.","source":"Betty Crocker, page 112"}]}');
+  assert.deepEqual(one, { forms: [{ name: 'Banana bread', servings: '1 loaf', tags: 'Bread', ingredients: '3 bananas', steps: 'Mash.\nBake 60 minutes.', notes: 'Ripe ones.', source: 'Betty Crocker, page 112', shared: true }], skipped: [] });
+  // a bare list, "title", text with a line each, and a comma list of categories
+  const loose = D.parseImport(JSON.stringify([{ title: 'Toast', ingredients: '- 1 slice bread\n- Butter', directions: 'Toast it.\nButter it.', category: 'Breakfast, quick' }]));
+  assert.equal(loose.forms[0].name, 'Toast');
+  assert.equal(loose.forms[0].ingredients, '1 slice bread\nButter');
+  assert.equal(loose.forms[0].steps, 'Toast it.\nButter it.');
+  assert.equal(loose.forms[0].tags, 'Breakfast, quick');
+  // schema.org Recipe data in a @graph, with sections of steps
+  const ld = D.parseImport(JSON.stringify({ '@context': 'https://schema.org', '@graph': [{ '@type': 'WebPage', name: 'Not a recipe' }, { '@type': ['Recipe'], name: 'Pancakes', recipeYield: ['4', '4 servings'],
+    recipeIngredient: ['1 cup flour'], recipeInstructions: [{ '@type': 'HowToSection', name: 'Batter', itemListElement: [{ '@type': 'HowToStep', text: 'Whisk.' }, { '@type': 'HowToStep', text: 'Rest 5 minutes.' }] }], url: 'https://example.com/pancakes' }] }));
+  assert.deepEqual(ld.forms.map(f => [f.name, f.servings, f.steps, f.source]), [['Pancakes', '4', 'Whisk.\nRest 5 minutes.', 'https://example.com/pancakes']]);
+  // a chat answer with two code blocks and words around them; a recipe with no name is left out and counted
+  const chat = D.parseImport('Here you go!\n```json\n{"recipes":[{"name":"A","ingredients":[]},{"ingredients":["x"]}]}\n```\nAnd page 2:\n```json\n[{"name":"B","ingredients":["y"]}]\n```\nEnjoy.');
+  assert.deepEqual(chat.forms.map(f => f.name), ['A', 'B']);
+  assert.deepEqual(chat.skipped, [2]);
+  // JSON with words around it and no code block
+  assert.equal(D.parseImport('Sure: {"name":"C","ingredients":["z"]} — done.').forms[0].name, 'C');
+  assert.throws(() => D.parseImport('banana bread and pancakes'), e => e.code === 'importjson');
+  assert.throws(() => D.parseImport('{"recipes":[{"ingredients":["x"]}]}'), e => e.code === 'importnone');
+  assert.throws(() => D.parseImport(JSON.stringify(Array.from({ length: D.MAX_IMPORT + 1 }, (_, i) => ({ name: 'R' + i })))), e => e.code === 'importmany');
+});
+
+test('an import is one change: new ids, the importer as owner, sharing for all', () => {
+  const data = { recipes: [{ id: 'banana-bread', name: 'Banana bread', ingredients: [] }], books: { madi: ['x'] } };
+  const forms = D.parseImport('[{"name":"Banana bread","ingredients":["3 bananas"]},{"name":"Pancakes","ingredients":[]}]').forms;
+  const out = D.apply(data, { type: 'import', forms, shared: false }, { key: 'nicole', name: 'Nicole' });
+  assert.equal(out.message, 'Recipes: import 2 recipes');
+  assert.deepEqual(out.data.recipes.slice(1), [
+    { id: 'banana-bread-2', name: 'Banana bread', ingredients: ['3 bananas'], owner: 'Nicole', shared: false },
+    { id: 'pancakes', name: 'Pancakes', ingredients: [], owner: 'Nicole', shared: false }
+  ]);
+  assert.deepEqual(out.data.books, data.books);
+  assert.equal(D.apply(data, { type: 'import', forms: forms.slice(1), shared: true }, { key: 'nicole', name: 'Nicole' }).message, 'Recipes: import Pancakes');
+  assert.equal(D.apply(data, { type: 'import', forms: [], shared: true }, null).message, null);
+});

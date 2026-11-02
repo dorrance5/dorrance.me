@@ -20,7 +20,8 @@ This is version 2. Version 1, the aged recipe book with the Rolodex deck, was at
 
 1. **Done:** v1 moved to `/oldrecipes` (retired since). The new look: the recipe box, the recipe card, cooking mode with timers, add and edit, and Settings.
 2. **Done:** the meal plan and the grocery list, kept by the Worker. Everyone signed in has their own, and two people can share one: one asks in Settings, the other says yes. See "The meal plan and the grocery list" below.
-3. **Next:** import from a link, for signed-in people only. The Worker reads the page's schema.org Recipe data and the form fills in.
+3. **Done:** import many recipes at once from a file an AI assistant makes. See "Import" below.
+4. **Next:** import from a link, for signed-in people only. The Worker reads the page's schema.org Recipe data and the form fills in. (Today an AI can do this through the import file.)
 - Still open: an "Add to meal plan" button on the recipe card.
 
 ## Current state
@@ -55,9 +56,11 @@ This is version 2. Version 1, the aged recipe book with the Rolodex deck, was at
    - Signed in, after the admin's groups: "Meal plan and grocery list". Not sharing: "Share your meal plan and grocery list with one other person. They join when they say yes." and a chip for each other account; a tap asks that person. Asked someone: their face, "Waiting for Madi to say yes" and Cancel. Sharing: their face, "Shares your meal plan and grocery list" and Stop sharing, which asks for a second tap. Asked by someone: above that, a card "Hayden asked to share" with Join and No thanks (and, if you share with someone now, that you stop sharing with them), and a dot on Settings in the tab bar.
    - Signed out: "Sign in", or "Ask for an account" with "New here? Ask for an account".
    - "Theme on this phone": Auto, Day, Night.
-6. **Tab bar.** Signed in: Recipes, Meal plan, Grocery list and Settings, on the box and on the tabs. The meal tabs show once the plan has loaded. Signed out: no tab bar. From the box a tab opens over it; from one tab, the next takes its place at the same history depth, so the back button goes to the box.
-7. **Meal plan.** A carrot header: "Meal plan", "Dinners for Mitchell and Nicole" and their faces, and a This week / Next week switch with the dates. Then Monday to Sunday: the day and its number (today in tomato), and the dinner. A recipe is colored like its card, and its name opens it; a note ("Leftovers") is on the surface color. Each shows a small face for who planned it, and an × to clear the day. An empty day has a dashed "Plan dinner", which opens a sheet: "Dinner on Saturday, Oct 24", Close, a search, the recipes A to Z with a dot in their color, and "Or write something, like Leftovers" with Add. At the bottom, "Put N dinners on the grocery list" adds the week's recipes from today on that are not on the list yet, and opens the list; when there are none left to add, "Open the grocery list".
-8. **Grocery list.** A butter header: "Grocery list", "3 recipes · 12 to get", a chip for each recipe on the list with an × to take it off, and a dashed "Add a recipe" that goes to the box. "Add something else", then "To get": a checkbox per item, with the amounts and "For <recipes>" (or "Extra") under the name. The same item from two recipes is one line ("Buns"). Ticked items go to "Got it", struck through, with Clear. Empty: "Nothing on the list. Open a recipe and tap Add to grocery list."
+   - Signed in, after "Meal plan and grocery list": "Import recipes", which opens the import screen.
+6. **Import.** A full screen: Cancel, "Import recipes", Import N. A card "Let an AI do the typing" with three steps, the message to send the AI (it names `/recipes/import.txt`) and "Copy the message". Then "Choose the file" (.json, .txt or .md) and "Or paste it here". When the text reads, "N recipes in the file" with Untick all, a row per recipe with a checkbox, its name and "7 ingredients · 4 steps · Bread", and the "Share with the family" switch. A recipe with the same name as one in your book starts unticked, with "Already in your book". It opens from Settings, or from "Have a lot of recipes? Import a file" in the New recipe editor.
+7. **Tab bar.** Signed in: Recipes, Meal plan, Grocery list and Settings, on the box and on the tabs. The meal tabs show once the plan has loaded. Signed out: no tab bar. From the box a tab opens over it; from one tab, the next takes its place at the same history depth, so the back button goes to the box.
+8. **Meal plan.** A carrot header: "Meal plan", "Dinners for Mitchell and Nicole" and their faces, and a This week / Next week switch with the dates. Then Monday to Sunday: the day and its number (today in tomato), and the dinner. A recipe is colored like its card, and its name opens it; a note ("Leftovers") is on the surface color. Each shows a small face for who planned it, and an × to clear the day. An empty day has a dashed "Plan dinner", which opens a sheet: "Dinner on Saturday, Oct 24", Close, a search, the recipes A to Z with a dot in their color, and "Or write something, like Leftovers" with Add. At the bottom, "Put N dinners on the grocery list" adds the week's recipes from today on that are not on the list yet, and opens the list; when there are none left to add, "Open the grocery list".
+9. **Grocery list.** A butter header: "Grocery list", "3 recipes · 12 to get", a chip for each recipe on the list with an × to take it off, and a dashed "Add a recipe" that goes to the box. "Add something else", then "To get": a checkbox per item, with the amounts and "For <recipes>" (or "Extra") under the name. The same item from two recipes is one line ("Buns"). Ticked items go to "Got it", struck through, with Clear. Empty: "Nothing on the list. Open a recipe and tap Add to grocery list."
    - At night the carrot and butter headers keep their colors, with ink text; the rest uses the Night colors.
 
 ## The meal plan and the grocery list
@@ -105,6 +108,13 @@ This is version 2. Version 1, the aged recipe book with the Rolodex deck, was at
 - Fields the page does not know are kept when a recipe is edited.
 - Write the file with 2-space indentation and a newline at the end, so that the diffs are easy to read.
 
+## Import
+
+- `recipes/import.txt` is the instructions for an AI assistant: the file format, the rules for photos, links and cookbooks, and how the person imports the file. The page links it with `<link rel="help">` and a hidden line at the top of the body, so an AI that opens `dorrance.me/recipes` finds it. Keep it in step with `parseImport`.
+- The format: `{ "dorranceRecipes": 1, "recipes": [ { name, servings, tags, ingredients, steps, notes, source } ] }`. Up to 500 recipes in one import (`MAX_IMPORT`).
+- `parseImport(text)` in `recipes/data.js` also takes the JSON inside ```json code blocks (several are joined) or with chat text around it, a bare list, one recipe, and schema.org Recipe data (`recipeIngredient`, `recipeInstructions` with HowToStep and HowToSection, `recipeYield`, `recipeCategory`, `@graph`). It drops list marks and step numbers. Recipes with no name are left out and counted.
+- The save is one change, `{ type: 'import', forms, shared }`, so a whole cookbook is one commit: `Recipes: import N recipes (<person>)`. Each recipe gets a new `id` and the importer as `owner`.
+
 ## How saving works
 
 The site is static, so the page saves through the API Worker, and the Worker saves to GitHub with the contents API.
@@ -118,7 +128,7 @@ The site is static, so the page saves through the API Worker, and the Worker sav
   3. Apply the one change (add, edit or delete one recipe by `id`) to the data from step 1. Do not save the whole local copy. This keeps the edits that Claude makes from chat.
   4. PUT `message`, `content` (base64 UTF-8) and `sha`. The Worker checks that the content is JSON with a `recipes` list, adds the person's name to the message, and commits to `main`.
   5. If the PUT returns 409, do steps 1 to 4 one more time.
-- Commit titles: `Recipes: add <recipe> (<person>)`, `Recipes: edit <recipe> (<person>)`, `Recipes: delete <recipe> (<person>)`.
+- Commit titles: `Recipes: add <recipe> (<person>)`, `Recipes: edit <recipe> (<person>)`, `Recipes: delete <recipe> (<person>)`, `Recipes: import N recipes (<person>)`.
 - Each save starts a Pages deploy. The live file updates in about 1 minute. Signed in, the page loads the data through the Worker, so the change shows at once. Signed out, it loads `recipes.json` from the site.
 - Show plain errors. `recipes/data.js` has the words for each error code from the Worker, for example:
   - signed out: "You are signed out. Sign in again." with a "Sign in again" button that opens Settings over the editor.

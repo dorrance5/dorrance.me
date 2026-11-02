@@ -76,6 +76,17 @@ const MADI = {
   days: { '2026-10-23': dinner('madis-pasta-salad', "Madi's pasta salad", 'Madi'), '2026-10-25': { note: 'Dinner at Mom’s', by: 'Madi' } },
   list: { recipes: [{ id: 'madis-pasta-salad', name: "Madi's pasta salad" }], extra: [], got: [], gone: [] }
 };
+// The import screen, and a file like one an AI assistant makes from three cookbook pages (recipes/import.txt)
+const openImport = async p => { await settings(p); await p.click('#sImportBtn'); await p.waitForSelector('#importer.open'); };
+const importFile = async p => {
+  const file = JSON.stringify({ dorranceRecipes: 1, recipes: [
+    { name: 'Banana bread', servings: '1 loaf', tags: ['Bread'], ingredients: ['3 ripe bananas', '1/3 cup melted butter', '3/4 cup sugar', '1 egg', '1 tsp vanilla', '1 tsp baking soda', '1 1/2 cups flour'], steps: ['Heat the oven to 350.', 'Mash the bananas and stir in the butter.', 'Mix in the rest.', 'Bake for 60 minutes.'], source: 'Betty Crocker Cookbook, page 112' },
+    { name: 'Salmon bowls', ingredients: ['2 salmon fillets', 'Rice'] },
+    { name: 'Buttermilk pancakes', servings: '4', tags: ['Breakfast'], ingredients: ['2 cups flour', '2 cups buttermilk', '2 eggs'], steps: ['Whisk.', 'Cook 2 minutes a side.'] }
+  ] }, null, 2);
+  await p.setInputFiles('#iFile', { name: 'recipes-import.json', mimeType: 'application/json', buffer: Buffer.from(file) });
+  await p.waitForSelector('#iFound:not([hidden])');
+};
 const scenes = [
   { name: '01-box-signed-out-day' },
   { name: '02-box-signed-in-day', as: 'Madi' },
@@ -123,6 +134,10 @@ const scenes = [
   { name: '44-recipe-to-add-day', as: 'Madi', act: async p => { await sharedWithYou(p); await p.click('#otherList .sw-open'); await p.waitForSelector('#view.open'); await p.$eval('#vBody .bookbtn', b => b.scrollIntoView({ block: 'center' })); } },
   { name: '45-editor-share-switch-day', as: 'Mitchell', act: async p => { await openRecipe(ZUPPA)(p); await p.click('#editBtn'); await p.waitForSelector('#editor.open'); await layerEnd('editor')(p); } },
   { name: '46-your-copy-day', as: 'Madi', act: async p => { await openRecipe(ZUPPA)(p); await p.click('#editBtn'); await p.waitForSelector('#editor.open'); } },
+  { name: '47-import-day', as: 'Madi', act: openImport },
+  { name: '48-import-found-day', as: 'Madi', act: async p => { await openImport(p); await importFile(p); } },
+  { name: '49-import-found-night', theme: 'dark', as: 'Madi', act: async p => { await openImport(p); await importFile(p); await layerEnd('importer')(p); } },
+  { name: '50-settings-import-day', as: 'Madi', act: async p => { await settings(p); await p.$eval('#sImport', el => el.scrollIntoView({ block: 'center' })); } },
   { name: '47-box-shared-with-you-night', theme: 'dark', as: 'Madi', act: sharedWithYou }
 ];
 let signOutAll;   // ends every sign-in on the Worker, for the scene where a save finds the sign-in gone

@@ -202,9 +202,9 @@
   /* ---- full screens over the box ---- */
   // Each open screen is one history entry, so the phone's back button closes the top one.
   const page = $('page'), nav = $('nav');
-  const view = $('view'), cook = $('cook'), cookIng = $('cookIng'), editor = $('editor'), settings = $('settings');
+  const view = $('view'), cook = $('cook'), cookIng = $('cookIng'), editor = $('editor'), settings = $('settings'), importer = $('importer');
   const plan = $('plan'), grocery = $('grocery'), pick = $('pick');
-  const layers = [view, cook, cookIng, editor, settings, plan, grocery, pick];
+  const layers = [view, cook, cookIng, editor, importer, settings, plan, grocery, pick];
   const tabLayers = [plan, grocery, settings], mealLayers = [plan, grocery, pick];
   const stack = [];
   // Sideways on a wide screen (the open iPhone Duo), an open recipe sits beside the box instead of over it, and the
@@ -640,6 +640,7 @@
     start = JSON.stringify(values());
     $('eTitle').textContent = copy ? 'Your copy' : r ? 'Edit recipe' : 'New recipe';
     eDelete.hidden = !editId;
+    $('eMany').hidden = !!r;   // a new recipe can be many, from a file
     disarm();
     error('');
     open(editor);
@@ -749,6 +750,116 @@
     }
   });
 
+  /* ---- import: many recipes at once, from a file an AI assistant made by following import.txt ---- */
+  const iGo = $('iGo'), iCancel = $('iCancel'), iError = $('iError'), iPaste = $('iPaste'), iList = $('iList');
+  let found = [], iShareOn = true, iBusy = false, iT = 0;   // found: the file's recipes as the editor's fields, with `on` and `dup`
+  const askText = () => `I want to import recipes into the Dorrance family recipe book. Read ${location.origin}/recipes/import.txt and follow it to make the import file. I'll send you the recipes next.`;
+  function openImport() {
+    if (!session()) return openSettings(true);
+    if (top() === editor && dirty() && !confirm('Discard the changes to this recipe?')) return;
+    clearTimeout(iT);
+    iPaste.value = '';
+    $('iPasteHint').textContent = '';
+    found = [];
+    iShareOn = true;
+    iErr('');
+    $('iPrompt').textContent = askText();
+    drawFound();
+    if (top() === editor) swap(importer); else open(importer);
+  }
+  function iErr(msg, withSettings) {
+    iError.hidden = !msg;
+    iError.innerHTML = msg ? D.esc(msg) + (withSettings ? '<br><button class="pill solid" type="button" data-settings>Sign in again</button>' : '') : '';
+    if (msg) importer.scrollTop = 0;
+  }
+  iError.addEventListener('click', e => { if (e.target.closest('[data-settings]')) openSettings(true); });
+  const many = (n, word) => n ? `${n} ${word}${n === 1 ? '' : 's'}` : `no ${word}s`;
+  function drawCounts() {
+    const n = found.filter(f => f.on).length;
+    iGo.disabled = iBusy || !n;
+    iGo.textContent = iBusy ? 'Importing…' : n ? `Import ${n}` : 'Import';
+    iCancel.disabled = iBusy;
+    $('iAll').textContent = n === found.length ? 'Untick all' : 'Tick all';
+    $('iShare').setAttribute('aria-checked', iShareOn);
+    $('iShareHint').textContent = iShareOn ? 'Everyone with an account can see them and add them to their book.' : 'Only you and the person you share a meal plan with see them.';
+  }
+  function drawFound() {
+    $('iFound').hidden = !found.length;
+    $('iCount').textContent = `${found.length} recipe${found.length === 1 ? '' : 's'} in the file`;
+    iList.innerHTML = found.map((f, i) => {
+      const bits = [many(D.lines(f.ingredients).length, 'ingredient'), many(D.lines(f.steps).length, 'step')];
+      if (f.tags) bits.push(f.tags);
+      return `<li><label><input type="checkbox" data-i="${i}"${f.on ? ' checked' : ''}><span class="what"><b>${D.esc(f.name)}</b>`
+        + `<small>${D.esc(bits.join(' · '))}</small>${f.dup ? '<small class="dup">Already in your book</small>' : ''}</span></label></li>`;
+    }).join('');
+    drawCounts();
+  }
+  // Reads what is in the paste box: a file that was chosen lands there too.
+  function readImport() {
+    iErr('');
+    $('iPasteHint').textContent = '';
+    found = [];
+    if (iPaste.value.trim()) {
+      try {
+        const { forms, skipped } = D.parseImport(iPaste.value);
+        const have = new Set(shelf.book.map(r => D.slug(r.name)));
+        found = forms.map(f => { const dup = have.has(D.slug(f.name)); return { ...f, dup, on: !dup }; });
+        if (skipped.length) $('iPasteHint').textContent = `${skipped.length} with no name left out`;
+      } catch (e) {
+        if (!e.code) console.error(e);
+        iErr(e.code ? e.message : 'Something went wrong.');
+      }
+    }
+    drawFound();
+  }
+  iPaste.addEventListener('input', () => { clearTimeout(iT); iT = setTimeout(readImport, 350); });
+  $('iPick').addEventListener('click', () => $('iFile').click());
+  $('iFile').addEventListener('change', async e => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    if (file.size > 5e6) { iErr('This file is too big. An import file is text, well under 5 MB.'); return; }
+    iPaste.value = await file.text();
+    readImport();
+  });
+  $('iCopy').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(askText()); toast('Copied. Paste it into your AI chat.'); }
+    catch (e) {   // no clipboard: select the message so the phone's Copy works
+      const range = document.createRange();
+      range.selectNodeContents($('iPrompt'));
+      getSelection().removeAllRanges();
+      getSelection().addRange(range);
+    }
+  });
+  iList.addEventListener('change', e => { const b = e.target.closest('[data-i]'); if (b) { found[+b.dataset.i].on = b.checked; drawCounts(); } });
+  $('iAll').addEventListener('click', () => { const on = found.some(f => !f.on); found.forEach(f => { f.on = on; }); drawFound(); });
+  $('iShare').addEventListener('click', () => { iShareOn = !iShareOn; drawCounts(); });
+  iCancel.addEventListener('click', () => back(true));
+  $('eMany').addEventListener('click', openImport);
+  $('sImportBtn').addEventListener('click', openImport);
+  // All the ticked recipes in one save, so one commit.
+  iGo.addEventListener('click', async () => {
+    const forms = found.filter(f => f.on);
+    if (iBusy || !forms.length) return;
+    if (!session()) return openSettings(true);
+    iErr('');
+    iBusy = true;
+    drawCounts();
+    try {
+      const out = await worker().save({ type: 'import', forms, shared: iShareOn }, viewer());
+      setData(out.data);
+      toast(`Imported ${forms.length === 1 ? out.recipe.name : forms.length + ' recipes'}. The site updates in about a minute.`);
+      found = [];
+      iPaste.value = '';
+      closeAll();
+    } catch (e) {
+      iErr(failText(e, 'Nothing was imported.'), needsSignIn(e));
+    } finally {
+      iBusy = false;
+      drawCounts();
+    }
+  });
+
   /* ---- settings: the account, the theme, and for the admin, the accounts ---- */
   const aForm = $('aForm'), aName = $('aName'), aPass = $('aPass'), aGo = $('aGo'), aSwap = $('aSwap'), aResult = $('aResult');
   const say = $('sSay'), people = $('sPeople'), waitList = $('sWaitList');
@@ -764,6 +875,7 @@
   function account() {
     const s = session();
     $('sMe').hidden = !s;
+    $('sImport').hidden = !s;
     $('aBox').hidden = !!s;
     $('sAdmin').hidden = !(s && s.admin);
     if (s) {

@@ -1,0 +1,81 @@
+HOW TO MAKE A RECIPE IMPORT FILE FOR DORRANCE.ME/RECIPES
+
+These instructions are for an AI assistant. A person wants to put recipes into the
+Dorrance family recipe book at https://dorrance.me/recipes. They send you recipes in
+any form: photos of cookbook pages, screenshots, links, typed or spoken notes. You turn
+them into one import file. They open the recipe book, sign in, and import the file.
+
+WHAT TO MAKE
+
+One JSON file with every recipe in it. One file can hold one recipe or a whole cookbook.
+Name it recipes-import.json if you can make files. If you can't, write the JSON in one
+code block so the person can copy it and paste it into the import screen.
+
+{
+  "dorranceRecipes": 1,
+  "recipes": [
+    {
+      "name": "Megan's zuppa toscana",
+      "servings": "6",
+      "tags": ["Soup"],
+      "ingredients": [
+        "5 strips bacon (thick-cut)",
+        "1 lb Italian sausage (casings removed)",
+        "1 small bunch kale",
+        "Salt and pepper"
+      ],
+      "steps": [
+        "Cut the bacon into small pieces. Cook it in a pot on medium-high for 5 minutes.",
+        "Add the sausage. Cook about 15 minutes until browned and crispy."
+      ],
+      "notes": "Half-and-half works in place of cream.",
+      "source": "https://www.saltandlavender.com/sausage-bacon-potato-and-kale-soup/"
+    }
+  ]
+}
+
+THE FIELDS
+
+name         Required. The recipe's title, in sentence case ("Banana bread").
+ingredients  Required, but it can be an empty list. One ingredient per item. Put the
+             amount first: "2 cups flour", "1/2 tsp salt", "3 eggs". An ingredient with
+             no amount is fine: "Salt and pepper".
+steps        One step per item, in order. Leave out the numbers ("1.", "Step 2"). Write
+             times as words a timer can find: "Bake for 25 minutes", "Simmer 10 to 15
+             minutes". Leave the field out if the recipe has no steps.
+servings     Text: "6", "4 to 6", "2 loaves". Leave it out if unknown.
+tags         Categories, usually one: "Soup", "Dessert", "Crock pot", "Breakfast",
+             "Grill", "Salad", "Bread". Keep them short. Leave the field out if none fits.
+notes        Tips, swaps, the cook's comments. Leave it out if there are none.
+source       Where the recipe is from: a link, or text such as "Betty Crocker Cookbook,
+             page 112" or "Grandma Dorrance".
+
+Leave out any field that would be empty. Do not add id, owner or shared: the recipe book
+fills those in.
+
+RULES
+
+- Copy the recipe; do not invent. If a photo is cut off or hard to read, keep what you can
+  read and say what was missing in your reply, not in the file.
+- Fix obvious misreads from photos ("1 cup fl0ur" is "1 cup flour"). Keep the cook's words
+  otherwise.
+- A recipe that runs over two pages or two photos is one recipe.
+- A page with two recipes is two recipes.
+- An ingredient list with parts ("For the sauce", "For the topping") stays one flat list.
+  Do not add heading lines. Put the part in parentheses at the end when it matters:
+  "2 tbsp butter (for the sauce)".
+- Use plain text: no Markdown, HTML or emoji inside the fields.
+- For a whole cookbook, put every recipe in the same file. Up to 500 recipes fit in one
+  import; make more files if there are more.
+- From a link, use the recipe on the page, not the story above it. Set "source" to the
+  link.
+
+HOW THE PERSON IMPORTS IT
+
+1. Open https://dorrance.me/recipes and sign in.
+2. Open Settings and tap "Import recipes". (Or tap + and then "Import a file".)
+3. Choose the file, or paste what you wrote.
+4. Check the list, untick anything they don't want, and tap Import.
+
+The recipes go into that person's book, shared with the family unless they switch that
+off. A recipe that is already in their book by the same name starts unticked.

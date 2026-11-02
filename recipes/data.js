@@ -146,6 +146,7 @@
   //   { type: 'add', form } | { type: 'edit', id, form } | { type: 'delete', id }
   //   { type: 'copy', id, form }: a copy of someone else's recipe, in the place of theirs in the book
   //   { type: 'pull', id }: someone else's shared recipe into the book    { type: 'unpull', id }: out of the book
+  //   { type: 'import', forms, shared }: the recipes of an import file (parseImport), each as a new recipe
   function apply(data, change, who) {
     const list = data.recipes.slice();
     const at = list.findIndex(r => r && r.id === change.id), old = list[at];
@@ -185,7 +186,92 @@
       const name = old ? old.name : change.id;
       return { data: out, recipe: old || null, message: out === data ? null : `Recipes: take ${name} out of a book` };
     }
+    if (change.type === 'import') {   // many recipes at once, from an import file (parseImport), all owned by `who`
+      const added = change.forms.map(form => {
+        const recipe = fromForm({ ...form, shared: change.shared }, uniqueId(form.name, list), null, who && who.name);
+        list.push(recipe);
+        return recipe;
+      });
+      if (!added.length) return { data, recipe: null, recipes: [], message: null };
+      const what = added.length === 1 ? added[0].name : `${added.length} recipes`;
+      return { data: { ...data, recipes: list }, recipe: added[0], recipes: added, message: `Recipes: import ${what}`.slice(0, 150) };
+    }
     throw new Error('unknown change ' + change.type);
+  }
+
+  /* ---- import files ---- */
+  // An AI assistant makes these from photos, links or notes, following recipes/import.txt:
+  // { "dorranceRecipes": 1, "recipes": [{ name, servings, tags, ingredients, steps, notes, source }] }. The reader is
+  // forgiving, since assistants vary: a bare list, one recipe, schema.org Recipe data (recipeIngredient,
+  // recipeInstructions, recipeYield, recipeCategory, @graph), "title", "directions" and the like, a chat's ```json code
+  // blocks (several are joined), or a list as one text with a line each. Returns { forms, skipped }: the recipes as the
+  // editor's fields (toForm), and the numbers of the entries that had no name.
+  const MAX_IMPORT = 500;
+  const clip = (v, n) => String(v).replace(/\s+/g, ' ').trim().slice(0, n);
+  function textOf(v) {
+    if (v == null) return '';
+    if (typeof v === 'string' || typeof v === 'number') return String(v).trim();
+    if (Array.isArray(v)) return textOf(v[0]);
+    if (typeof v === 'object') return textOf(v.text || v.name || v.url || v['@id'] || '');
+    return '';
+  }
+  // Ingredients or steps: strings, lines in one string, HowToStep and HowToSection objects, or groups of items.
+  function itemsOf(v, out = []) {
+    if (v == null) return out;
+    if (typeof v === 'string' || typeof v === 'number') { for (const l of String(v).split(/\r\n|\r|\n/)) { const c = clip(cleanLine(l), 1000); if (c) out.push(c); } return out; }
+    if (Array.isArray(v)) { for (const x of v) itemsOf(x, out); return out; }
+    if (typeof v === 'object') {
+      const kids = v.itemListElement || v.items || v.ingredients || v.steps || v.list;
+      if (kids) return itemsOf(kids, out);
+      return itemsOf(v.text || v.name || '', out);
+    }
+    return out;
+  }
+  const pick = (r, keys) => { for (const k of keys) if (r[k] != null && r[k] !== '') return r[k]; return undefined; };
+  function tagsOf(v) {
+    const list = Array.isArray(v) ? v.map(textOf) : typeof v === 'string' ? v.split(',') : [];
+    return tagList(list.map(t => clip(t, 30)).join(','));
+  }
+  // One entry of the file as the editor's fields, or null without a name.
+  function importForm(r) {
+    if (!r || typeof r !== 'object' || Array.isArray(r)) return null;
+    const name = clip(textOf(pick(r, ['name', 'title', 'headline'])), 200);
+    if (!name) return null;
+    const lim = a => a.slice(0, 300).join('\n');
+    return {
+      name, servings: clip(textOf(pick(r, ['servings', 'serves', 'yield', 'recipeYield', 'makes'])), 60),
+      tags: tagsOf(pick(r, ['tags', 'categories', 'category', 'recipeCategory']) || []).join(', '),
+      ingredients: lim(itemsOf(pick(r, ['ingredients', 'recipeIngredient', 'ingredient']))),
+      steps: lim(itemsOf(pick(r, ['steps', 'recipeInstructions', 'instructions', 'directions', 'method']))),
+      notes: String(textOf(pick(r, ['notes', 'note', 'tips'])) || '').slice(0, 4000),
+      source: clip(textOf(pick(r, ['source', 'url', 'sourceUrl', 'link'])), 500),
+      shared: true
+    };
+  }
+  const isRecipe = x => x && typeof x === 'object' && [].concat(x['@type'] || []).some(t => String(t).toLowerCase() === 'recipe');
+  function entriesOf(raw) {
+    if (Array.isArray(raw)) return raw.flatMap(x => Array.isArray(x) || (x && (x.recipes || x['@graph'])) ? entriesOf(x) : [x]);
+    if (!raw || typeof raw !== 'object') return [];
+    if (Array.isArray(raw.recipes)) return raw.recipes;
+    if (Array.isArray(raw['@graph'])) return raw['@graph'].filter(isRecipe);
+    return [raw];
+  }
+  function readJson(text) {
+    try { return JSON.parse(text); } catch (e) {}
+    const a = text.search(/[[{]/), b = Math.max(text.lastIndexOf('}'), text.lastIndexOf(']'));
+    if (a < 0 || b < a) throw fail('importjson');
+    try { return JSON.parse(text.slice(a, b + 1)); } catch (e) { throw fail('importjson'); }
+  }
+  function parseImport(text) {
+    const s = String(text || '').replace(/^\uFEFF/, '').trim();
+    if (!s) throw fail('importjson');
+    const blocks = [...s.matchAll(/```[a-zA-Z]*[ \t]*\r?\n([\s\S]*?)```/g)].map(m => m[1].trim()).filter(Boolean);
+    const entries = (blocks.length ? blocks : [s]).flatMap(b => entriesOf(readJson(b)));
+    const forms = [], skipped = [];
+    entries.forEach((r, i) => { const f = importForm(r); if (f) forms.push(f); else skipped.push(i + 1); });
+    if (!forms.length) throw fail('importnone');
+    if (forms.length > MAX_IMPORT) throw fail('importmany');
+    return { forms, skipped };
   }
 
   /* ---- search ---- */
@@ -275,7 +361,10 @@
     json: 'recipes.json on GitHub is not valid JSON. Fix it in GitHub first.',
     file: 'The change would break recipes.json, so it is not saved.',
     gone: 'This recipe is no longer in recipes.json. Someone deleted it after this page loaded.',
-    notyours: 'This recipe is someone else’s now. Edit makes your own copy of it.'
+    notyours: 'This recipe is someone else’s now. Edit makes your own copy of it.',
+    importjson: 'Recipes can’t read this. Ask your AI to follow dorrance.me/recipes/import.txt and make the file again.',
+    importnone: 'There are no recipes in this. Each recipe needs a name.',
+    importmany: `That is more than ${MAX_IMPORT} recipes. Split them into more than one file.`
   };
   // An Error with a plain message. `code` is one of the words above, or a status number.
   function fail(code) {
@@ -330,5 +419,5 @@
   }
 
   return { REPO, API, slug, uniqueId, cleanLine, cleanPaste, lines, tagList, normUrl, safeUrl, fromForm, toForm, parse, serialize,
-    forView, canEdit, shelves, versionName, apply, hl, esc, match, amount, timerFor, clock, toBase64, fromBase64, fail, api };
+    forView, canEdit, shelves, versionName, apply, parseImport, MAX_IMPORT, hl, esc, match, amount, timerFor, clock, toBase64, fromBase64, fail, api };
 });

@@ -481,6 +481,56 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
   check('delete: the Dessert divider is gone with it', !(await page.$('#tabs [data-tab="Dessert"]')));
   check('delete: a toast says so', (await text('#toast')) === 'Deleted Grandma’s crème brûlée.');
 
+  /* ---- import: many recipes from a file an AI assistant made (recipes/import.txt) ---- */
+  const beforeImport = gh.text, putsI = gh.puts.length;
+  await tap('#nav [data-go="settings"]');
+  await opened('settings');
+  await tap('#sImportBtn');
+  await opened('importer');
+  check('import: the message for the AI points at import.txt, and Import waits for a file', (await text('#iPrompt')).includes('/recipes/import.txt') && await page.isDisabled('#iGo'));
+  const aiFile = 'Sure! Here is the file:\n```json\n' + JSON.stringify({ dorranceRecipes: 1, recipes: [
+    { name: 'Salmon bowls', ingredients: ['2 salmon fillets'] },
+    { name: 'Banana bread', servings: '1 loaf', tags: ['Bread'], ingredients: ['3 ripe bananas', '2 cups flour'], steps: ['1. Mash the bananas.', '2. Bake for 60 minutes.'], source: 'Betty Crocker Cookbook, page 112' },
+    { title: 'Pancakes', recipeIngredient: ['1 cup flour', '1 egg'], recipeInstructions: [{ '@type': 'HowToStep', text: 'Whisk.' }], recipeYield: ['4'] },
+    { ingredients: ['no name'] }
+  ] }, null, 2) + '\n```\nLet me know if you want changes.';
+  await page.setInputFiles('#iFile', { name: 'recipes-import.json', mimeType: 'application/json', buffer: Buffer.from(aiFile) });
+  await page.waitForSelector('#iFound:not([hidden])');
+  const iRows = await page.$$eval('#iList li', ls => ls.map(l => [l.querySelector('b').textContent, l.querySelector('input').checked, !!l.querySelector('.dup')]));
+  check('import: three recipes, the one already in the book unticked, the one with no name left out', JSON.stringify(iRows) === JSON.stringify([['Salmon bowls', false, true], ['Banana bread', true, false], ['Pancakes', true, false]]) && (await text('#iPasteHint')) === '1 with no name left out', iRows);
+  check('import: the button counts the ticked ones', (await text('#iGo')) === 'Import 2');
+  await phoneRules('the import screen');
+  await tap('#iGo');
+  await closed('importer');
+  put = gh.puts.at(-1);
+  const bread = recipeIn(gh.text, 'banana-bread'), cakes = recipeIn(gh.text, 'pancakes');
+  check('import: one commit for both', gh.puts.length === putsI + 1 && put.message === 'Recipes: import 2 recipes (Madi)', put.message);
+  check('import: in file order, owned by Madi, the step numbers gone', JSON.stringify(bread) === JSON.stringify({ id: 'banana-bread', name: 'Banana bread', servings: '1 loaf', tags: ['Bread'], ingredients: ['3 ripe bananas', '2 cups flour'], steps: ['Mash the bananas.', 'Bake for 60 minutes.'], source: 'Betty Crocker Cookbook, page 112', owner: 'Madi' })
+    && cakes.servings === '4' && cakes.steps.join() === 'Whisk.' && cakes.owner === 'Madi', { bread, cakes });
+  check('import: back on the box with both cards, and a toast', (await depth()) === 0 && (await names()).includes('Banana bread') && (await names()).includes('Pancakes') && (await text('#toast')).startsWith('Imported 2 recipes'));
+  await tap('#nav [data-go="settings"]');
+  await opened('settings');
+  await tap('#sImportBtn');
+  await opened('importer');
+  await page.fill('#iPaste', 'Here are your recipes: banana bread and pancakes.');
+  await page.waitForSelector('#iError:not([hidden])');
+  check('import: text that is not an import file says to ask the AI again', (await text('#iError')).includes('import.txt') && await page.isDisabled('#iGo') && await page.isHidden('#iFound'));
+  await tap('#iCancel');
+  await closed('importer');
+  await tap('#nav [data-go="box"]');
+  await closed('settings');
+  await tap('#addBtn');
+  await opened('editor');
+  await tap('#eMany');
+  await opened('importer');
+  await closed('editor');
+  check('import: New recipe offers it too, in the place of the editor', await page.isHidden('#editor') && (await depth()) === 1);
+  await tap('#iCancel');
+  await closed('importer');
+  gh.text = beforeImport;   // the rest of the checks expect the book without the imported recipes
+  await page.reload();
+  await page.waitForSelector('#deck .rc');
+
   /* ---- the admin ---- */
   await tap('#nav [data-go="settings"]');
   await opened('settings');

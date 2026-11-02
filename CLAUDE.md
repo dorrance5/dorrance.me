@@ -69,6 +69,7 @@ This is a static site of small phone apps. GitHub Pages deploys `main` with `.gi
 - Make the screenshots: `NODE_PATH=<folder with playwright> node recipes/test/shots.cjs <output folder>`
 - Render the icons: `NODE_PATH=<folder with playwright> node docs/icons/render-recipes.cjs`
 - Each recipe in `recipes/recipes.json` has an `owner`: the name of the account it belongs to. When you add a recipe from chat, set `owner` to the person it is for, and leave out `shared` unless they do not want it shared (`"shared": false`). `docs/recipes-handoff.md` has the format.
+- `recipes/import.txt` tells AI assistants how to make an import file. Keep it in step with `parseImport` in `recipes/data.js`.
 - The browser checks and most unit tests use `recipes/test/fixture-recipes.json`, a frozen copy of the book, so edits to `recipes/recipes.json` do not break them.
 
 ## Road Trip

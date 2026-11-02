@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Dorrance Family Recipe Book</title>
+<link rel="help" href="import.txt" title="How an AI assistant makes a recipe import file">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -341,6 +342,26 @@ p.source { margin: 0; color: var(--soft); }
 .danger { align-self: center; margin-top: 8px; border-color: var(--link); color: var(--link); }
 .danger.armed { background: var(--link); color: var(--ground); }
 
+/* import */
+.manylink { align-self: flex-start; margin: -10px -14px 0; }
+.howto h2 { font-size: 21px; font-weight: 800; }
+.howto ol { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 6px; font-size: 16px; line-height: 1.45; }
+.prompt { margin: 0; padding: 12px 14px; border-radius: 14px; background: var(--tint); font-size: 15px; line-height: 1.45; overflow-wrap: anywhere; -webkit-user-select: text; user-select: text; }
+.howto .pill { align-self: flex-start; }
+#iPaste { font-size: 16px; font-family: ui-monospace, Menlo, monospace; }
+.foundhead { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.foundhead h2 { margin: 0 4px; font-size: 13px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--soft); }
+.found { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; border-radius: 22px; background: var(--surface); box-shadow: 0 1px 0 var(--lift-edge); overflow: hidden; }
+.found li + li { border-top: 1px solid var(--line); }
+.found label { display: flex; align-items: flex-start; gap: 12px; min-height: 60px; padding: 12px 16px; }
+.found input { flex: none; width: 24px; height: 24px; margin: 2px 0 0; accent-color: var(--tomato); }
+.found .what { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.found b { font-size: 17px; font-weight: 800; overflow-wrap: anywhere; }
+.found small { font-size: 14px; color: var(--soft); }
+.found small.dup { color: var(--link); font-weight: 700; }
+.say2 { margin: 0; font-size: 15px; line-height: 1.45; color: var(--soft); }
+#sImport .box .pill { align-self: flex-start; }
+
 /* settings */
 .sethead { display: flex; flex-direction: column; gap: 4px; padding: calc(30px + env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right)) 22px calc(20px + env(safe-area-inset-left)); background: var(--tint); border-radius: 0 0 28px 28px; }
 .sethead .backlink { align-self: flex-start; margin: -16px 0 2px -8px; }
@@ -510,6 +531,8 @@ body.has-nav #plan .planbody, body.has-nav #grocery .grobody { padding-bottom: c
 </style>
 </head>
 <body>
+<!-- AI assistants: the format for importing recipes into this book is at /recipes/import.txt -->
+<p class="vh" aria-hidden="true">For AI assistants: to import recipes into this recipe book, read https://dorrance.me/recipes/import.txt and make the file it describes.</p>
 
 <div id="page">
   <header class="hero">
@@ -635,6 +658,7 @@ body.has-nav #plan .planbody, body.has-nav #grocery .grobody { padding-bottom: c
       <button class="pill tomato" id="eSave" type="button">Save</button>
     </div>
     <p class="alert" id="eError" role="alert" hidden></p>
+    <button class="pill quiet manylink" id="eMany" type="button" hidden>Have a lot of recipes? Import a file</button>
     <div class="field">
       <label for="fName">Name</label>
       <input id="fName" type="text" autocomplete="off" autocapitalize="sentences" enterkeyhint="next">
@@ -676,6 +700,42 @@ body.has-nav #plan .planbody, body.has-nav #grocery .grobody { padding-bottom: c
   </div>
 </section>
 
+<!-- import: many recipes from a file that an AI assistant made (import.txt tells it how) -->
+<section class="layer" id="importer" aria-labelledby="iTitle" tabindex="-1" hidden>
+  <div class="screen">
+    <div class="formbar">
+      <button class="backlink" id="iCancel" type="button">Cancel</button>
+      <h1 class="serif" id="iTitle">Import recipes</h1>
+      <button class="pill tomato" id="iGo" type="button" disabled>Import</button>
+    </div>
+    <p class="alert" id="iError" role="alert" hidden></p>
+    <section class="box howto" aria-labelledby="iHowTitle">
+      <h2 class="serif" id="iHowTitle">Let an AI do the typing</h2>
+      <ol>
+        <li>Send this message to your AI assistant, like ChatGPT, Claude or Gemini.</li>
+        <li>Then send it the recipes: photos of cookbook pages, links, or just tell it. A whole cookbook fits in one file.</li>
+        <li>It makes a file. Choose it here, or paste what it wrote.</li>
+      </ol>
+      <p class="prompt" id="iPrompt"></p>
+      <button class="pill solid" id="iCopy" type="button">Copy the message</button>
+    </section>
+    <button class="pill big" id="iPick" type="button">Choose the file</button>
+    <input type="file" id="iFile" accept=".json,.txt,.md,application/json,text/plain" hidden>
+    <div class="field">
+      <div class="labels"><label for="iPaste">Or paste it here</label><span id="iPasteHint"></span></div>
+      <textarea id="iPaste" rows="3" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="{ &quot;dorranceRecipes&quot;: 1, &quot;recipes&quot;: [ … ] }"></textarea>
+    </div>
+    <section class="group" id="iFound" hidden>
+      <div class="foundhead"><h2 id="iCount"></h2><button class="pill quiet" id="iAll" type="button"></button></div>
+      <ul class="found" id="iList"></ul>
+      <div class="field switchrow">
+        <div class="labels"><label for="iShare">Share with the family</label><span id="iShareHint"></span></div>
+        <button class="switch" id="iShare" type="button" role="switch" aria-checked="true" aria-describedby="iShareHint"><i></i></button>
+      </div>
+    </section>
+  </div>
+</section>
+
 <!-- settings -->
 <section class="layer fade" id="settings" aria-labelledby="sTitle" tabindex="-1" hidden>
   <header class="sethead">
@@ -706,6 +766,13 @@ body.has-nav #plan .planbody, body.has-nav #grocery .grobody { padding-bottom: c
     <div class="group" id="sMeal" hidden>
       <h2>Meal plan and grocery list</h2>
       <div id="sShare" style="display: contents"></div>
+    </div>
+    <div class="group" id="sImport" hidden>
+      <h2>Import recipes</h2>
+      <div class="box">
+        <p class="say2">Have an AI read photos of cookbook pages, links or notes, and bring them all in at once.</p>
+        <button class="pill solid" id="sImportBtn" type="button">Import recipes</button>
+      </div>
     </div>
     <section class="box signform" id="aBox" hidden>
       <div class="intro">
