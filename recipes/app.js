@@ -196,7 +196,12 @@
     if (!b) return;
     tab = b.dataset.tab;
     renderBox();
-    $('tabs').querySelector(`[data-tab="${CSS.escape(tab)}"]`).focus({ preventScroll: true });
+    const tabs = $('tabs'), picked = tabs.querySelector(`[data-tab="${CSS.escape(tab)}"]`);
+    picked.focus({ preventScroll: true });
+    // the whole of the open tab shows, with a bit of the next one so it is clear the row scrolls
+    const box = tabs.getBoundingClientRect(), r = picked.getBoundingClientRect();
+    if (r.left < box.left) tabs.scrollLeft -= box.left - r.left + (picked.previousElementSibling ? 24 : 0);
+    else if (r.right > box.right) tabs.scrollLeft += r.right - box.right + (picked.nextElementSibling ? 24 : 0);
     // a shorter list: keep the dividers at the top of the screen, not past the end of the list
     const hero = document.querySelector('.hero').offsetHeight;
     if (scrollY > hero) scrollTo(0, hero);
