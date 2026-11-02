@@ -84,11 +84,11 @@ const scenes = [
   { name: '36-imported-pilot-expenses-day', as: 'Hayden', act: async p => { await ready(p); await p.click('#carBtn'); await p.click('[data-car="rt-pilot"]'); await p.click('#tabbar [data-tab="costs"]'); } },
   { name: '37-imported-archived-day', as: 'Hayden', act: async p => { await ready(p); await p.click('#carBtn'); await p.click('.sheet [data-act="archived"]'); } },
   // The info boxes: Joseph's notes become boxes in scene 38, and the scenes after it find them.
-  { name: '38-info-made-day', act: async p => { await tab('more')(p); await p.click('[data-act="info-split"]'); await p.waitForSelector('#v-more .ibox'); } },
+  { name: '38-info-made-day', act: async p => { await tab('more')(p); await p.click('[data-act="info-split"]'); await p.waitForSelector('[data-act="info-split"]', { state: 'detached' }); } },
   { name: '39-info-night', theme: 'dark', act: tab('more') },
-  { name: '40-info-edit-day', act: async p => { await tab('more')(p); await p.click('#v-more [data-info="2"]'); } },
-  { name: '41-info-add-day', act: async p => { await tab('more')(p); await p.click('[data-act="info-add"]'); await p.click('#nameChips [data-name="Tires"]'); await p.fill('#iValue', '225/50R17'); } },
-  { name: '42-info-several-day', act: async p => { await tab('more')(p); await p.click('[data-act="info-many"]'); await p.fill('#iMany', 'Oil: 5W-30\nTires: 225/50R17\nTire pressure: 33 psi\nKey fob battery: CR2032'); await p.dispatchEvent('#iMany', 'input'); } },
+  { name: '40-info-typing-day', act: async p => { await tab('more')(p); const t = p.locator('.iv[data-label="Tires"]'); await t.scrollIntoViewIfNeeded(); await t.click(); await p.keyboard.type('225/50R17'); } },
+  { name: '41-info-add-day', act: async p => { await tab('more')(p); await p.click('[data-act="info-add"]'); await p.fill('#iLabel', 'Spark plugs'); await p.fill('#iValue', 'NGK 97506'); } },
+  { name: '42-info-added-day', act: async p => { await tab('more')(p); await p.click('[data-act="info-add"]'); await p.fill('#iLabel', 'Spark plugs'); await p.fill('#iValue', 'NGK 97506'); await p.click('#iSave'); await p.locator('.iv[data-label="Spark plugs"]').scrollIntoViewIfNeeded(); } },
   { name: '43-info-duo-951', viewport: { width: 951, height: 585 }, act: tab('more') }
 ];
 

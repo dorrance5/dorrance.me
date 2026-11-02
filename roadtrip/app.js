@@ -29,7 +29,6 @@
   const dLong = s => { const [y, m, d] = parts(s); return `${MON[m - 1]} ${d}, ${y}`; };
   const dMonth = s => { const [y, m] = parts(s); return `${MON[m - 1]} ${y}`; };
   const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
-  const boxes = n => `${n} box${n === 1 ? '' : 'es'}`;
   function ago(s) {
     const n = T.daysBetween(s, today());
     if (n <= 0) return n < 0 ? 'Ahead' : 'Today';
@@ -200,7 +199,9 @@
     if (show === 'v-stats') drawStats(car);
     if (show === 'v-fuel') drawFuel(car);
     if (show === 'v-costs') drawCosts(car);
-    if (show === 'v-more') drawMore(car);
+    // Not while a field in More is being typed in: drawing it again would lose what is typed.
+    const typing = document.activeElement && document.activeElement.matches('input, textarea') && byId('v-more').contains(document.activeElement);
+    if (show === 'v-more' && !typing) drawMore(car);
     if (show === 'v-empty') drawEmpty(!!d);
     if (show === 'v-signin') drawSignIn();
     if (openFill) drawFill();
@@ -516,6 +517,7 @@
       <div class="label">Account</div><div class="person"><span class="av">${esc(s.name.charAt(0).toUpperCase())}</span><span class="t">${esc(s.name)}<small>Signed in on this phone</small></span><button class="btn" type="button" data-act="signout">Sign out</button></div></div></section>`;
     html += homeLinkHTML();
     byId('v-more').innerHTML = html;
+    byId('v-more').querySelectorAll('.iv').forEach(grow);
   }
   function household(d) {
     if (!d) return '<p class="none">Getting your household…</p>';
@@ -571,17 +573,16 @@
     if (sh) { if (sh.dataset.share !== 'leave' || arm('leave')) doShare(sh.dataset.share); return; }
     if (ask) { doShare('ask', ask.dataset.ask); return; }
     if (e.target.closest('#mAuto')) { ui.autoDec = !ui.autoDec; saveUI(); render(); return; }
-    const ib = e.target.closest('[data-info]'), cp = e.target.closest('[data-copy]');
-    if (car && cp) { const x = (car.info || [])[+cp.dataset.copy]; if (x) App.copy(x.value).then(ok => toast(ok ? `${x.label} copied.` : 'Could not copy.')); return; }
-    if (car && ib) { infoSheet(car, +ib.dataset.info); return; }
+    const cp = e.target.closest('[data-copy]');
+    if (car && cp) { const x = formRows(car).find(y => y.label === cp.dataset.copy); if (x) App.copy(x.value).then(ok => toast(ok ? `${x.label} copied.` : 'Could not copy.')); return; }
     const act = e.target.closest('[data-act]');
     if (!act || !car) return;
-    if (act.dataset.act === 'info-add') infoSheet(car, -1);
-    else if (act.dataset.act === 'info-many') manySheet(car);
+    if (act.dataset.act === 'info-add') infoSheet(car);
     else if (act.dataset.act === 'info-split') {
-      const { info, rest } = T.infoFrom(car.notes), was = car, add = fresh(car.info || [], info);
+      const { info, rest } = T.infoFrom(car.notes), was = car, have = car.info || [];
+      const add = info.filter((x, i) => !have.some(y => key(y.label) === key(x.label)) && !info.slice(0, i).some(y => key(y.label) === key(x.label)));
       if (!change({ op: 'car', ...carFields(car), info: [...(car.info || []), ...add].slice(0, T.MAX.info), notes: rest })) return toast('That is too long to keep.');
-      undo(`Made ${boxes(add.length)}${add.length < info.length ? `, kept the ${info.length - add.length} you had` : ''}.`, () => change({ op: 'car', ...carFields(was) }));
+      undo(`Filled in ${add.length}${add.length < info.length ? `, kept the ${info.length - add.length} you had` : ''}.`, () => change({ op: 'car', ...carFields(was) }));
     }
     else if (act.dataset.act === 'archive') {
       change({ op: 'car', ...carFields(car), archived: !car.archived });
@@ -592,78 +593,57 @@
   const carFields = c => ({ id: c.id, name: c.name, tank: c.tank, info: c.info || [], notes: c.notes, archived: c.archived });
 
   /* ---- the car's info boxes ---- */
-  const INFO = ['License plate', 'VIN', 'Oil', 'Oil filter', 'Air filter', 'Cabin air filter', 'Wiper blades', 'Tires', 'Tire pressure',
-    'Battery', 'Key fob battery', 'Spark plugs', 'Coolant', 'Transmission fluid', 'Brake fluid', 'Lug nut torque', 'Insurance', 'Registration'];
-  // The boxes in `add` whose label the car does not have yet: a box that is there already stays as it is.
-  function fresh(info, add) {
-    const out = [];
-    for (const x of add) if (![...info, ...out].some(y => T.same(y.label, x.label))) out.push(x);
-    return out;
+  // The form: these always show, blank or not. A box with another label shows under them.
+  const FORM = ['License plate', 'VIN', 'Oil', 'Oil filter', 'Air filter', 'Cabin air filter', 'Wiper blades', 'Tires', 'Tire pressure', 'Battery', 'Key fob battery'];
+  const ALIAS = { plate: 'licenseplate', oiltype: 'oil', engineoil: 'oil', engineairfilter: 'airfilter', cabinfilter: 'cabinairfilter', wipers: 'wiperblades',
+    wiper: 'wiperblades', tiresize: 'tires', tire: 'tires', keyfob: 'keyfobbattery', fobbattery: 'keyfobbattery', remotebattery: 'keyfobbattery' };
+  const key = l => { const k = l.toLowerCase().replace(/[^a-z0-9]/g, ''); return ALIAS[k] || k; };
+  // [{ label, value, own }]: the form's fields filled from the car's boxes, then the car's other boxes (own).
+  function formRows(car) {
+    const info = car.info || [], used = new Set();
+    const rows = FORM.map(label => {
+      const i = info.findIndex((x, k) => !used.has(k) && key(x.label) === key(label));
+      if (i >= 0) used.add(i);
+      return { label, value: i >= 0 ? info[i].value : '' };
+    });
+    info.forEach((x, k) => { if (!used.has(k)) rows.push({ label: x.label, value: x.value, own: true }); });
+    return rows;
   }
   function infoHTML(car) {
-    const info = car.info || [], split = car.notes && T.infoFrom(car.notes).info.length;
-    let html = info.length ? `<div class="card info">${info.map((x, i) => `<div class="ibox"><button class="it" type="button" data-info="${i}"><small>${esc(x.label)}</small><b>${esc(x.value)}</b></button><button class="cp" type="button" data-copy="${i}" aria-label="Copy ${esc(x.label)}">${ICON.copy}</button></div>`).join('')}</div>`
-      : split ? '' : '<p class="say">Keep what you look up at the parts counter here: the plate, the VIN, the oil, filters and wiper sizes.</p>';
-    if (split) html += `<div class="box"><p class="say">Your notes have lines like <b>${esc(T.infoFrom(car.notes).info[0].label)}: …</b> They can each be a box.</p><div class="two"><button class="primary" type="button" data-act="info-split">Make ${boxes(split)}</button></div></div>`;
-    return html + `<div class="two infoadd"><button class="btn" type="button" data-act="info-add">${ICON.plus}Add info</button><button class="btn" type="button" data-act="info-many">Add several</button></div>`;
+    const split = car.notes && T.infoFrom(car.notes).info.length;
+    let html = split ? `<div class="box"><p class="say">Your notes have lines like <b>${esc(T.infoFrom(car.notes).info[0].label)}: …</b> They can fill in the form.</p><div class="two"><button class="primary" type="button" data-act="info-split">Fill in from my notes</button></div></div>` : '';
+    html += `<div class="card info">${formRows(car).map(x => `<div class="ibox${x.own ? ' own' : ''}"><label class="it"><small>${esc(x.label)}</small><textarea class="iv" rows="1" maxlength="${T.MAX.value}" data-label="${esc(x.label)}" placeholder="—">${esc(x.value)}</textarea></label>${x.value ? `<button class="cp" type="button" data-copy="${esc(x.label)}" aria-label="Copy ${esc(x.label)}">${ICON.copy}</button>` : ''}</div>`).join('')}</div>`;
+    return html + `<button class="btn infoadd" type="button" data-act="info-add">${ICON.plus}Add an entry</button>`;
   }
-  // One box: i is its place, or -1 for a new one.
-  function infoSheet(car, i) {
-    const info = car.info || [], x = info[i];
-    const used = info.map(y => y.label.toLowerCase());
-    const box = sheet(`<h2>${x ? esc(x.label) : 'Add info'}</h2>
-      ${fld('iLabel', 'What', `value="${esc(x ? x.label : '')}" maxlength="30" autocapitalize="sentences" placeholder="Oil filter"`, 'wide')}
-      ${x ? '' : chips(INFO.filter(l => !used.includes(l.toLowerCase())))}
-      <label class="fld wide"><span class="fk">Value</span><textarea id="iValue" rows="2" maxlength="300" placeholder="Wix 57356">${esc(x ? x.value : '')}</textarea></label>
-      <div class="actions">${x ? `<button class="danger" type="button" data-del>Delete</button>${i > 0 ? '<button class="btn" type="button" id="iUp">Move up</button>' : ''}` : ''}<button class="primary" type="button" id="iSave">Save</button></div>`);
+  // The boxes as the form shows them now: the filled-in fields, in order.
+  const formInfo = () => [...byId('v-more').querySelectorAll('.iv')].map(t => ({ label: t.dataset.label, value: t.value.trim() })).filter(x => x.value);
+  const grow = t => { t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; };
+  // A new entry with its own label, at the bottom of the form.
+  function infoSheet(car) {
+    const box = sheet(`<h2>Add an entry</h2>
+      ${fld('iLabel', 'What', 'maxlength="30" autocapitalize="sentences" placeholder="Spark plugs"', 'wide')}
+      <label class="fld wide"><span class="fk">Value</span><textarea id="iValue" rows="2" maxlength="${T.MAX.value}" placeholder="NGK 97506"></textarea></label>
+      <p class="hint">To take an entry off, clear it in the form.</p>
+      <div class="actions"><button class="primary" type="button" id="iSave">Add</button></div>`);
     const $i = id => box.querySelector('#' + id);
-    wireChips(box, $i('iLabel'), () => $i('iValue').focus());
-    const put = list => { if (!change({ op: 'car', ...carFields(car), info: list })) { toast('That is too long to keep.'); return false; } return true; };
-    delButton(box, () => {
-      if (!put(info.filter((_, k) => k !== i))) return;
-      closeSheet();
-      undo(`${x.label} deleted.`, () => change({ op: 'car', ...carFields(current()), info }));
-    });
-    $i('iUp')?.addEventListener('click', () => { const l = [...info]; [l[i - 1], l[i]] = [l[i], l[i - 1]]; if (put(l)) closeSheet(); });
     $i('iSave').addEventListener('click', () => {
-      const label = $i('iLabel').value.trim(), value = $i('iValue').value.trim();
+      const label = $i('iLabel').value.trim(), value = $i('iValue').value.trim(), info = car.info || [];
       if (!label) { $i('iLabel').focus(); return toast('Type what it is.'); }
       if (!value) { $i('iValue').focus(); return toast(`Type the ${label.toLowerCase()}.`); }
-      if (!x && info.length >= T.MAX.info) return toast(`A car can have ${T.MAX.info} boxes.`);
-      const l = [...info];
-      if (!x && info.some(y => T.same(y.label, label))) return toast(`There is a ${label} box already. Tap it to change it.`);
-      if (x) l[i] = { label, value }; else l.push({ label, value });
-      if (put(l)) closeSheet();
-    });
-    if (!x) setTimeout(() => $i('iLabel').focus(), 250);
-  }
-  // Many boxes at once, a line each: "Oil: 0W-20".
-  function manySheet(car) {
-    const box = sheet(`<h2>Add several</h2>
-      <p class="hint">One a line, the name first, then a colon: <b>Oil filter: Wix 57356</b>. A line with no colon goes in the box above it.</p>
-      <label class="fld wide"><span class="fk">Info</span><textarea id="iMany" rows="8" placeholder="Oil: 0W-20, 3.7 qt&#10;Oil filter: Wix 57356&#10;Wiper blades: 26 in and 16 in"></textarea></label>
-      <p class="hint" id="iCount"></p>
-      <div class="actions"><button class="primary" type="button" id="iAdd">Add</button></div>`);
-    const $i = id => box.querySelector('#' + id), got = () => T.infoFrom($i('iMany').value).info;
-    const count = () => {
-      const all = got(), n = fresh(car.info || [], all).length, had = all.length - n;
-      $i('iCount').textContent = !all.length ? '' : (n ? `${boxes(n)} to add.` : 'Nothing new to add.') + (had ? ` ${had} you have already ${had === 1 ? 'stays' : 'stay'} as ${had === 1 ? 'it is' : 'they are'}.` : '');
-    };
-    $i('iMany').addEventListener('input', count);
-    $i('iAdd').addEventListener('click', () => {
-      const all = got(), info = car.info || [], add = fresh(info, all);
-      if (!all.length) return toast('Type a line like Oil: 0W-20.');
-      if (!add.length) return toast('You have all of those already.');
-      if (info.length + add.length > T.MAX.info) return toast(`A car can have ${T.MAX.info} boxes.`);
-      if (!change({ op: 'car', ...carFields(car), info: [...info, ...add] })) return toast('One of those is too long.');
+      if (formRows(car).some(x => key(x.label) === key(label))) return toast(`${label} is in the form already. Type it there.`);
+      if (info.length >= T.MAX.info) return toast(`A car can have ${T.MAX.info} entries.`);
+      if (!change({ op: 'car', ...carFields(car), info: [...info, { label, value }] })) return toast('That is too long to keep.');
       closeSheet();
-      toast(`Added ${boxes(add.length)}.` + (add.length < all.length ? ` Kept the ${all.length - add.length} you had.` : ''));
     });
-    setTimeout(() => $i('iMany').focus(), 250);
+    setTimeout(() => $i('iLabel').focus(), 250);
   }
-  // The car's name, tank and notes save when a field is left.
+  byId('v-more').addEventListener('input', e => { if (e.target.classList.contains('iv')) grow(e.target); });
   byId('v-more').addEventListener('change', e => {
     const car = current();
+    if (car && e.target.classList.contains('iv')) {
+      if (!change({ op: 'car', ...carFields(car), info: formInfo() })) toast('That is too long to keep.');
+      return;
+    }
     if (!car || !['mName', 'mTank', 'mNotes'].includes(e.target.id)) return;
     const name = byId('mName').value.trim() || car.name, tankText = byId('mTank').value.trim(), tank = tankText ? parseFloat(tankText) : null;
     if (tankText && !(tank > 0 && tank <= 200)) { toast('Type the tank size in gallons, like 14.8.'); return; }
