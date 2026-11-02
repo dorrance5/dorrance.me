@@ -62,7 +62,7 @@
   @media (display-mode:standalone){
     html{height:auto;min-height:min(100lvh,calc(100% + env(safe-area-inset-top)))}
     body{height:auto;min-height:100%}
-    #app{bottom:auto;height:100vh}
+    #app{bottom:auto;height:100vh;padding-top:calc(env(safe-area-inset-top) + 20px)}   /* below the haze iOS 26.1 puts behind the status bar */
   }
   .display{flex:1 0 auto;display:flex;flex-direction:column;justify-content:flex-end;
            padding:16px 16px 15px;border-radius:26px;margin-bottom:9px}
