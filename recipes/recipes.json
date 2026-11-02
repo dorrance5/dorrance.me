@@ -195,36 +195,6 @@
       "owner": "Mitchell"
     },
     {
-      "id": "thai-basil-chicken",
-      "name": "Thai basil chicken",
-      "servings": "4",
-      "ingredients": [
-        "1 lb ground chicken",
-        "2 tbsp vegetable oil",
-        "5 cloves garlic (minced)",
-        "2 Thai chiles or 1 jalapeño (sliced)",
-        "1 shallot (sliced)",
-        "2 tbsp oyster sauce",
-        "1 tbsp soy sauce",
-        "1 tbsp fish sauce",
-        "2 tsp brown sugar",
-        "2 tbsp water",
-        "1 cup basil leaves (Thai basil if you can find it)",
-        "4 eggs",
-        "4 cups cooked jasmine rice"
-      ],
-      "steps": [
-        "Stir the oyster sauce, soy sauce, fish sauce, brown sugar and water together in a small bowl.",
-        "Heat 1 tbsp oil in a skillet on medium-high. Fry the eggs 2 to 3 minutes, until the edges are crispy and the yolks still runny. Set them aside.",
-        "Add the rest of the oil. Cook the garlic, chiles and shallot for 1 minute.",
-        "Add the chicken. Cook 5 to 6 minutes on high, breaking it up, until it is cooked through and starting to brown.",
-        "Pour in the sauce and cook 1 minute. Turn off the heat and stir in the basil until it wilts.",
-        "Serve over rice with a fried egg on each bowl."
-      ],
-      "notes": "Ground pork works the same way. Leave out the chiles for kids and pass sriracha at the table.",
-      "owner": "Mitchell"
-    },
-    {
       "id": "sheet-pan-chicken-shawarma",
       "name": "Sheet pan chicken shawarma",
       "servings": "4",
