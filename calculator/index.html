@@ -57,7 +57,13 @@
        padding:calc(env(safe-area-inset-top) + 8px) 12px calc(env(safe-area-inset-bottom) + 10px)}
 
   /* ---- display ---- */
-  @media (display-mode:standalone){ #app{bottom:auto;height:100vh} }
+  /* iOS 26 home screen apps (WebKit bug 301108): a page shorter than the screen gets a viewport that stops short by
+     the status bar, and nothing shows under it. A page at least the screen's height gets the whole screen. */
+  @media (display-mode:standalone){
+    html{height:auto;min-height:min(100lvh,calc(100% + env(safe-area-inset-top)))}
+    body{height:auto;min-height:100%}
+    #app{bottom:auto;height:100vh}
+  }
   .display{flex:1 0 auto;display:flex;flex-direction:column;justify-content:flex-end;
            padding:16px 16px 15px;border-radius:26px;margin-bottom:9px}
   .expr{font-size:15px;color:var(--dim);text-align:right;min-height:20px;font-variant-numeric:tabular-nums}
