@@ -84,7 +84,8 @@
         "Salads"
       ],
       "ingredients": [],
-      "owner": "Nicole"
+      "owner": "Nicole",
+      "shared": false
     },
     {
       "id": "sheet-pan-breakfast-burritos",
