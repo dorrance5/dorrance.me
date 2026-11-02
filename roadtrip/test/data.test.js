@@ -38,3 +38,15 @@ test('weekly miles conserve distance across week boundaries', () => {
  const c=car([fill('a',100,5,{date:'2026-01-01'}),fill('b',800,10,{date:'2026-01-15'})]);
  assert.equal(T.series(c,'miles','all','2026-01-31').reduce((n,p)=>n+p.v,0),700);
 });
+
+test('info boxes: notes split into boxes, checked, and kept when a car op has none', () => {
+  const { info, rest } = T.infoFrom('Plate: ABC\nOil: 0W-20\nWix 57356\n\nloose line\n\nNotes:\n');
+  assert.deepEqual(info, [{ label: 'Plate', value: 'ABC' }, { label: 'Oil', value: '0W-20\nWix 57356' }]);
+  assert.equal(rest, 'loose line');
+  assert.equal(T.check({ op: 'car', id: 'car', name: 'Car', tank: null, notes: '', info: [{ label: 'VIN', value: '' }] }), null);
+  assert.equal(T.check({ op: 'car', id: 'car', name: 'Car', tank: null, notes: '', info: Array(41).fill({ label: 'A', value: 'b' }) }), null);
+  let d = T.apply({ cars: [car()] }, [T.check({ op: 'car', id: 'car', name: 'Car', tank: 15, notes: '', info: [{ label: 'VIN', value: 'X1' }] })]);
+  d = T.apply(d, [T.check({ op: 'car', id: 'car', name: 'Renamed', tank: 15, notes: '' })]);
+  assert.deepEqual(d.cars[0].info, [{ label: 'VIN', value: 'X1' }]);
+  assert.equal(d.cars[0].name, 'Renamed');
+});

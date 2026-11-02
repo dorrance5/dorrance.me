@@ -4,7 +4,8 @@
    Browser: window.Trip. Node and the Worker: require or import './data.js'.
 
    The cars of one household, which the Worker keeps in KV:
-     { cars: [{ id, name, tank, notes, archived, fuel: [fill], costs: [cost], reminders: [reminder] }] }
+     { cars: [{ id, name, tank, info, notes, archived, fuel: [fill], costs: [cost], reminders: [reminder] }] }
+     info      [{ label, value }]   the car's own facts, one box each: plate, VIN, oil, filters, wipers…
      fill      { id, date, odo, gal, price, total, partial, reset }   a fill-up. partial: the tank was not filled.
                reset: a fill-up before this one was not logged, so MPG starts over here.
      cost      { id, date, odo, name, kind, cost, note }   kind is 'service', 'expense' or 'other'; odo can be null.
@@ -14,7 +15,7 @@
    Dates are 'YYYY-MM-DD'. Distances are miles, fuel is gallons, and money is dollars.
 
    A change is an op. The Worker applies a batch of ops to the newest data, so two phones do not undo each other.
-     { op: 'car', id, name, tank, notes, archived }   add or change a car     { op: 'uncar', id }
+     { op: 'car', id, name, tank, info, notes, archived }   add or change a car; with no info, the info stays    { op: 'uncar', id }
      { op: 'fill', car, id, date, odo, gal, price, total, partial, reset }    { op: 'unfill', car, id }
      { op: 'cost', car, id, date, odo, name, kind, cost, note }                { op: 'uncost', car, id }
      { op: 'remind', car, id, name, miles, months }                            { op: 'unremind', car, id }
@@ -27,7 +28,7 @@
   'use strict';
 
   // Sizes that keep a household small: the Worker reads and writes it whole on each change.
-  const MAX = { cars: 20, fuel: 4000, costs: 1500, reminders: 30, ops: 1000, name: 40, note: 1000, notes: 4000 };
+  const MAX = { cars: 20, fuel: 4000, costs: 1500, reminders: 30, ops: 1000, name: 40, note: 1000, notes: 4000, info: 40, label: 30, value: 300 };
   const KINDS = ['service', 'expense', 'other'];
   const LIST = ['fuel', 'costs', 'reminders'];
 
@@ -60,10 +61,37 @@
   // `gone` on a record that was deleted
   const gone = (o, r) => r && isDate(o.gone) ? { ...r, gone: o.gone } : r;
 
+  // The info boxes, or null when one is wrong. A box needs a value; a box with no label is called Note.
+  function checkInfo(a) {
+    if (a == null) return [];
+    if (!Array.isArray(a) || a.length > MAX.info) return null;
+    const out = [];
+    for (const x of a) {
+      if (!x || typeof x !== 'object') return null;
+      const label = x.label == null || x.label === '' ? 'Note' : line(x.label, MAX.label), value = lines(x.value, MAX.value);
+      if (!label || !value) return null;
+      out.push({ label, value });
+    }
+    return out;
+  }
   function checkCar(o) {
-    const name = line(o.name, MAX.name), tank = maybe(o.tank, 0.5, 200, 1), notes = lines(o.notes, MAX.notes);
-    if (!id(o.id) || !name || tank === undefined || notes == null) return null;
-    return { id: o.id, name, tank, notes, archived: o.archived === true };
+    const name = line(o.name, MAX.name), tank = maybe(o.tank, 0.5, 200, 1), notes = lines(o.notes, MAX.notes), info = checkInfo(o.info);
+    if (!id(o.id) || !name || tank === undefined || notes == null || !info) return null;
+    return { id: o.id, name, tank, info, notes, archived: o.archived === true };
+  }
+  // Notes as info boxes: a line "Oil: 0W-20" starts a box, and the lines under it, up to a blank line, go in it too.
+  // What is not under a label stays in `rest`. { info, rest }
+  function infoFrom(text) {
+    const info = [], rest = [];
+    let open = null;
+    for (const raw of String(text || '').replace(/\r\n?/g, '\n').split('\n')) {
+      const l = raw.trim(), m = l.match(/^([^:]{1,30}):\s*(.*)$/);
+      if (!l) { open = null; if (rest.length && rest[rest.length - 1] !== '') rest.push(''); continue; }
+      if (m && !/^https?$/i.test(m[1].trim())) { open = { label: m[1].trim(), value: m[2] }; info.push(open); }
+      else if (open) open.value = open.value ? open.value + '\n' + l : l;
+      else rest.push(l);
+    }
+    return { info: info.filter(x => x.value.trim()).map(x => ({ label: x.label, value: x.value.trim() })), rest: rest.join('\n').trim() };
   }
   function checkFill(o) {
     const odo = num(o.odo, 0, 3e6, 1), gal = num(o.gal, 0.001, 500, 3), price = num(o.price, 0, 100, 3), total = num(o.total, 0, 1e5, 2);
@@ -86,7 +114,7 @@
     if (!op || typeof op !== 'object') return null;
     const on = r => r && id(op.car) ? { op: op.op, car: op.car, ...r } : null;
     switch (op.op) {
-      case 'car': { const c = checkCar(op); return c && { op: 'car', ...c }; }
+      case 'car': { const c = checkCar(op); if (c && op.info === undefined) delete c.info; return c && { op: 'car', ...c }; }
       case 'uncar': return id(op.id) ? { op: 'uncar', id: op.id } : null;
       case 'fill': return on(checkFill(op));
       case 'cost': return on(checkCost(op));
@@ -133,7 +161,7 @@
       if (op.op === 'car') {
         const c = car(op.id), { op: _, ...fields } = op;
         if (c) Object.assign(c, fields);
-        else if (d.cars.length < MAX.cars) d.cars.push({ ...fields, fuel: [], costs: [], reminders: [] });
+        else if (d.cars.length < MAX.cars) d.cars.push({ info: [], ...fields, fuel: [], costs: [], reminders: [] });
       } else if (op.op === 'uncar') {
         d.cars = d.cars.filter(c => c.id !== op.id);
       } else if (LISTS[op.op]) {
@@ -366,6 +394,6 @@
     };
   }
 
-  return { MAX, KINDS, LIST, RANGES, CHARTS, check, tidy, apply, live, iso, daysBetween, addDays, addMonths, fills, latest, since,
+  return { MAX, KINDS, LIST, RANGES, CHARTS, check, tidy, infoFrom, apply, live, iso, daysBetween, addDays, addMonths, fills, latest, since,
     stats, series, trend, pace, due, same, PROBLEMS, fail, api };
 });

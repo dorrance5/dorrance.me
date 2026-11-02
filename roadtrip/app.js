@@ -29,6 +29,7 @@
   const dLong = s => { const [y, m, d] = parts(s); return `${MON[m - 1]} ${d}, ${y}`; };
   const dMonth = s => { const [y, m] = parts(s); return `${MON[m - 1]} ${y}`; };
   const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+  const boxes = n => `${n} box${n === 1 ? '' : 'es'}`;
   function ago(s) {
     const n = T.daysBetween(s, today());
     if (n <= 0) return n < 0 ? 'Ahead' : 'Today';
@@ -42,6 +43,8 @@
   const HUES = ['blue', 'teal', 'purple', 'orange', 'green', 'magenta', 'yellow', 'lime'];
 
   const ICON = {
+    copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>',
+    plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
     car: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11l1.6-4.3A2 2 0 0 1 8.5 5.4h7a2 2 0 0 1 1.9 1.3L19 11"/><path d="M3.5 17v-4a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2v4z"/><g fill="currentColor" stroke="none"><rect x="4.4" y="16.6" width="4.4" height="3.8" rx="1.3"/><rect x="15.2" y="16.6" width="4.4" height="3.8" rx="1.3"/><circle cx="7.6" cy="14" r="1.6"/><circle cx="16.4" cy="14" r="1.6"/></g></svg>',
     bell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg>',
     people: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 19.5a6 6 0 0 1 12 0"/><circle cx="17" cy="9" r="2.4"/><path d="M16.5 14.2a4.6 4.6 0 0 1 4.5 4.6"/></svg>',
@@ -498,7 +501,8 @@
       html += `<section class="card sec hue-blue"><div class="sec-h"><span class="ic blue">${ICON.car}</span>Car${car.archived ? ' <span class="tag">Archived</span>' : ''}</div><div class="sec-b">
         <div class="grid2"><label class="fld"><span class="fk">Name</span><input class="fv" id="mName" value="${esc(car.name)}" maxlength="40" autocapitalize="words"></label>
         <label class="fld"><span class="fk">Tank size, gal</span><input class="fv" id="mTank" value="${car.tank != null ? car.tank : ''}" inputmode="decimal" placeholder="14.8"></label></div>
-        <label class="fld wide"><span class="fk">Notes</span><textarea id="mNotes" rows="6" placeholder="Plate, VIN, oil type, filter numbers, wiper sizes…">${esc(car.notes)}</textarea></label>
+        <div class="label">Info</div>${infoHTML(car)}
+        <label class="fld wide"><span class="fk">Other notes</span><textarea id="mNotes" rows="3" placeholder="Anything that is not a box">${esc(car.notes)}</textarea></label>
         <div class="actions"><button class="btn" type="button" data-act="archive">${car.archived ? 'Put the car back' : 'Archive the car'}</button></div>
         </div></section>`;
     }
@@ -567,15 +571,96 @@
     if (sh) { if (sh.dataset.share !== 'leave' || arm('leave')) doShare(sh.dataset.share); return; }
     if (ask) { doShare('ask', ask.dataset.ask); return; }
     if (e.target.closest('#mAuto')) { ui.autoDec = !ui.autoDec; saveUI(); render(); return; }
+    const ib = e.target.closest('[data-info]'), cp = e.target.closest('[data-copy]');
+    if (car && cp) { const x = (car.info || [])[+cp.dataset.copy]; if (x) App.copy(x.value).then(ok => toast(ok ? `${x.label} copied.` : 'Could not copy.')); return; }
+    if (car && ib) { infoSheet(car, +ib.dataset.info); return; }
     const act = e.target.closest('[data-act]');
     if (!act || !car) return;
-    if (act.dataset.act === 'archive') {
+    if (act.dataset.act === 'info-add') infoSheet(car, -1);
+    else if (act.dataset.act === 'info-many') manySheet(car);
+    else if (act.dataset.act === 'info-split') {
+      const { info, rest } = T.infoFrom(car.notes), was = car, add = fresh(car.info || [], info);
+      if (!change({ op: 'car', ...carFields(car), info: [...(car.info || []), ...add].slice(0, T.MAX.info), notes: rest })) return toast('That is too long to keep.');
+      undo(`Made ${boxes(add.length)}${add.length < info.length ? `, kept the ${info.length - add.length} you had` : ''}.`, () => change({ op: 'car', ...carFields(was) }));
+    }
+    else if (act.dataset.act === 'archive') {
       change({ op: 'car', ...carFields(car), archived: !car.archived });
       if (!car.archived) { const next = cars().find(c => !c.archived); if (next) { ui.car = next.id; saveUI(); render(); } }
       toast(car.archived ? `${car.name} is back.` : `${car.name} is under Archived now.`);
     }
   });
-  const carFields = c => ({ id: c.id, name: c.name, tank: c.tank, notes: c.notes, archived: c.archived });
+  const carFields = c => ({ id: c.id, name: c.name, tank: c.tank, info: c.info || [], notes: c.notes, archived: c.archived });
+
+  /* ---- the car's info boxes ---- */
+  const INFO = ['License plate', 'VIN', 'Oil', 'Oil filter', 'Air filter', 'Cabin air filter', 'Wiper blades', 'Tires', 'Tire pressure',
+    'Battery', 'Key fob battery', 'Spark plugs', 'Coolant', 'Transmission fluid', 'Brake fluid', 'Lug nut torque', 'Insurance', 'Registration'];
+  // The boxes in `add` whose label the car does not have yet: a box that is there already stays as it is.
+  function fresh(info, add) {
+    const out = [];
+    for (const x of add) if (![...info, ...out].some(y => T.same(y.label, x.label))) out.push(x);
+    return out;
+  }
+  function infoHTML(car) {
+    const info = car.info || [], split = car.notes && T.infoFrom(car.notes).info.length;
+    let html = info.length ? `<div class="card info">${info.map((x, i) => `<div class="ibox"><button class="it" type="button" data-info="${i}"><small>${esc(x.label)}</small><b>${esc(x.value)}</b></button><button class="cp" type="button" data-copy="${i}" aria-label="Copy ${esc(x.label)}">${ICON.copy}</button></div>`).join('')}</div>`
+      : split ? '' : '<p class="say">Keep what you look up at the parts counter here: the plate, the VIN, the oil, filters and wiper sizes.</p>';
+    if (split) html += `<div class="box"><p class="say">Your notes have lines like <b>${esc(T.infoFrom(car.notes).info[0].label)}: …</b> They can each be a box.</p><div class="two"><button class="primary" type="button" data-act="info-split">Make ${boxes(split)}</button></div></div>`;
+    return html + `<div class="two infoadd"><button class="btn" type="button" data-act="info-add">${ICON.plus}Add info</button><button class="btn" type="button" data-act="info-many">Add several</button></div>`;
+  }
+  // One box: i is its place, or -1 for a new one.
+  function infoSheet(car, i) {
+    const info = car.info || [], x = info[i];
+    const used = info.map(y => y.label.toLowerCase());
+    const box = sheet(`<h2>${x ? esc(x.label) : 'Add info'}</h2>
+      ${fld('iLabel', 'What', `value="${esc(x ? x.label : '')}" maxlength="30" autocapitalize="sentences" placeholder="Oil filter"`, 'wide')}
+      ${x ? '' : chips(INFO.filter(l => !used.includes(l.toLowerCase())))}
+      <label class="fld wide"><span class="fk">Value</span><textarea id="iValue" rows="2" maxlength="300" placeholder="Wix 57356">${esc(x ? x.value : '')}</textarea></label>
+      <div class="actions">${x ? `<button class="danger" type="button" data-del>Delete</button>${i > 0 ? '<button class="btn" type="button" id="iUp">Move up</button>' : ''}` : ''}<button class="primary" type="button" id="iSave">Save</button></div>`);
+    const $i = id => box.querySelector('#' + id);
+    wireChips(box, $i('iLabel'), () => $i('iValue').focus());
+    const put = list => { if (!change({ op: 'car', ...carFields(car), info: list })) { toast('That is too long to keep.'); return false; } return true; };
+    delButton(box, () => {
+      if (!put(info.filter((_, k) => k !== i))) return;
+      closeSheet();
+      undo(`${x.label} deleted.`, () => change({ op: 'car', ...carFields(current()), info }));
+    });
+    $i('iUp')?.addEventListener('click', () => { const l = [...info]; [l[i - 1], l[i]] = [l[i], l[i - 1]]; if (put(l)) closeSheet(); });
+    $i('iSave').addEventListener('click', () => {
+      const label = $i('iLabel').value.trim(), value = $i('iValue').value.trim();
+      if (!label) { $i('iLabel').focus(); return toast('Type what it is.'); }
+      if (!value) { $i('iValue').focus(); return toast(`Type the ${label.toLowerCase()}.`); }
+      if (!x && info.length >= T.MAX.info) return toast(`A car can have ${T.MAX.info} boxes.`);
+      const l = [...info];
+      if (!x && info.some(y => T.same(y.label, label))) return toast(`There is a ${label} box already. Tap it to change it.`);
+      if (x) l[i] = { label, value }; else l.push({ label, value });
+      if (put(l)) closeSheet();
+    });
+    if (!x) setTimeout(() => $i('iLabel').focus(), 250);
+  }
+  // Many boxes at once, a line each: "Oil: 0W-20".
+  function manySheet(car) {
+    const box = sheet(`<h2>Add several</h2>
+      <p class="hint">One a line, the name first, then a colon: <b>Oil filter: Wix 57356</b>. A line with no colon goes in the box above it.</p>
+      <label class="fld wide"><span class="fk">Info</span><textarea id="iMany" rows="8" placeholder="Oil: 0W-20, 3.7 qt&#10;Oil filter: Wix 57356&#10;Wiper blades: 26 in and 16 in"></textarea></label>
+      <p class="hint" id="iCount"></p>
+      <div class="actions"><button class="primary" type="button" id="iAdd">Add</button></div>`);
+    const $i = id => box.querySelector('#' + id), got = () => T.infoFrom($i('iMany').value).info;
+    const count = () => {
+      const all = got(), n = fresh(car.info || [], all).length, had = all.length - n;
+      $i('iCount').textContent = !all.length ? '' : (n ? `${boxes(n)} to add.` : 'Nothing new to add.') + (had ? ` ${had} you have already ${had === 1 ? 'stays' : 'stay'} as ${had === 1 ? 'it is' : 'they are'}.` : '');
+    };
+    $i('iMany').addEventListener('input', count);
+    $i('iAdd').addEventListener('click', () => {
+      const all = got(), info = car.info || [], add = fresh(info, all);
+      if (!all.length) return toast('Type a line like Oil: 0W-20.');
+      if (!add.length) return toast('You have all of those already.');
+      if (info.length + add.length > T.MAX.info) return toast(`A car can have ${T.MAX.info} boxes.`);
+      if (!change({ op: 'car', ...carFields(car), info: [...info, ...add] })) return toast('One of those is too long.');
+      closeSheet();
+      toast(`Added ${boxes(add.length)}.` + (add.length < all.length ? ` Kept the ${all.length - add.length} you had.` : ''));
+    });
+    setTimeout(() => $i('iMany').focus(), 250);
+  }
   // The car's name, tank and notes save when a field is left.
   byId('v-more').addEventListener('change', e => {
     const car = current();
@@ -848,7 +933,7 @@
       if (!name) { $n('nName').focus(); return toast('Type a name.'); }
       if (tankText && !(tank > 0 && tank <= 200)) return toast('Type the tank size in gallons, like 14.8.');
       const id = uid();
-      if (!change({ op: 'car', id, name, tank, notes: '', archived: false })) return toast('Check the name.');
+      if (!change({ op: 'car', id, name, tank, info: [], notes: '', archived: false })) return toast('Check the name.');
       ui.car = id;
       saveUI();
       closeSheet();

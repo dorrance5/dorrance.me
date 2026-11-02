@@ -131,9 +131,15 @@
       if (!have) { const base = id; for (let i = 2; ids.has(id); i++) id = `${base}-${i}`; ids.add(id); }
       const ops = [];
       const isNew = !have, archived = isNew ? !!p.last && p.last < yearAgo : !!have.archived;
-      if (isNew) ops.push({ op: 'car', id, name: p.name.slice(0, T.MAX.name), tank: p.tank, notes: p.notes.slice(0, T.MAX.notes), archived });
-      else if ((have.tank == null && p.tank != null) || (!have.notes && p.notes)) {
-        ops.push({ op: 'car', id, name: have.name, tank: have.tank ?? p.tank, notes: have.notes || p.notes.slice(0, T.MAX.notes), archived: !!have.archived });
+      // The notes come over as info boxes; what has no label stays as notes.
+      const split = T.infoFrom(p.notes), info = split.info.slice(0, T.MAX.info).map(x => ({ label: x.label.slice(0, T.MAX.label), value: x.value.slice(0, T.MAX.value) }));
+      const notes = split.rest.slice(0, T.MAX.notes);
+      if (isNew) ops.push({ op: 'car', id, name: p.name.slice(0, T.MAX.name), tank: p.tank, info, notes, archived });
+      else {
+        const bare = !have.notes && !(have.info || []).length && p.notes;
+        if ((have.tank == null && p.tank != null) || bare) {
+          ops.push({ op: 'car', id, name: have.name, tank: have.tank ?? p.tank, ...(bare ? { info, notes } : {}), notes: bare ? notes : have.notes, archived: !!have.archived });
+        }
       }
       const was = have || { fuel: [], costs: [], reminders: [] };
       let same = 0, fuel = 0, costs = 0, reminders = 0;

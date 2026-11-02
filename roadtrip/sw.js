@@ -1,6 +1,6 @@
 // Road Trip — offline cache. Bump CACHE when a file below changes. The cars come from /api/roadtrip, which goes to
 // the network as before: the page keeps its own copy of them.
-const CACHE = 'roadtrip-v3';
+const CACHE = 'roadtrip-v4';
 const FILES = ['./', './index.html', './app.js', './data.js', './import.js', './manifest.json', './icon-180.png', './icon-512.png',
   '../shared/base.css', '../shared/base.js', '../shared/account.js'];
 
