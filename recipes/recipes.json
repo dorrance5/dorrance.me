@@ -452,5 +452,10 @@
       "source": "https://bellyfull.net/lasagna-soup/#comments",
       "owner": "GiGi"
     }
-  ]
+  ],
+  "books": {
+    "mitchell": [
+      "lasagna-soup"
+    ]
+  }
 }
