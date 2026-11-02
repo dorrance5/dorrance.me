@@ -49,12 +49,14 @@
   .glass::before{content:"";position:absolute;inset:0;pointer-events:none;
     background:linear-gradient(160deg,rgba(255,255,255,.32) 0%,rgba(255,255,255,.05) 34%,transparent 60%)}
 
-  #app{position:relative;z-index:2;height:100%;margin:0 auto;
+  /* Pinned to the screen's edges: on the home screen, iOS makes 100% height shorter than the screen by the status bar
+     and the home bar, which squeezed the display and left a gap under the keypad. */
+  #app{position:fixed;inset:0;z-index:2;
        display:flex;flex-direction:column;
        padding:calc(env(safe-area-inset-top) + 8px) 12px calc(env(safe-area-inset-bottom) + 10px)}
 
   /* ---- display ---- */
-  .display{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;justify-content:flex-end;
+  .display{flex:1 0 auto;display:flex;flex-direction:column;justify-content:flex-end;
            padding:16px 16px 15px;border-radius:26px;margin-bottom:9px}
   .expr{font-size:15px;color:var(--dim);text-align:right;min-height:20px;font-variant-numeric:tabular-nums}
   .value{text-align:right;line-height:.95;margin-top:8px;font-size:clamp(42px,14vw,64px);
@@ -82,7 +84,7 @@
   .dot.on{opacity:1}
 
   /* ---- keypad ---- */
-  .pad{flex:0 0 auto;height:clamp(420px,65vh,610px);display:grid;
+  .pad{flex:0 1 auto;min-height:0;height:clamp(420px,65vh,610px);display:grid;
        grid-template-columns:1.85fr 2.75fr 1fr;gap:var(--gap)}
   .zone{display:grid;gap:var(--gap);min-height:0}
   .zone.whole{grid-template-columns:1fr 1fr;grid-template-rows:repeat(6,1fr)}
