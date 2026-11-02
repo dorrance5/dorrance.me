@@ -16,6 +16,8 @@
 <script>
 // Follow the site theme setting (key "theme": auto | light | dark | aurora). This page has no Aurora look; it shows Night.
 try{const t=localStorage.getItem('theme');if(t==='light'||t==='dark'||t==='aurora')document.documentElement.dataset.theme=t}catch(e){}
+// On the home screen. This page has no manifest, so `display-mode: standalone` may not match there; iOS sets this.
+if(navigator.standalone)document.documentElement.classList.add('app');
 </script>
 <!-- Figtree and Fraunces (SOFT, opsz and wght axes) from Google Fonts, kept on this site so the page does not wait on
      another server. The latin files are preloaded; the latin-ext ones load only for a letter that needs them. -->
@@ -82,6 +84,10 @@ body {
   font-family: 'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif; font-size: 16px; line-height: 1.4;
   -webkit-tap-highlight-color: transparent;
 }
+/* iOS 26 home screen app (WebKit bug 301108): a page shorter than the screen gets a viewport that stops short by the
+   status bar, which cut off the tab bar. A page at least the screen's height gets the whole screen. */
+html.app { min-height: min(100lvh, calc(100% + env(safe-area-inset-top))); }
+@media (display-mode: standalone) { html { min-height: min(100lvh, calc(100% + env(safe-area-inset-top))); } }
 button, input, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; -webkit-user-select: none; user-select: none; }
 button:disabled { cursor: default; }

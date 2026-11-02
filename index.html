@@ -40,6 +40,8 @@ body{
   padding:max(20px,env(safe-area-inset-top)) 16px max(32px,env(safe-area-inset-bottom));
 }
 main{max-width:880px;margin:0 auto;position:relative;z-index:2}
+/* iOS 26 home screen app (WebKit bug 301108): a page shorter than the screen gets a viewport that stops short by the status bar */
+@media (display-mode:standalone){html{min-height:min(100lvh,calc(100% + env(safe-area-inset-top)))}}
 header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:8px 0 24px;position:relative;z-index:5}
 .menu-wrap{position:relative}
 .round{width:46px;height:46px;border-radius:16px;border:.5px solid var(--tile-line);background:var(--tile);box-shadow:var(--tile-shadow);color:var(--text);cursor:pointer;

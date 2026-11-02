@@ -47,6 +47,13 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 [hidden]{display:none!important}
 html,body{height:100%;margin:0}
+/* iOS 26 home screen apps (WebKit bug 301108): a page shorter than the screen gets a viewport that stops short by the
+   status bar, and nothing shows under it (a bottom bar was cut off). A page at least the screen's height gets the whole
+   screen, and there 100vh is the whole screen. Calculator does the same. */
+@media (display-mode:standalone){
+  html{height:auto;min-height:min(100lvh,calc(100% + env(safe-area-inset-top)))}
+  body{height:100vh}
+}
 body{
   background:var(--bg); color:var(--text); font-family:var(--ui);
   display:flex; flex-direction:column; overflow:hidden;
