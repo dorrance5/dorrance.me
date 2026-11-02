@@ -1,5 +1,6 @@
 // Renders docs/icons/<app>.svg to <app>/icon-512.png and <app>/icon-180.png, and the light versions that the homepage
-// shows in Day to <app>/icon-180-light.png. The apps themselves use only the dark icons.
+// shows in Day to <app>/icon-180-light.png. The apps themselves use only the dark icons. Recipes has its own icon
+// (render-recipes.cjs); the home page shows recipes-home.svg for it, rendered here at 180 in both versions.
 // Needs Playwright on NODE_PATH (see CLAUDE.md):  NODE_PATH=<folder> node docs/icons/render.cjs
 const { webkit } = require('playwright');
 const fs = require('node:fs');
@@ -7,8 +8,9 @@ const path = require('node:path');
 const root = path.join(__dirname, '..', '..');
 const APPS = ['calculator', 'counter', 'converter', 'triangle', 'parking', 'tvmount', 'roadtrip'];
 // Light version: white tile, and a deeper glyph color that stands out on white. favicon.svg uses the same colors.
-const HOME = ['calculator', 'counter', 'converter', 'triangle', 'tvmount', 'roadtrip'];
-const LIGHT = { '#000': '#fff', '#9F8FEF': '#8270DB', '#4BCE97': '#22A06B', '#6CC3E0': '#1D9AAA', '#FEA362': '#E56910', '#579DFF': '#1D7AFC', '#E774BB': '#CD519D' };
+const HOME = ['calculator', 'counter', 'converter', 'triangle', 'tvmount', 'roadtrip', 'recipes'];
+const SVG = { recipes: 'recipes-home' };
+const LIGHT = { '#F87168': '#E2483D',  '#000': '#fff', '#9F8FEF': '#8270DB', '#4BCE97': '#22A06B', '#6CC3E0': '#1D9AAA', '#FEA362': '#E56910', '#579DFF': '#1D7AFC', '#E774BB': '#CD519D' };
 
 (async () => {
   const browser = await webkit.launch();
@@ -23,7 +25,11 @@ const LIGHT = { '#000': '#fff', '#9F8FEF': '#8270DB', '#4BCE97': '#22A06B', '#6C
   }
   const page = await browser.newPage({ viewport: { width: 180, height: 180 }, deviceScaleFactor: 1 });
   for (const app of HOME) {
-    let svg = fs.readFileSync(path.join(__dirname, app + '.svg'), 'utf8');
+    let svg = fs.readFileSync(path.join(__dirname, (SVG[app] || app) + '.svg'), 'utf8');
+    if (!APPS.includes(app)) {
+      await page.setContent(`<style>html,body{margin:0;background:#000}svg{display:block;width:180px;height:180px}</style>${svg}`);
+      await page.screenshot({ path: path.join(root, app, 'icon-180.png') });
+    }
     for (const [dark, light] of Object.entries(LIGHT)) svg = svg.replaceAll(`"${dark}"`, `"${light}"`);
     await page.setContent(`<style>html,body{margin:0;background:#fff}svg{display:block;width:180px;height:180px}</style>${svg}`);
     await page.screenshot({ path: path.join(root, app, 'icon-180-light.png') });

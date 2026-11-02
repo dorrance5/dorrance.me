@@ -62,7 +62,7 @@ This is a static site of small phone apps. GitHub Pages deploys `main` with `.gi
 
 ## Recipes
 
-- `recipes/` is a standalone page, not one of the apps. It has no `manifest.json`. It has a `sw.js` so it opens offline (see Offline cache). Do not add it to the home page.
+- `recipes/` is a standalone page, not one of the apps. It has no `manifest.json`. It has a `sw.js` so it opens offline (see Offline cache). The home page links it with the apps; its icon there is `docs/icons/recipes-home.svg`, rendered by `docs/icons/render.cjs`.
 - `recipes/recipes.json` is the only copy of the recipes. The page saves to it through the API Worker (`worker/recipes.js`), which holds the GitHub token. `docs/recipes-handoff.md` has the data format.
 - Run the unit tests: `node --test recipes/test/*.test.js`
 - Run the browser checks: `NODE_PATH=<folder with playwright> node recipes/test/flows.cjs`

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<!-- Recipes on the home page: the bowl and steam from recipes.svg in red on black, to sit with the app icons there.
+     Recipes itself keeps its sepia icon. Render with docs/icons/render.cjs. -->
+<rect width="512" height="512" fill="#000"/>
+<g transform="translate(51 48) scale(6.4)">
+<g fill="none" stroke="#F87168" stroke-width="3.6" stroke-linecap="round"><path d="M22.5 25.5c-2.6-2.6-2.6-4.9 0-7.5s2.6-4.9 0-7.5M32 25.5c-2.6-2.6-2.6-4.9 0-7.5s2.6-4.9 0-7.5M41.5 25.5c-2.6-2.6-2.6-4.9 0-7.5s2.6-4.9 0-7.5"/></g>
+<path fill="#F87168" d="M11 31.5h42a2 2 0 0 1 2 2.1C54.3 43.7 46.5 51 37 51H27c-9.5 0-17.3-7.3-18-17.4a2 2 0 0 1 2-2.1z"/>
+<rect x="22" y="50" width="20" height="4.5" rx="2.25" fill="#F87168"/>
+</g>
+</svg>
