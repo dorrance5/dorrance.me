@@ -38,7 +38,7 @@ This is version 2. Version 1, the aged recipe book with the Rolodex deck, was at
   - Day: cream ground `#FBF3E4`, surface `#FFFBF4`, ink `#2A1D17`, soft text `#6B5348`, lines `#E8D9BF`, input borders `#9C826A`, focus ring `#2F6FD0`.
   - Night: ground `#1C1512`, surface `#2A201B`, text `#F6EBDA`, soft `#C8B6A3`, lines `#3D3029`, links `#F2836B`, focus ring `#8FB8FF`.
 - Fonts: Fraunces (`'SOFT' 100`, weight 800 for titles) and Figtree for the rest. They come from Google Fonts but are kept in `recipes/fonts/` (latin and latin-ext), so the page does not load them from Google.
-- **Category colors.** Warm shades, each with text at 4.5:1 or more: Soup tomato `#C63A24`, Grill brick `#8E2817`, Crock pot carrot `#E07B2E`, Bowls peach `#F28C6B`, One pan rust `#A94A1A`, Sandwiches & tacos amber `#F2A93B`, Breakfast butter `#F6C945`, and Salads plum `#7A3B69`. A recipe with no category is butter. Any other category gets coral `#E5684A`, wine `#9E2B3A`, gold `#D99A1E` or rust, picked by a hash of its name, so it keeps its color. A recipe takes the color of its first category. The faces keep the old palette.
+- **Category colors.** Four colors, each with text at 4.5:1 or more: tomato `#C63A24` (cream text), carrot `#E07B2E`, butter `#F6C945` (ink text) and rust `#A94A1A` (cream text). Soup is tomato, Crock pot is carrot, and a recipe with no category is butter. Any other category gets one of the four, picked by a hash of its name, so it keeps its color. A recipe takes the color of its first category.
 
 ## Screens
 

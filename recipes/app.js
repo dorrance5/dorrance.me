@@ -34,13 +34,10 @@
 
   /* ---- colors: each category has one; a recipe takes the color of its first category ---- */
   const BUTTER = ['#F6C945', '#2A1D17'];
-  // Warm shades of red, orange and yellow, with Salads in plum. Each text color is at 4.5:1 or more on its color.
-  const FIXED = {
-    soup: ['#C63A24', '#FFF6E6'], grill: ['#8E2817', '#FFF6E6'], 'crock pot': ['#E07B2E', '#2A1D17'], bowls: ['#F28C6B', '#2A1D17'],
-    'one pan': ['#A94A1A', '#FFF6E6'], 'sandwiches & tacos': ['#F2A93B', '#2A1D17'], breakfast: ['#F6C945', '#2A1D17'], salads: ['#7A3B69', '#FFF6E6']
-  };
-  // Any other category: coral, wine, gold or rust, picked by a hash of its name
-  const MORE = [['#E5684A', '#2A1D17'], ['#9E2B3A', '#FFF6E6'], ['#D99A1E', '#2A1D17'], ['#A94A1A', '#FFF6E6']];
+  // Four colors: tomato, carrot, butter and rust. Soup and Crock pot keep theirs; any other category gets one of
+  // the four, picked by a hash of its name, so it keeps its color. Each text color is at 4.5:1 or more on its color.
+  const FIXED = { soup: ['#C63A24', '#FFF6E6'], 'crock pot': ['#E07B2E', '#2A1D17'] };
+  const MORE = [['#C63A24', '#FFF6E6'], ['#E07B2E', '#2A1D17'], BUTTER, ['#A94A1A', '#FFF6E6']];
   const hash = s => { let h = 0; for (const ch of s) h = (h * 31 + ch.codePointAt(0)) >>> 0; return h; };
   function colorOf(tag) {
     if (!tag) return BUTTER;
