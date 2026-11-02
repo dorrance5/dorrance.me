@@ -24,6 +24,9 @@
     {
       "id": "salmon-bowls",
       "name": "Salmon bowls",
+      "tags": [
+        "Bowls"
+      ],
       "ingredients": [
         "Salmon",
         "Rice",
@@ -48,6 +51,9 @@
     {
       "id": "pulled-pork-sandwiches",
       "name": "Pulled pork sandwiches",
+      "tags": [
+        "Sandwiches & tacos"
+      ],
       "ingredients": [
         "Pulled pork (Costco)",
         "Buns"
@@ -57,6 +63,9 @@
     {
       "id": "madis-pasta-salad",
       "name": "Madi's pasta salad",
+      "tags": [
+        "Salads"
+      ],
       "ingredients": [
         "Iceberg lettuce",
         "Provolone cheese",
@@ -71,12 +80,18 @@
     {
       "id": "jens-tortellini-pasta-salad",
       "name": "Jen's tortellini pasta salad",
+      "tags": [
+        "Salads"
+      ],
       "ingredients": [],
       "owner": "Nicole"
     },
     {
       "id": "sheet-pan-breakfast-burritos",
       "name": "Sheet pan breakfast burritos",
+      "tags": [
+        "Breakfast"
+      ],
       "ingredients": [
         "Eggs",
         "Red bell pepper",
@@ -111,6 +126,9 @@
     {
       "id": "tacos-and-beans",
       "name": "Tacos and beans",
+      "tags": [
+        "Sandwiches & tacos"
+      ],
       "ingredients": [
         "Ground beef",
         "Refried beans",
@@ -172,6 +190,9 @@
       "id": "korean-beef-bowls",
       "name": "Korean beef bowls",
       "servings": "4",
+      "tags": [
+        "Bowls"
+      ],
       "ingredients": [
         "1 lb ground beef",
         "1 tbsp sesame oil",
@@ -198,6 +219,9 @@
       "id": "sheet-pan-chicken-shawarma",
       "name": "Sheet pan chicken shawarma",
       "servings": "4",
+      "tags": [
+        "One pan"
+      ],
       "ingredients": [
         "2 lb boneless chicken thighs",
         "1 red onion (cut in wedges)",
@@ -231,6 +255,9 @@
       "id": "marry-me-chicken",
       "name": "Marry me chicken",
       "servings": "4",
+      "tags": [
+        "One pan"
+      ],
       "ingredients": [
         "2 large chicken breasts (cut in half the long way)",
         "1 tsp salt",
@@ -261,6 +288,9 @@
       "id": "smash-burger-tacos",
       "name": "Smash burger tacos",
       "servings": "4 (8 tacos)",
+      "tags": [
+        "Sandwiches & tacos"
+      ],
       "ingredients": [
         "1 lb ground beef (80/20)",
         "8 small flour tortillas",
@@ -291,6 +321,9 @@
       "id": "quick-butter-chicken",
       "name": "Quick butter chicken",
       "servings": "4",
+      "tags": [
+        "One pan"
+      ],
       "ingredients": [
         "1 1/2 lb boneless chicken thighs (cut in bite-size pieces)",
         "1/2 cup plain yogurt",
@@ -324,6 +357,9 @@
       "id": "cajun-shrimp-and-sausage-skillet",
       "name": "Cajun shrimp and sausage skillet",
       "servings": "4",
+      "tags": [
+        "One pan"
+      ],
       "ingredients": [
         "1 lb large shrimp (peeled and deveined)",
         "12 oz andouille sausage (sliced)",
@@ -353,6 +389,9 @@
       "id": "sausage-gnocchi-skillet",
       "name": "Sausage gnocchi skillet",
       "servings": "4",
+      "tags": [
+        "One pan"
+      ],
       "ingredients": [
         "1 lb shelf-stable potato gnocchi",
         "1 lb Italian sausage (casings removed)",
@@ -380,6 +419,9 @@
       "id": "philly-cheesesteaks",
       "name": "Philly cheesesteaks",
       "servings": "4",
+      "tags": [
+        "Sandwiches & tacos"
+      ],
       "ingredients": [
         "1 1/2 lb ribeye steak",
         "2 tbsp vegetable oil",
