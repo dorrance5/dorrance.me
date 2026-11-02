@@ -32,6 +32,9 @@
 .ur .u small{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-left:8px}
 .ur .v{font-size:18px;font-weight:550;text-align:right;overflow-wrap:anywhere}
 .ur.on .u,.ur.on .v{color:var(--blue)}
+/* the categories: a bar at the bottom, like a tab bar */
+main{padding-bottom:16px}
+#cats{padding:8px 12px calc(env(safe-area-inset-bottom,0px) + 8px);border-top:.5px solid var(--line);background:var(--bg)}
 /* Open (a wide screen, like the inside of iPhone Duo): the amount and the answer on the left, every unit on the right */
 @media (min-width:560px){
   main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-auto-rows:max-content;column-gap:12px;align-items:start;align-content:start}
@@ -47,8 +50,6 @@
   <span class="sp"></span>
   <button class="round" id="setBtn" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
 </header>
-
-<nav class="tabs" id="cats" aria-label="What to convert"></nav>
 
 <main>
   <section class="card sec" id="card">
@@ -66,6 +67,8 @@
   <div class="hero" id="outCard" title="Tap to copy"><div class="k" id="outName"></div><div class="v"><span id="out">0</span><span class="u" id="outUnit"></span></div><div class="s" id="sub"></div></div>
   <div class="card units" id="table"></div>
 </main>
+
+<nav class="tabs" id="cats" aria-label="What to convert"></nav>
 
 <script src="../shared/base.js"></script>
 <script>

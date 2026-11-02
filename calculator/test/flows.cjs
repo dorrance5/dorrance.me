@@ -84,10 +84,17 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
     const c = await browser.newContext({ viewport: { width: w, height: h }, isMobile: true, hasTouch: true, serviceWorkers: 'block' }), p = watch(await c.newPage());
     await p.goto(base); await p.waitForSelector('#value');
     const r = await p.evaluate(() => { const box = s => document.querySelector(s).getBoundingClientRect(), pad = box('.pad'), v = box('#value'), pn = box('#panel');
-      return { padL: pad.left, padR: pad.right, padB: pad.bottom, vT: v.top, vB: v.bottom, panelR: pn.right, menu: getComputedStyle(document.getElementById('menuBtn')).display !== 'none' }; });
+      return { padL: pad.left, padR: pad.right, padB: pad.bottom, vT: v.top, vB: v.bottom, panelR: pn.right, panelL: pn.left, menu: getComputedStyle(document.getElementById('menuBtn')).display !== 'none' }; });
     check(`${w}×${h}: the keypad fits on screen`, r.padB <= h + 0.5 && r.vT >= 0 && r.vB <= h, r);
     check(`${w}×${h}: the keypad spans the width`, w - r.padR <= 13 && r.padL - (docked ? r.panelR : 0) <= 13, r);
-    check(`${w}×${h}: ${docked ? 'history open on the left, no menu button' : 'history behind the menu button'}`, docked ? r.panelR > 200 && !r.menu : r.panelR <= 0 && r.menu, r);
+    check(`${w}×${h}: ${docked ? 'history open on the left, no menu button' : 'history behind the menu button'}`, docked ? r.panelR > 200 && !r.menu : r.panelL >= w && r.menu, r);
+    if (!docked) {   // the menu button on the right, and history slides in from the right
+      const m = await p.$eval('#menuBtn', el => el.getBoundingClientRect().left);
+      await p.tap('#menuBtn'); await p.waitForTimeout(450);
+      const pn = await p.$eval('#panel', el => { const b = el.getBoundingClientRect(); return { l: b.left, r: b.right }; });
+      check(`${w}×${h}: the menu button on the right opens history from the right`, m > w / 2 && Math.abs(pn.r - w) <= 1 && pn.l > 0, { m, pn });
+      await p.tap('#scrim', { position: { x: 10, y: 10 } });
+    }
     if (docked) {
       await p.evaluate(() => localStorage.setItem('calculator.hist', JSON.stringify([{ expr: '1 + 2', res: { n: 3, d: 1 } }])));
       await p.reload(); await p.waitForSelector('#rows .row');

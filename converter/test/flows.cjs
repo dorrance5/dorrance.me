@@ -75,6 +75,8 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
     const card = await box(p, '#card'), out = await box(p, '#outCard'), table = await box(p, '#table');
     check(`${w}×${h}: ${wide ? 'every unit beside the amount and the answer' : 'one column'}`, wide ? table.x > card.x + card.w && out.y >= card.y + card.h && out.x === card.x : out.y >= card.y + card.h && table.y >= out.y + out.h, { card, out, table });
     check(`${w}×${h}: no sideways scrolling`, (await sideways(p)) <= 0);
+    const cats = await box(p, '#cats'), main = await box(p, 'main');
+    check(`${w}×${h}: the categories are a bar at the bottom`, cats.y >= main.y + main.h - 1 && Math.abs(cats.y + cats.h - h) <= 1, { cats, main });
     await c.close();
   }
 
