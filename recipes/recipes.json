@@ -443,6 +443,14 @@
       ],
       "notes": "Shaved steak from the meat counter skips the freezing and slicing. Cheez Whiz instead of provolone is the classic Philly way.",
       "owner": "Mitchell"
+    },
+    {
+      "id": "lasagna-soup",
+      "name": "Lasagna soup",
+      "servings": "8",
+      "ingredients": [],
+      "source": "https://bellyfull.net/lasagna-soup/#comments",
+      "owner": "GiGi"
     }
   ]
 }
