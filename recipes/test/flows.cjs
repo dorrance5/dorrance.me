@@ -229,8 +229,8 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
   await tap('#cGo');
   await tap('#cNext');
   await tap('#cNext');
-  check('on another step, a button shows the timer that runs', await page.isVisible('#cElse') && /^Step 1 timer · 4:5\d$/.test(await text('#cElse')), await text('#cElse'));
-  await tap('#cElse');
+  check('on another step, a button shows the timer that runs', await page.isVisible('#cElse') && /^Step 14:5\d$/.test(await text('#cElse [data-step="0"]')), await text('#cElse'));
+  await tap('#cElse [data-step="0"]');
   check('and it goes back to that step', (await text('#cKick')) === 'Step 1 of 9' && await page.isHidden('#cElse'));
   await tap('#cReset');
   check('Reset puts the timer back to 5:00', (await text('#cClock')) === '5:00' && (await text('#cGo')) === 'Start');
@@ -305,6 +305,33 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
     await p3.clock.fastForward('05:00:01');
     check('at the end: "Time’s up", 0:00, the phone buzzes, and the button says Again',
       (await p3.textContent('#cWhat')) === 'Time’s up' && (await p3.textContent('#cClock')) === '0:00' && (await p3.evaluate(() => __buzz)) === 1 && (await p3.textContent('#cGo')) === 'Again');
+    check('a bar at the top says which step', await p3.isVisible('#cAlarm') && (await p3.textContent('#cAlarmText')) === 'Time’s up · Step 4');
+    await p3.clock.runFor(6000);
+    check('it keeps buzzing every 2 seconds', (await p3.evaluate(() => __buzz)) === 4, await p3.evaluate(() => __buzz));
+    await p3.clock.runFor(60000);
+    const capped = await p3.evaluate(() => __buzz);
+    await p3.clock.runFor(10000);
+    check('for a minute, and the bar stays', capped >= 30 && capped <= 32 && (await p3.evaluate(() => __buzz)) === capped && await p3.isVisible('#cAlarm'), capped);
+    await p3.tap('#cAlarm');
+    check('a tap on the bar stops it', await p3.isHidden('#cAlarm'));
+    // three timers on other steps show side by side, and timers that end together ring as one
+    await p3.tap('#cook [data-close]');
+    await closed('cook', p3);
+    await p3.tap('#view [data-close]'); await closed('view', p3);
+    await openRecipe('zuppa', p3);
+    await p3.tap('#cookBtn');
+    await opened('cook', p3);
+    await p3.tap('#cGo');                              // step 1: 5 minutes
+    await p3.tap('#cNext'); await p3.tap('#cGo');      // step 2: 15 minutes
+    await p3.tap('#cNext'); await p3.tap('#cNext'); await p3.tap('#cGo');   // step 4: 2 minutes
+    await p3.tap('#cNext'); await p3.tap('#cNext');    // step 6
+    const row = await p3.$$eval('#cElse button', bs => bs.map(b => [b.querySelector('span').textContent, Math.round(b.getBoundingClientRect().top)]));
+    check('three timers on other steps are side by side, in step order', row.map(r => r[0]).join() === 'Step 1,Step 2,Step 4' && new Set(row.map(r => r[1])).size === 1, row);
+    await p3.clock.fastForward('00:16:00');
+    check('when they end, the bar names each step', (await p3.textContent('#cAlarmText')) === 'Time’s up · Steps 1, 2, 4', await p3.textContent('#cAlarmText'));
+    await p3.tap('#cElse [data-step="0"]');
+    await p3.tap('#cGo');
+    check('Again on one leaves the others ringing', (await p3.textContent('#cAlarmText')) === 'Time’s up · Steps 2, 4' && await p3.isVisible('#cAlarm'), await p3.textContent('#cAlarmText'));
     await c3.close();
   }
 

@@ -275,8 +275,24 @@ p.source { margin: 0; color: var(--soft); }
 .progress { flex: none; display: flex; gap: 4px; padding: 16px 20px 0; }
 .progress span { flex: 1; height: 6px; border-radius: 3px; background: var(--line); }
 .progress span.done { background: var(--kick); }
-.elsewhere { align-self: center; margin: 14px 20px 0; min-height: 44px; border-color: var(--butter); font-variant-numeric: tabular-nums; }
-.elsewhere.up { background: var(--butter); color: var(--on-butter); }
+/* timers on other steps: three across, more wrap */
+.ctimers { flex: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 14px 20px 0; }
+.ctimers button { display: flex; flex-direction: column; align-items: center; gap: 0; min-height: 56px; padding: 6px 4px; border: 2px solid var(--butter); border-radius: 18px; background: var(--surface); color: var(--ink); font: inherit; cursor: pointer; }
+.ctimers span { font-size: 13px; font-weight: 700; color: var(--soft); }
+.ctimers b { font-size: 21px; font-weight: 800; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.ctimers .paused { border-color: var(--line); }
+.ctimers .paused b { color: var(--soft); }
+.ctimers .up { border-color: var(--tomato); background: var(--tomato); }
+.ctimers .up span, .ctimers .up b { color: var(--cream); }
+/* time's up: stays at the top, and beeps, until it is tapped */
+.alarm {
+  position: sticky; top: 0; z-index: 3; flex: none; display: flex; flex-direction: column; align-items: center; gap: 2px; width: 100%;
+  padding: calc(14px + env(safe-area-inset-top)) 20px 14px; border: 0; background: var(--tomato); color: var(--cream); font: inherit; cursor: pointer;
+  animation: alarm 1s ease-in-out infinite alternate;
+}
+.alarm b { font-size: 24px; font-weight: 800; }
+.alarm span { font-size: 15px; font-weight: 700; opacity: .9; }
+@keyframes alarm { to { background: var(--tomato-deep); } }
 .step { flex: 1; display: flex; flex-direction: column; gap: 18px; padding: 30px 24px 24px; }
 .step .kick { font-size: 14px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--kick); }
 .step p { margin: 0; font-weight: 500; font-size: 31px; line-height: 1.24; letter-spacing: -.005em; overflow-wrap: anywhere; }
@@ -527,6 +543,7 @@ body.has-nav #plan .planbody, body.has-nav #grocery .grobody { padding-bottom: c
 .toast.tap { pointer-events: auto; cursor: pointer; }
 
 @media (prefers-reduced-motion: reduce) {
+  .alarm { animation: none; }
   .layer, .rc, .toast, .switch::before, .switch i { transition: none; }
 }
 </style>
@@ -608,6 +625,7 @@ body.has-nav #plan .planbody, body.has-nav #grocery .grobody { padding-bottom: c
 <!-- cooking mode -->
 <section class="layer up" id="cook" aria-label="Cooking mode" tabindex="-1" hidden>
   <div class="cook">
+    <button class="alarm" id="cAlarm" type="button" hidden><b id="cAlarmText">Time’s up</b><span>Tap to stop</span></button>
     <div class="cook-top">
       <button class="iconbtn" type="button" data-close aria-label="Leave cooking mode">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
@@ -616,7 +634,7 @@ body.has-nav #plan .planbody, body.has-nav #grocery .grobody { padding-bottom: c
       <button class="pill" id="cIngBtn" type="button">Ingredients</button>
     </div>
     <div class="progress" id="cProgress" aria-hidden="true"></div>
-    <button class="pill elsewhere" id="cElse" type="button" hidden></button>
+    <div class="ctimers" id="cElse" role="group" aria-label="Timers on other steps" hidden></div>
     <div class="step">
       <span class="kick" id="cKick"></span>
       <p class="serif" id="cText" aria-live="polite"></p>

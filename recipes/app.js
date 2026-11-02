@@ -497,26 +497,25 @@
       box.classList.toggle('long', spec.secs >= 3600);
       $('cGo').textContent = t && t.end && left ? 'Pause' : up ? 'Again' : t && left < spec.secs ? 'Resume' : 'Start';
     }
-    // a timer on another step that runs or is up: a button that goes back to it
-    const other = [...timers].filter(([k, t]) => k !== at && (t.end || t.left === 0)).map(([k, t]) => ({ k, left: leftOf(t) })).sort((a, b) => a.left - b.left)[0];
-    const pill = $('cElse');
-    pill.hidden = !other;
-    if (other) {
-      pill.dataset.step = other.k;
-      pill.classList.toggle('up', other.left === 0);
-      pill.textContent = other.left ? `Step ${other.k + 1} timer · ${D.clock(other.left)}` : `Step ${other.k + 1} · Time’s up`;
-    }
+    // each timer on another step that has started, in step order: a button that goes back to it
+    const others = [...timers].filter(([k]) => k !== at).sort((a, b) => a[0] - b[0]);
+    const row = $('cElse');
+    row.hidden = !others.length;
+    row.innerHTML = others.map(([k, t]) => {
+      const left = leftOf(t), st = !left ? 'up' : t.end ? 'runs' : 'paused';
+      return `<button type="button" class="${st}" data-step="${k}"><span>Step ${k + 1}</span><b>${left ? D.clock(left) : 'Done'}</b></button>`;
+    }).join('');
   }
   function ticking() {
     if (running() && !tick) tick = setInterval(onTick, 250);
     if (!running() && tick) { clearInterval(tick); tick = 0; }
   }
   function onTick() {
-    for (const t of timers.values()) if (t.end && t.end <= Date.now()) { t.end = 0; t.left = 0; ring(); }
+    for (const [k, t] of timers) if (t.end && t.end <= Date.now()) { t.end = 0; t.left = 0; ring(k); }
     drawTimer();
     ticking();
   }
-  function stopTimers() { timers.clear(); ticking(); }
+  function stopTimers() { timers.clear(); hush(); ticking(); }
   // A sound needs a tap first on a phone: Start makes the sound ready.
   function hearing() {
     try {
@@ -525,7 +524,30 @@
       if (audio && audio.state === 'suspended') audio.resume();
     } catch (e) {}
   }
-  function ring() {
+  // Time's up: the bar at the top shows which steps, and the beeps and buzz come back every 2 seconds for a minute
+  // or until the bar is tapped.
+  const ringing = new Set();
+  let alarm = 0, alarmEnd = 0;
+  function ring(k) {
+    ringing.add(k);
+    alarmText();
+    $('cAlarm').hidden = false;
+    alarmEnd = Date.now() + 60000;
+    if (!alarm) { beep(); alarm = setInterval(() => { if (Date.now() >= alarmEnd) { clearInterval(alarm); alarm = 0; } else beep(); }, 2000); }
+  }
+  function alarmText() {
+    const steps = [...ringing].sort((a, b) => a - b).map(s => s + 1);
+    $('cAlarmText').textContent = `Time’s up · Step${steps.length > 1 ? 's' : ''} ${steps.join(', ')}`;
+  }
+  function hush(k) {
+    if (!ringing.size) return;
+    if (k === undefined) ringing.clear(); else ringing.delete(k);
+    if (ringing.size) return alarmText();
+    $('cAlarm').hidden = true;
+    if (alarm) { clearInterval(alarm); alarm = 0; }
+    try { if (navigator.vibrate) navigator.vibrate(0); } catch (e) {}
+  }
+  function beep() {
     try { if (navigator.vibrate) navigator.vibrate([300, 150, 300, 150, 300]); } catch (e) {}
     if (!audio) return;
     try {
@@ -547,17 +569,19 @@
     if (!spec) return;
     hearing();
     const t = timers.get(at) || { left: spec.secs, end: 0 };
+    hush(at);
     if (t.end) { t.left = leftOf(t); t.end = 0; }   // pause
     else { if (t.left <= 0) t.left = spec.secs; t.end = Date.now() + t.left * 1000; }   // start, resume or again
     timers.set(at, t);
     drawTimer();
     ticking();
   });
-  $('cReset').addEventListener('click', () => { timers.delete(at); drawTimer(); ticking(); });
+  $('cReset').addEventListener('click', () => { timers.delete(at); hush(at); drawTimer(); ticking(); });
+  $('cAlarm').addEventListener('click', () => hush());
   const goStep = i => { at = i; renderCook(); cook.scrollTop = 0; };
   $('cBack').addEventListener('click', () => { if (at > 0) goStep(at - 1); });
   $('cNext').addEventListener('click', () => { if (at < cooking().steps.length - 1) goStep(at + 1); else back(); });
-  $('cElse').addEventListener('click', e => goStep(+e.currentTarget.dataset.step));
+  $('cElse').addEventListener('click', e => { const b = e.target.closest('[data-step]'); if (b) goStep(+b.dataset.step); });
   $('cIngBtn').addEventListener('click', () => {
     $('ciList').innerHTML = cooking().ingredients.map(ingLine).join('');
     open(cookIng);
