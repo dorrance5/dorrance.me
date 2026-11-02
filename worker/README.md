@@ -26,7 +26,7 @@ The routes are `dorrance.me/api/auth/*` for the accounts and `dorrance.me/api/re
 in the same KV namespace, under keys that start with `auth:`. The admin's name is the var `ADMIN` in `wrangler.toml`.
 
 1. Make a GitHub token for Recipes at https://github.com/settings/personal-access-tokens/new: "Only select repositories"
-   > `dorrance5/dorrance5`, and "Contents" set to "Read and write".
+   > `dorrance5/dorrance.me`, and "Contents" set to "Read and write".
 2. Add two secrets. In the Cloudflare dashboard: Workers & Pages > `dorrance-api` > Settings > Variables and Secrets.
    Or in this folder:
    - `npx wrangler secret put ADMIN_PASSWORD`, then type the admin password.

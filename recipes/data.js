@@ -9,7 +9,7 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  const REPO = 'dorrance5/dorrance5';
+  const REPO = 'dorrance5/dorrance.me';
   const API = '/api/recipes/';
   // Field order in the file. Fields the page does not know about go after these and are kept as they are.
   const ORDER = ['id', 'name', 'servings', 'tags', 'ingredients', 'steps', 'notes', 'source', 'owner', 'shared'];

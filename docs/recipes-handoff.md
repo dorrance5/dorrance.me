@@ -110,7 +110,7 @@ This is version 2. Version 1, the aged recipe book with the Rolodex deck, was at
 The site is static, so the page saves through the API Worker, and the Worker saves to GitHub with the contents API.
 
 - The page calls `/api/recipes/file` with `Authorization: Bearer <sign-in>`. `worker/recipes.js` lists its routes.
-- The Worker calls `https://api.github.com/repos/dorrance5/dorrance5/contents/recipes/recipes.json` with the GitHub token in the secret `GITHUB_TOKEN`: a fine-grained personal access token for the `dorrance5/dorrance5` repo only, with "Contents: Read and write". The token never goes to a phone. The page deletes an old `recipes-token` that it finds in localStorage.
+- The Worker calls `https://api.github.com/repos/dorrance5/dorrance.me/contents/recipes/recipes.json` with the GitHub token in the secret `GITHUB_TOKEN`: a fine-grained personal access token for the `dorrance5/dorrance.me` repo only, with "Contents: Read and write". The token never goes to a phone. The page deletes an old `recipes-token` that it finds in localStorage.
 - Keep the last good copy of the data under `recipes-cache`.
 - Save steps:
   1. GET the file. Read `content` and `sha`.
@@ -160,7 +160,7 @@ The site is static, so the page saves through the API Worker, and the Worker sav
 
 Do this once, after the Worker is deployed. `worker/README.md` has the same steps.
 
-1. Make a GitHub token: open https://github.com/settings/personal-access-tokens/new. Set "Repository access" to "Only select repositories" and select `dorrance5/dorrance5`. Under "Permissions", set "Contents" to "Read and write". Generate the token and copy it.
+1. Make a GitHub token: open https://github.com/settings/personal-access-tokens/new. Set "Repository access" to "Only select repositories" and select `dorrance5/dorrance.me`. Under "Permissions", set "Contents" to "Read and write". Generate the token and copy it.
 2. Open the Cloudflare dashboard. Go to Workers & Pages > `dorrance-api` > Settings > Variables and Secrets.
 3. Add a secret `GITHUB_TOKEN` with the token.
 4. Add a secret `ADMIN_PASSWORD` with the admin password, for the dorrance.me accounts.

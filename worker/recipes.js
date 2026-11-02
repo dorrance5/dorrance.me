@@ -8,7 +8,7 @@
    An error is { error: CODE } with a status; recipes/data.js has the words for each code. */
 import { json, who } from './auth.js';
 
-const GH = 'https://api.github.com/repos/dorrance5/dorrance5/contents/recipes/recipes.json';
+const GH = 'https://api.github.com/repos/dorrance5/dorrance.me/contents/recipes/recipes.json';
 
 async function body(req) {
   try { const b = await req.json(); return b && typeof b === 'object' ? b : {}; } catch { return {}; }
