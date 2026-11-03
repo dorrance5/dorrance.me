@@ -481,6 +481,32 @@
       "notes": "If you won't eat the whole pot at once, cook the noodles separately and add them to each bowl, so the leftovers don't get soggy. Keep the cheese mix separate too and add it when serving. 12 oz of small pasta like rotini or bow ties works in place of the lasagna noodles. Ground beef or turkey works in place of the sausage. Keeps 3 days in the fridge, or 3 months in the freezer without the noodles and cheese.",
       "source": "https://bellyfull.net/lasagna-soup/",
       "owner": "GiGi"
+    },
+    {
+      "id": "scotcheroos",
+      "name": "Scotcheroos",
+      "tags": [
+        "Dessert"
+      ],
+      "ingredients": [
+        "1 cup sugar",
+        "1cup corn syrup",
+        "1 cup peanut butter",
+        "6 cups Rice Krispies",
+        "Chocolate chips",
+        "Butterscotch chips",
+        "About 1-1.5 cups of each (more chocolate than butterscotch)"
+      ],
+      "steps": [
+        "In large sauce pan bring sugar and corn syrup just to a boil",
+        "Take off the heat and stir in peanut butter until melted",
+        "Add Rice Krispies and mix well. I put in half the cereal stir then add the other half.",
+        "Press lightly into a 9x13 pan - use a piece of parchment paper so it doesn't stick to you or a spoon.",
+        "Put chips into a microwave safe dish",
+        "Microwave the chips 30-60 seconds at a time stirring each time just until melted",
+        "Spread over rice Krispie mixture. Let cool"
+      ],
+      "owner": "GiGi"
     }
   ],
   "books": {
