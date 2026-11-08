@@ -12,19 +12,19 @@ const recipe = id => BOOK.find(r => r.id === id);
 const list = o => ({ recipes: [], extra: [], got: [], gone: [], ...o });
 const on = (...ids) => ids.map(id => ({ id, name: recipe(id).name }));
 
-test('a week runs Monday to Sunday, and the dates read well', () => {
-  const sat = new Date(2026, 9, 24, 18, 30);   // Saturday, October 24
-  const w = M.week(sat, 0), next = M.week(sat, 1);
-  assert.deepEqual(w.map(d => d.date), ['2026-10-19', '2026-10-20', '2026-10-21', '2026-10-22', '2026-10-23', '2026-10-24', '2026-10-25']);
-  assert.deepEqual(w.map(d => d.day), ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
-  assert.deepEqual(w.map(d => d.today), [false, false, false, false, false, true, false]);
-  assert.deepEqual(w.filter(d => d.past).length, 5);
-  assert.equal(w[5].long, 'Saturday');
-  assert.equal(M.span(w), 'Oct 19–25');
-  assert.equal(M.span(next), 'Oct 26–Nov 1');
-  assert.equal(M.week(new Date(2026, 9, 25), 0)[0].date, '2026-10-19', 'Sunday is the end of the week');
-  assert.equal(M.week(new Date(2026, 9, 26), 0)[0].date, '2026-10-26', 'Monday starts a new week');
-  assert.equal(M.span(M.week(new Date(2026, 11, 30), 0)), 'Dec 28–Jan 3');
+test('a week runs Saturday to Friday, and the dates read well', () => {
+  const tue = new Date(2026, 9, 27, 18, 30);   // Tuesday, October 27
+  const w = M.week(tue, 0), next = M.week(tue, 1);
+  assert.deepEqual(w.map(d => d.date), ['2026-10-24', '2026-10-25', '2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29', '2026-10-30']);
+  assert.deepEqual(w.map(d => d.day), ['Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri']);
+  assert.deepEqual(w.map(d => d.today), [false, false, false, true, false, false, false]);
+  assert.deepEqual(w.filter(d => d.past).length, 3);
+  assert.equal(w[3].long, 'Tuesday');
+  assert.equal(M.span(w), 'Oct 24–30');
+  assert.equal(M.span(next), 'Oct 31–Nov 6');
+  assert.equal(M.week(new Date(2026, 9, 30), 0)[0].date, '2026-10-24', 'Friday is the end of the week');
+  assert.equal(M.week(new Date(2026, 9, 31), 0)[0].date, '2026-10-31', 'Saturday starts a new week');
+  assert.equal(M.span(M.week(new Date(2026, 11, 30), 0)), 'Dec 26–Jan 1');
 });
 
 test('an item is its name without the amount', () => {

@@ -187,7 +187,7 @@
     return { op: 'clear', keys: ks, recipes: done };
   }
 
-  /* ---- weeks, Monday to Sunday, in the phone's time zone ---- */
+  /* ---- weeks, Saturday to Friday, in the phone's time zone ---- */
   const DAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const MONTH = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -195,7 +195,7 @@
   const iso = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   // The 7 days of a week: `n` 0 is the week of `now`, 1 is the next one.
   function week(now, n) {
-    const today = iso(now), start = now.getDate() + 7 * n - (now.getDay() + 6) % 7;
+    const today = iso(now), start = now.getDate() + 7 * n - (now.getDay() + 1) % 7;
     return Array.from({ length: 7 }, (_, i) => {
       const x = new Date(now.getFullYear(), now.getMonth(), start + i), date = iso(x);
       return { date, day: DAY[x.getDay()], long: LONG[x.getDay()], month: MONTH[x.getMonth()], num: x.getDate(), today: date === today, past: date < today };

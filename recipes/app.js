@@ -1313,7 +1313,7 @@
     drawDot();
   }
 
-  // The meal plan: Monday to Sunday, this week or the next. Each day has a recipe, a note or nothing.
+  // The meal plan: Saturday to Friday, this week or the next. Each day has a recipe, a note or nothing.
   const by = name => `<span class="av by" role="img" aria-label="Planned by ${D.esc(name)}" style="${paint(face(name))}">${D.esc((name[0] || '?').toUpperCase())}</span>`;
   function drawPlan(v) {
     const now = new Date(), days = M.week(now, week), today = M.iso(now);
