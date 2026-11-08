@@ -507,6 +507,22 @@
         "Spread over rice Krispie mixture. Let cool"
       ],
       "owner": "GiGi"
+    },
+    {
+      "id": "strogi-loaf",
+      "name": "Strogi-Loaf",
+      "tags": [
+        "Sandwiches & tacos"
+      ],
+      "ingredients": [
+        "French loaf",
+        "Ground beef",
+        "Cheese",
+        "Worcestershire sauce",
+        "Sour cream"
+      ],
+      "owner": "Mitchell",
+      "shared": false
     }
   ],
   "books": {
