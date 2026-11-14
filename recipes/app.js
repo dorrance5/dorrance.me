@@ -8,6 +8,8 @@
   const D = window.RecipeData, A = window.Account, M = window.Meals;
   const $ = id => document.getElementById(id);
   const root = document.documentElement;
+  // The return key. iOS predictive text can report a real return as part of a composition, with keyCode 13.
+  const isEnter = e => (e.key === 'Enter' || e.keyCode === 13) && (!e.isComposing || e.keyCode === 13);
   const CACHE = 'recipes-cache', WAITING = 'recipes-waiting', MEALS = 'recipes-meals';
   const store = {
     get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
@@ -29,6 +31,7 @@
     plan: svg('<path d="M12 5v14M5 12h14"/>', 2.6, 18),
     x: svg('<path d="M7 7l10 10M17 7L7 17"/>', 2.6, 18),
     off: svg('<path d="M7 7l10 10M17 7L7 17"/>', 2.8, 16),
+    cal: svg('<rect x="4" y="5.5" width="16" height="14.5" rx="3"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/>', 2, 22),
     bag: svg('<path d="M3.5 9.5h17l-1.6 9.1a2 2 0 0 1-2 1.65H7.1a2 2 0 0 1-2-1.65z"/><path d="M8 9.5l3-5.5M16 9.5l-3-5.5"/>', 2, 22)
   };
 
@@ -106,8 +109,9 @@
   // before the site updates.
   async function load() {
     try { setData(D.parse(store.get(CACHE)), true); } catch (e) { none.textContent = 'Loading…'; none.hidden = false; }
+    const had = data && JSON.stringify(data);   // the same text again needs no second draw
     if (session()) {
-      try { setData((await worker().read()).data); note(''); return; }
+      try { const d = (await worker().read()).data; if (had !== JSON.stringify(d)) setData(d); note(''); return; }
       catch (e) {
         if (e.code === 'network') return offline();
         if (e.code === 'signin') signOut();
@@ -118,7 +122,8 @@
     try { res = await fetch('recipes.json', { cache: 'no-cache' }); } catch (e) { return offline(); }
     try {
       if (!res.ok) throw new Error(res.status);
-      setData(D.parse(await res.text()));
+      const d = D.parse(await res.text());
+      if (had !== JSON.stringify(d)) setData(d);
     } catch (e) {
       note(data ? 'The recipes could not be loaded. Showing the copy saved on this phone.' : 'The recipes could not be loaded.');
       if (!data) none.hidden = true;
@@ -159,6 +164,12 @@
     const tabs = [{ name: '', label: 'All', n: shelf.book.length }, ...cats.map(c => ({ ...c, label: c.name }))];
     $('tabs').innerHTML = tabs.map(c => `<button type="button" data-tab="${D.esc(c.name)}" aria-pressed="${same(c.name, tab)}" style="${paint(c.name ? colorOf(c.name) : ALL)}"><span>${D.esc(c.label)}</span><span class="n">${c.n}</span></button>`).join('');
     $('band').style.cssText = paint(tab ? colorOf(tab) : ALL);
+    renderDeck();
+  }
+  // What the search changes: the cards and the Shared list. The tabs and their counts do not depend on it.
+  let qT = 0;
+  function renderDeck() {
+    clearTimeout(qT);
     const t = q.value.trim(), cards = [];
     for (const r of shelf.book) {
       if (!inTab(r)) continue;
@@ -185,9 +196,9 @@
     if (b.dataset.pull) bookChange({ type: 'pull', id: b.dataset.pull }, b);
     else if (b.dataset.id) openView(b.dataset.id, b);
   });
-  q.addEventListener('input', renderBox);
+  q.addEventListener('input', () => { clearTimeout(qT); qT = setTimeout(() => shelf && renderDeck(), 80); });
   q.addEventListener('keydown', e => {
-    if (e.key === 'Enter') q.blur();
+    if (isEnter(e)) q.blur();
     if (e.key === 'Escape' && q.value) { q.value = ''; renderBox(); }
   });
   $('qClear').addEventListener('click', () => { q.value = ''; renderBox(); q.focus(); });
@@ -214,9 +225,9 @@
   // Each open screen is one history entry, so the phone's back button closes the top one.
   const page = $('page'), nav = $('nav');
   const view = $('view'), cook = $('cook'), cookIng = $('cookIng'), editor = $('editor'), settings = $('settings'), importer = $('importer');
-  const plan = $('plan'), grocery = $('grocery'), pick = $('pick');
-  const layers = [view, cook, cookIng, editor, importer, settings, plan, grocery, pick];
-  const tabLayers = [plan, grocery, settings], mealLayers = [plan, grocery, pick];
+  const plan = $('plan'), grocery = $('grocery'), pick = $('pick'), addPlan = $('addPlan');
+  const layers = [view, cook, cookIng, editor, importer, settings, plan, grocery, pick, addPlan];
+  const tabLayers = [plan, grocery, settings], mealLayers = [plan, grocery, pick, addPlan];
   const stack = [];
   // Sideways on a wide screen (the open iPhone Duo), an open recipe sits beside the box instead of over it, and the
   // box stays in use: a tap on another card shows that one.
@@ -229,16 +240,25 @@
   let quiet = false;   // the next popstate closes without asking: Cancel, Save and Delete already decided
   const top = () => stack[stack.length - 1];
   const isOpen = l => stack.includes(l);
+  // The page behind a layer: held still with the scroll kept, since iOS scrolls it whatever overflow says.
+  let lockY = null;
+  function holdPage(on) {
+    if (on === (lockY !== null)) return;
+    if (on) { lockY = scrollY; root.style.setProperty('--sy', lockY + 'px'); root.classList.add('locked'); }
+    else { root.classList.remove('locked'); root.style.removeProperty('--sy'); scrollTo({ top: lockY, behavior: 'instant' }); lockY = null; }
+  }
   function setInert() {
     const beside = side();
     page.inert = stack.length > 0 && !beside;
     layers.forEach(l => { l.inert = l !== top(); });
-    root.classList.toggle('locked', stack.length > 0 && !beside);
+    holdPage(stack.length > 0 && !beside);
+    fit();
     root.classList.toggle('side', beside);
     markOpen();
     $('vBackText').textContent = stack[stack.indexOf(view) - 1] === plan ? 'Meal plan' : 'Recipe box';
     drawNav();
     barColor();
+    poll();
   }
   function show(l, opener) {
     l.opener = opener;
@@ -258,6 +278,9 @@
     const done = () => { if (!l.classList.contains('open')) l.hidden = true; };
     if (reduceMotion.matches) done(); else setTimeout(done, 340);
     if (l === cook) stopTimers();
+    if (l === editor) disarm();
+    if (l === importer) clearTimeout(iT);
+    if (l === settings) { clearTimeout(leaveT); leaveArmed = false; }
     wakeCheck();
   }
   // `opener` gets the focus back when the screen closes. A tap does not focus a button in Safari, so a tapped button is
@@ -301,6 +324,7 @@
   layers.forEach(l => l.addEventListener('click', e => { if (e.target.closest('[data-close]')) back(); }));
   cookIng.addEventListener('click', e => { if (e.target === cookIng) back(); });   // a tap on the dim part
   pick.addEventListener('click', e => { if (e.target === pick) back(); });
+  addPlan.addEventListener('click', e => { if (e.target === addPlan) back(); });
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && stack.length) { e.preventDefault(); back(); }
     if (top() === cook && !e.target.closest('input, textarea') && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
@@ -339,13 +363,40 @@
   });
 
   // Keep the screens inside the visual viewport, above the phone keyboard.
+  // iOS keeps the layout viewport at full height under the keyboard and pans the visual one, so only that one tells.
+  // The writes wait for the next frame, skip what did not change, and happen only while a layer is open.
   const vv = window.visualViewport;
+  let vvRaf = 0, vvH = '', vvT = '', focused = 0;
+  function fit() {
+    vvRaf = 0;
+    if (!vv) return;
+    root.classList.toggle('kb', innerHeight - vv.height > 120);
+    if (!stack.length) return;
+    const h = vv.height + 'px', t = vv.offsetTop + 'px';
+    if (h !== vvH) root.style.setProperty('--vvh', vvH = h);
+    if (t !== vvT) root.style.setProperty('--vvt', vvT = t);
+  }
+  const fitSoon = () => { if (!vvRaf) vvRaf = requestAnimationFrame(fit); };
+  // Bring the field under the cursor into view once the keyboard has settled; the pick sheet keeps its own list.
+  const reveal = () => {
+    const a = document.activeElement, l = top();
+    if (l && a && l.contains(a) && a.matches('input, textarea') && !a.closest('.over')) a.scrollIntoView({ block: a.matches('textarea') ? 'nearest' : 'center', behavior: 'instant' });
+  };
   if (vv) {
-    const fit = () => { root.style.setProperty('--vvh', vv.height + 'px'); root.style.setProperty('--vvt', vv.offsetTop + 'px'); };
-    vv.addEventListener('resize', fit);
-    vv.addEventListener('scroll', fit);
+    vv.addEventListener('resize', () => { fitSoon(); if (performance.now() - focused < 1500) setTimeout(reveal, 60); });
+    vv.addEventListener('scroll', fitSoon);
     fit();
   }
+  document.addEventListener('focusin', e => {
+    if (!e.target.matches('input, textarea')) return;
+    focused = performance.now();
+    setTimeout(reveal, 350);
+  });
+  // Focusing the search box must not leave the page scrolled away from the header.
+  q.addEventListener('focus', () => {
+    const y = scrollY;
+    setTimeout(() => { if (document.activeElement === q && scrollY > y) scrollTo({ top: y, behavior: 'instant' }); }, 350);
+  });
 
   let toastT;
   function toast(msg) {
@@ -353,7 +404,19 @@
     t.textContent = msg;
     t.classList.add('on'); t.classList.remove('tap'); t.onclick = null;
     clearTimeout(toastT);
-    toastT = setTimeout(() => t.classList.remove('on'), 2800);
+    toastT = setTimeout(() => { t.classList.remove('on'); if (updated) showUpdate(); }, 2800);
+  }
+  // After an update: a real button that stays until it is used or dismissed. Another toast shows over it, then it comes back.
+  let updated = false;
+  function showUpdate() {
+    updated = true;
+    const t = $('toast');
+    clearTimeout(toastT);
+    t.innerHTML = '<button class="go" type="button">Updated · Tap to reload</button><button class="no" type="button" aria-label="Dismiss">'
+      + '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg></button>';
+    t.querySelector('.go').onclick = () => location.reload();
+    t.querySelector('.no').onclick = () => { updated = false; t.classList.remove('on', 'tap'); t.textContent = ''; };
+    t.classList.add('on', 'tap');
   }
 
   /* ---- keep the screen on while a recipe or cooking mode is open ---- */
@@ -398,6 +461,7 @@
     const acts = [];
     if (r.steps.length) acts.push(`<button class="pill tomato big" id="cookBtn" type="button">${ICON.pot}<span>Start cooking</span></button>`);
     if (r.ingredients.length) acts.push('<button class="pill big listbtn" id="listBtn" type="button" hidden></button>');   // signed in
+    acts.push(`<button class="pill big listbtn" id="planBtn" type="button" hidden>${ICON.cal}<span>Add to meal plan</span></button>`);   // the planners
     if (me && !mine) {   // someone else's recipe: in the book (it follows their changes) or not
       const kept = shelf.book.some(x => x.id === r.id);
       acts.push(`<button class="pill big bookbtn" type="button" data-${kept ? 'unpull' : 'pull'}="${D.esc(r.id)}"${busyBook ? ' disabled' : ''}>${kept ? 'Remove from my book' : `${ICON.plus}<span>Add to my book</span>`}</button>`);
@@ -452,6 +516,8 @@
     }
     if (e.target.closest('#cookBtn')) openCook();
     if (e.target.closest('#listBtn')) toggleList();
+    const pb = e.target.closest('#planBtn');
+    if (pb) openAddPlan(pb);
     const p = e.target.closest('[data-pull], [data-unpull]');
     if (p) bookChange(p.dataset.pull ? { type: 'pull', id: p.dataset.pull } : { type: 'unpull', id: p.dataset.unpull }, p);
   });
@@ -498,21 +564,27 @@
     box.hidden = !spec;
     if (spec) {
       const t = timers.get(at), left = t ? leftOf(t) : spec.secs, up = !!t && left === 0;
-      $('cWhat').textContent = up ? 'Time’s up' : spec.note;
-      $('cClock').textContent = D.clock(left);
+      put($('cWhat'), up ? 'Time’s up' : spec.note);
+      put($('cClock'), D.clock(left));
       box.classList.toggle('up', up);
       box.classList.toggle('long', spec.secs >= 3600);
-      $('cGo').textContent = t && t.end && left ? 'Pause' : up ? 'Again' : t && left < spec.secs ? 'Resume' : 'Start';
+      put($('cGo'), t && t.end && left ? 'Pause' : up ? 'Again' : t && left < spec.secs ? 'Resume' : 'Start');
     }
     // each timer on another step that has started, in step order: a button that goes back to it
     const others = [...timers].filter(([k]) => k !== at).sort((a, b) => a[0] - b[0]);
     const row = $('cElse');
     row.hidden = !others.length;
-    row.innerHTML = others.map(([k, t]) => {
-      const left = leftOf(t), st = !left ? 'up' : t.end ? 'runs' : 'paused';
-      return `<button type="button" class="${st}" data-step="${k}"><span>Step ${k + 1}</span><b>${left ? D.clock(left) : 'Done'}</b></button>`;
-    }).join('');
+    const set = others.map(([k, t]) => `${k}${!leftOf(t) ? 'up' : t.end ? 'runs' : 'paused'}`).join();
+    if (set !== elseSet) {   // the buttons change only when a timer starts, pauses or ends; the ticks just move the clocks
+      elseSet = set;
+      row.innerHTML = others.map(([k, t]) => {
+        const left = leftOf(t), st = !left ? 'up' : t.end ? 'runs' : 'paused';
+        return `<button type="button" class="${st}" data-step="${k}"><span>Step ${k + 1}</span><b>${left ? D.clock(left) : 'Done'}</b></button>`;
+      }).join('');
+    } else others.forEach(([k, t], i) => put(row.children[i].lastChild, leftOf(t) ? D.clock(leftOf(t)) : 'Done'));
   }
+  let elseSet = '';
+  const put = (el, text) => { if (el.textContent !== text) el.textContent = text; };
   function ticking() {
     if (running() && !tick) tick = setInterval(onTick, 250);
     if (!running() && tick) { clearInterval(tick); tick = 0; }
@@ -539,6 +611,7 @@
     ringing.add(k);
     alarmText();
     $('cAlarm').hidden = false;
+    $('cLive').textContent = $('cAlarmText').textContent + '. Tap to stop.';
     alarmEnd = Date.now() + 60000;
     if (!alarm) { beep(); alarm = setInterval(() => { if (Date.now() >= alarmEnd) { clearInterval(alarm); alarm = 0; } else beep(); }, 2000); }
   }
@@ -551,6 +624,7 @@
     if (k === undefined) ringing.clear(); else ringing.delete(k);
     if (ringing.size) return alarmText();
     $('cAlarm').hidden = true;
+    $('cLive').textContent = '';
     if (alarm) { clearInterval(alarm); alarm = 0; }
     try { if (navigator.vibrate) navigator.vibrate(0); } catch (e) {}
   }
@@ -637,7 +711,7 @@
     cats.querySelector(`[data-cat="${CSS.escape(known)}"]`).focus({ preventScroll: true });
   }
   $('fNewAdd').addEventListener('click', addCat);
-  fNew.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); addCat(); } });
+  fNew.addEventListener('keydown', e => { if (isEnter(e)) { e.preventDefault(); addCat(); } });
 
   // "One per line · 5 ingredients" under the labels, so a long step that wraps still counts as one.
   function counts() {
@@ -645,11 +719,14 @@
     $('fIngHint').textContent = `One per line${n ? ' · ' + plural(n, 'ingredient') : ''}`;
     $('fStepHint').textContent = `One per line${s ? ' · ' + plural(s, 'step') : ''}. A time like “15 minutes” gets a timer.`;
   }
-  function grow(ta) {
-    const y = editor.scrollTop;
-    ta.style.height = 'auto';
+  // `field-sizing: content` grows the boxes by itself. Without it, a key press only makes a box taller when the text
+  // overflows, so Safari's own scroll to the caret is left alone; `fit` (opening, leaving the box) measures from scratch.
+  const sizing = CSS.supports('field-sizing', 'content');
+  function grow(ta, fit) {
+    if (sizing) return;
+    if (fit) ta.style.height = 'auto';
+    else if (ta.scrollHeight <= ta.clientHeight) return;
     ta.style.height = ta.scrollHeight + 3 + 'px';
-    editor.scrollTop = y;
   }
   function drawShareSwitch() {
     $('fShare').setAttribute('aria-checked', shareOn);
@@ -678,7 +755,7 @@
     disarm();
     error('');
     open(editor);
-    editor.querySelectorAll('textarea').forEach(grow);
+    editor.querySelectorAll('textarea').forEach(ta => grow(ta, true));
     counts();
     if (!r) F.name.focus({ preventScroll: true });   // a new recipe starts with the keyboard up
   }
@@ -702,7 +779,7 @@
   // A save that failed because the sign-in ended: sign out here too, and offer to sign in again.
   const needsSignIn = e => { if (e.code === 'signin') signOut(); return e.code === 'signin'; };
 
-  editor.querySelectorAll('textarea').forEach(ta => ta.addEventListener('input', () => { grow(ta); counts(); }));
+  editor.querySelectorAll('textarea').forEach(ta => { ta.addEventListener('input', () => { grow(ta); counts(); }); ta.addEventListener('blur', () => grow(ta, true)); });
   // A pasted list loses its leading "-", "•", "*", "1." and "1)" marks, one item on each line.
   [F.ingredients, F.steps].forEach(ta => ta.addEventListener('paste', e => {
     const text = e.clipboardData && e.clipboardData.getData('text/plain');
@@ -723,11 +800,11 @@
   }));
   // The return key moves to the next field instead of saving.
   [[F.name, F.servings], [F.servings, F.ingredients]].forEach(([el, next]) => el.addEventListener('keydown', e => {
-    if (e.key !== 'Enter' || e.isComposing) return;
+    if (!isEnter(e)) return;
     e.preventDefault();
     next.focus();
   }));
-  F.source.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); F.source.blur(); } });
+  F.source.addEventListener('keydown', e => { if (isEnter(e)) { e.preventDefault(); F.source.blur(); } });
   F.name.addEventListener('input', () => F.name.classList.remove('bad'));
 
   eCancel.addEventListener('click', () => {
@@ -1000,7 +1077,7 @@
     }
   });
   catList.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && e.target.id === 'catName') { e.preventDefault(); catList.querySelector('[data-catsave]').click(); }
+    if (isEnter(e) && e.target.id === 'catName') { e.preventDefault(); catList.querySelector('[data-catsave]').click(); }
   });
 
   // `tabbed`: from the tab bar, where Settings is a tab; else it opens over the screen that is open.
@@ -1016,7 +1093,7 @@
     if (tabbed) goTab(settings); else open(settings);
   }
   aSwap.addEventListener('click', () => { making = !making; result(''); account(); });
-  aName.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); aPass.focus(); } });
+  aName.addEventListener('keydown', e => { if (isEnter(e)) { e.preventDefault(); aPass.focus(); } });
   aForm.addEventListener('submit', async e => {
     e.preventDefault();
     if (aGo.disabled) return;
@@ -1283,15 +1360,22 @@
       if (onMeals()) pull();
     }
   });
+  document.addEventListener('visibilitychange', poll);
   addEventListener('online', () => { if (planner()) retryNow(); });
-  setInterval(() => { if (document.visibilityState === 'visible' && onMeals()) pull(); }, 30e3);
+  // Every 30 seconds while the plan or the grocery list is open and showing.
+  let pollT = 0;
+  function poll() {
+    const want = document.visibilityState === 'visible' && onMeals();
+    if (want && !pollT) pollT = setInterval(pull, 30e3);
+    if (!want && pollT) { clearInterval(pollT); pollT = 0; }
+  }
 
   // A redraw replaces the buttons: the focus goes to the same one in the new list, or to the one that took its place.
   function refocus(draw) {
     const a = document.activeElement, d = a && a.dataset, q = (k, v) => `[data-${k}="${CSS.escape(v)}"]`;
     const want = !d ? [] : d.key != null ? [q('key', d.key)] : d.clear ? [q('clear', d.clear), q('plan', d.clear)]
       : d.plan ? [q('plan', d.plan), q('clear', d.plan)] : d.open ? [q('open', d.open)] : d.week ? [q('week', d.week)]
-      : d.drop ? [q('drop', d.drop), '#gAddRec'] : d.ask ? [q('ask', d.ask)] : d.share ? [q('share', d.share), '#sMeal [data-share]', '#sMeal [data-ask]'] : [];
+      : d.add ? [q('add', d.add)] : d.drop ? [q('drop', d.drop), '#gAddRec'] : d.ask ? [q('ask', d.ask)] : d.share ? [q('share', d.share), '#sMeal [data-share]', '#sMeal [data-ask]'] : [];
     draw();
     if (!want.length || document.contains(a)) return;
     const b = want.map(s => document.querySelector(s)).find(Boolean);
@@ -1307,6 +1391,7 @@
     refocus(() => {
       if (v) { drawPlan(v); drawGrocery(v); }
       drawListBtn(v);
+      if (isOpen(addPlan)) drawAddPlan(v);
       drawShare(v);
     });
     drawNav();
@@ -1377,7 +1462,7 @@
     back();
   }
   $('pkQ').addEventListener('input', drawPick);
-  $('pkQ').addEventListener('keydown', e => { if (e.key === 'Enter') $('pkQ').blur(); });
+  $('pkQ').addEventListener('keydown', e => { if (isEnter(e)) $('pkQ').blur(); });
   $('pkList').addEventListener('click', e => {
     const b = e.target.closest('[data-pick]'), r = b && recipes.find(x => x.id === b.dataset.pick);
     if (r && change({ op: 'day', date: pickDate, recipe: r.id, name: r.name })) dayPicked(pickDate);
@@ -1432,8 +1517,47 @@
     grocery.focus({ preventScroll: true });   // Clear itself is gone
   });
 
+  // On the recipe card: Add to meal plan. A sheet lists the days from today to the end of next week, with what is
+  // planned; a tap on a day plans the recipe there with the same op the picker above sends.
+  function openAddPlan(opener) {
+    const r = recipes.find(x => x.id === viewId), v = shown();
+    if (!r || !v) return;
+    $('apSub').textContent = r.name;
+    drawAddPlan(v);
+    $('apList').scrollTop = 0;
+    open(addPlan, opener);
+  }
+  function drawAddPlan(v) {
+    const now = new Date(), parts = [];
+    [0, 1].forEach(n => {
+      const days = M.week(now, n).filter(d => !d.past);
+      if (!days.length) return;
+      parts.push(`<li class="wk">${n ? 'Next week' : 'This week'} · ${M.span(M.week(now, n))}</li>`);
+      for (const d of days) {
+        const p = v.days[d.date], label = `${d.long}, ${d.month} ${d.num}${d.today ? ', today' : ''}`;
+        let it;
+        if (p && p.recipe) {
+          const r = recipes.find(y => y.id === p.recipe), name = D.esc(r ? r.name : p.name);
+          it = `<button class="dinner" type="button" data-add="${d.date}" style="${paint(colorOf(r && r.tags[0]))}" aria-label="Replace ${name} on ${label}"><span class="what serif">${name}</span>${by(p.by)}</button>`;
+        } else if (p) it = `<button class="dinner note" type="button" data-add="${d.date}" aria-label="Replace ${D.esc(p.note)} on ${label}"><span class="what">${D.esc(p.note)}</span>${by(p.by)}</button>`;
+        else it = `<button class="planit" type="button" data-add="${d.date}" aria-label="Add to ${label}">${ICON.plan}<span>Plan dinner</span></button>`;
+        parts.push(`<li><div class="date${d.today ? ' today' : ''}" aria-hidden="true"><span class="dw">${d.day}</span><span class="dn serif">${d.num}</span></div>${it}</li>`);
+      }
+    });
+    $('apList').innerHTML = parts.join('');
+  }
+  $('apList').addEventListener('click', e => {
+    const b = e.target.closest('[data-add]'), r = recipes.find(x => x.id === viewId);
+    if (!b || !r) return;
+    const d = [0, 1].flatMap(n => M.week(new Date(), n)).find(x => x.date === b.dataset.add);
+    if (!d || !change({ op: 'day', date: d.date, recipe: r.id, name: r.name })) return;
+    back();
+    toast(`${r.name} is on ${d.long}, ${d.month} ${d.num}.`);
+  });
+
   // On the recipe card: Add to grocery list, or On the grocery list
   function drawListBtn(v) {
+    if ($('planBtn')) $('planBtn').hidden = !v;   // Add to meal plan: for the planners too
     const b = $('listBtn');
     if (!b) return;
     b.hidden = !v;
@@ -1526,15 +1650,15 @@
   checkWaiting();
   drawMeals();
   later();   // changes this phone kept from last time
-  pull();
+  // The saved plan already drew the tabs and the dot; the newest copy can wait for the phone to be idle.
+  if (window.requestIdleCallback) requestIdleCallback(pull, { timeout: 2000 }); else setTimeout(pull, 600);
 
   // Offline: sw.js keeps the page's files, so it opens with no signal. A new version takes over in the background
   // while the page still shows the old files, so offer a reload; not on the first install.
   if ('serviceWorker' in navigator) {
     if (navigator.serviceWorker.controller?.scriptURL === new URL('sw.js', location).href)
       navigator.serviceWorker.addEventListener('controllerchange', () => {
-        toast('Updated · Tap to reload'); clearTimeout(toastT);
-        const t = $('toast'); t.classList.add('tap'); t.onclick = () => location.reload();
+        showUpdate();
       }, { once: true });
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }

@@ -79,15 +79,17 @@ if(navigator.standalone)document.documentElement.classList.add('app');
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 html.locked { overflow: hidden; }
+/* iOS lets the page scroll behind a layer whatever overflow says: hold the body still (app.js saves the scroll in --sy) */
+html.locked body { position: fixed; left: 0; right: 0; top: calc(var(--sy, 0px) * -1); }
 body {
-  margin: 0; min-height: 100vh; background: var(--ground); color: var(--ink);
+  margin: 0; min-height: 100vh; min-height: 100dvh; background: var(--ground); color: var(--ink);
   font-family: 'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif; font-size: 16px; line-height: 1.4;
   -webkit-tap-highlight-color: transparent;
 }
 /* iOS 26 home screen app (WebKit bug 301108): a page shorter than the screen gets a viewport that stops short by the
    status bar, which cut off the tab bar. A page at least the screen's height gets the whole screen. */
 html.app { min-height: min(100lvh, calc(100% + env(safe-area-inset-top))); }
-@media (display-mode: standalone) { html { min-height: min(100lvh, calc(100% + env(safe-area-inset-top))); } }
+@media (display-mode: standalone) { html { min-height: min(100lvh, calc(100% + env(safe-area-inset-top))); } body { min-height: 100lvh; } }
 button, input, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; -webkit-user-select: none; user-select: none; }
 button:disabled { cursor: default; }
@@ -122,24 +124,28 @@ h1, h2, h3 { margin: 0; }
 
 /* ---- the recipe box ---- */
 .hero {
-  display: flex; flex-direction: column; gap: 18px; padding: calc(30px + env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right)) 22px calc(20px + env(safe-area-inset-left));
+  display: flex; flex-direction: column; gap: 18px; padding: calc(30px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 22px calc(16px + env(safe-area-inset-left));
   background: var(--tomato); color: var(--cream); border-radius: 0 0 28px 28px;
 }
 .hero-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .hero-title { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .kicker { font-size: 13px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--kicker); }
 .hero h1 { font-weight: 800; font-size: 46px; line-height: .98; letter-spacing: -.01em; }
-.addbtn {
-  display: flex; align-items: center; justify-content: center; width: 52px; height: 52px; border: 0; border-radius: 999px;
+.addbtn, .signin {
+  flex: none; display: flex; align-items: center; justify-content: center; width: 52px; height: 52px; border: 0; border-radius: 999px;
   background: var(--butter); color: var(--on-butter); box-shadow: 0 3px 0 var(--shadow);
 }
-.signin { flex: none; white-space: nowrap; min-height: 46px; border: 0; background: var(--butter); color: var(--on-butter); font-size: 16px; font-weight: 800; box-shadow: 0 3px 0 var(--shadow); }
+.signin { padding: 0; }
 .search {
-  display: flex; align-items: center; gap: 10px; height: 50px; padding: 0 8px 0 16px; border-radius: 999px; background: var(--cream); color: #2A1D17;
+  display: flex; align-items: center; gap: 10px; height: 50px; padding: 0 8px 0 16px; border-radius: 999px; background: var(--cream); color: var(--on-butter);
 }
 .search:focus-within { outline: 3px solid var(--focus); outline-offset: 2px; }
+/* Inside the tomato, carrot and butter headers the blue ring vanishes: ink with a cream halo shows on all three, day and night. */
+.hero :focus-visible, .planhead :focus-visible, .grohead :focus-visible, .search:focus-within {
+  outline: 3px solid #2A1D17; outline-offset: 2px; box-shadow: 0 0 0 2px #FFF6E6, 0 0 0 7px #FFF6E6;
+}
 .search input {
-  flex: 1; min-width: 0; height: 100%; border: 0; padding: 0; background: transparent; outline: none; font-size: 17px; color: #2A1D17;
+  flex: 1; min-width: 0; height: 100%; border: 0; padding: 0; background: transparent; outline: none; font-size: 17px; color: var(--on-butter);
   -webkit-appearance: none; appearance: none;
 }
 .search input::placeholder { color: #7A6355; }
@@ -155,8 +161,9 @@ h1, h2, h3 { margin: 0; }
 }
 .tabs button[aria-pressed="true"] { min-height: 52px; background: var(--c); color: var(--cf); }
 .tabs .n {
-  min-width: 22px; padding: 2px 7px; border-radius: 999px; background: #FFF6E6; color: #2A1D17; font-size: 12px; font-weight: 800; text-align: center;
+  min-width: 22px; padding: 2px 7px; border-radius: 999px; background: var(--cream); color: var(--on-butter); font-size: 12px; font-weight: 800; text-align: center;
 }
+.tabs button[aria-pressed="true"] .n { background: var(--cf); color: var(--c); }
 .band { height: 8px; border-radius: 0 8px 0 0; background: var(--c, var(--solid)); }
 .notice { margin: 16px calc(16px + env(safe-area-inset-right)) 0 calc(16px + env(safe-area-inset-left)); padding: 12px 16px; border-radius: 16px; background: var(--note); font-size: 15px; font-weight: 600; line-height: 1.45; }
 
@@ -165,6 +172,7 @@ h1, h2, h3 { margin: 0; }
   padding: 24px calc(16px + env(safe-area-inset-right)) 28px calc(16px + env(safe-area-inset-left));
 }
 .deck li { position: relative; }
+.deck li:focus-within { z-index: 2; }
 .deck li + li { margin-top: -46px; }
 .rc {
   display: flex; flex-direction: column; gap: 4px; width: 100%; min-height: 104px; padding: 15px 18px 58px; border: 0; border-radius: 18px;
@@ -174,17 +182,17 @@ h1, h2, h3 { margin: 0; }
 }
 .rc:active { transform: translateY(-4px); }
 .rc-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; }
-.rc .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 21px; font-weight: 700; line-height: 1.25; }
+.rc .nm { min-width: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; font-size: 21px; font-weight: 700; line-height: 1.25; }
 .rc .tg { flex: none; padding: 3px 10px; border: 1.5px solid currentColor; border-radius: 999px; font-size: 13px; font-weight: 700; }
 .rc .hit { font-size: 15px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-mark { background: rgba(255, 246, 230, .9); color: #2A1D17; border-radius: 3px; padding: 0 1px; }
-.none { margin: 8px calc(20px + env(safe-area-inset-right)) 0 calc(20px + env(safe-area-inset-left)); font-size: 16px; line-height: 1.45; color: var(--soft); }
+mark { background: rgba(255, 246, 230, .9); color: var(--on-butter); border-radius: 3px; padding: 0 1px; }
+.none { margin: 8px calc(16px + env(safe-area-inset-right)) 0 calc(16px + env(safe-area-inset-left)); font-size: 16px; line-height: 1.45; color: var(--soft); }
 /* Shared with you: the family's shared recipes that are not in the book */
 .others { display: flex; flex-direction: column; gap: 10px; padding: 20px calc(16px + env(safe-area-inset-right)) 28px calc(16px + env(safe-area-inset-left)); }
-.others h2 { margin: 0 4px; font-size: 13px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--soft); }
-.others > p { margin: 0 4px; font-size: 15px; line-height: 1.45; color: var(--soft); }
+.others h2 { margin: 0; font-size: 13px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--soft); }
+.others > p { margin: 0; font-size: 15px; line-height: 1.45; color: var(--soft); }
 .others ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.others li { display: flex; align-items: center; gap: 4px; padding-right: 8px; border-radius: 16px; background: var(--surface); box-shadow: 0 1px 0 var(--lift-edge); }
+.others li { display: flex; align-items: center; gap: 4px; padding-right: 8px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); box-shadow: 0 1px 0 var(--lift-edge); }
 .others .sw-open {
   flex: 1; min-width: 0; display: grid; grid-template-columns: 14px 1fr; column-gap: 12px; align-items: center; min-height: 60px; padding: 8px 0 8px 16px;
   border: 0; background: none; color: var(--ink); text-align: left; -webkit-user-select: auto; user-select: auto;
@@ -214,6 +222,10 @@ body.has-nav #page { padding-bottom: calc(72px + max(16px, env(safe-area-inset-b
 .nav button[aria-current="page"] { color: var(--link); font-weight: 800; }
 .nav button[aria-current="page"] .ic { background: var(--note); }
 .nav .dot::after { content: ''; position: absolute; top: 6px; left: calc(50% + 12px); width: 10px; height: 10px; border-radius: 999px; background: var(--tomato); box-shadow: 0 0 0 2px var(--surface); }
+
+/* the phone keyboard is up (app.js sets html.kb): no tab bar over the fields, room to scroll the last one up */
+html.kb .nav { display: none; }
+html.kb .layer:not(.over)::after { content: ''; display: block; height: calc(var(--vvh, 100%) * .4); }
 
 /* ---- full screens over the box ---- */
 .layer {
@@ -255,7 +267,7 @@ body.has-nav #page { padding-bottom: calc(72px + max(16px, env(safe-area-inset-b
   .index .body.both .seg { display: none; }
   .htitle { display: block; }
 }
-@media (min-width: 640px) and (orientation: portrait) {
+@media (min-width: 640px) and (orientation: portrait), (min-width: 640px) and (max-width: 799px) {
   .index .body.both { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); column-gap: 28px; align-items: start; }
 }
 .lines { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; }
@@ -277,13 +289,13 @@ p.source { margin: 0; color: var(--soft); }
 /* cooking mode: one step at a time */
 .cook { display: flex; flex-direction: column; min-height: 100%; max-width: 640px; margin: 0 auto; }
 .cook-top { flex: none; display: flex; align-items: center; gap: 8px; padding: calc(16px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) 0 calc(12px + env(safe-area-inset-left)); }
-.cook-top .title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; font-size: 15px; font-weight: 700; color: var(--soft); }
+.cook-top .title { margin: 0; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; font-size: 15px; font-weight: 700; color: var(--soft); }
 .cook-top .pill { border-color: var(--line); background: var(--surface); }
-.progress { flex: none; display: flex; gap: 4px; padding: 16px 20px 0; }
+.progress { flex: none; display: flex; gap: 4px; padding: 16px calc(16px + env(safe-area-inset-right)) 0 calc(16px + env(safe-area-inset-left)); }
 .progress span { flex: 1; height: 6px; border-radius: 3px; background: var(--line); }
 .progress span.done { background: var(--kick); }
 /* timers on other steps: three across, more wrap */
-.ctimers { flex: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 14px 20px 0; }
+.ctimers { flex: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 14px calc(16px + env(safe-area-inset-right)) 0 calc(16px + env(safe-area-inset-left)); }
 .ctimers button { display: flex; flex-direction: column; align-items: center; gap: 0; min-height: 56px; padding: 6px 4px; border: 2px solid var(--butter); border-radius: 18px; background: var(--surface); color: var(--ink); font: inherit; cursor: pointer; }
 .ctimers span { font-size: 13px; font-weight: 700; color: var(--soft); }
 .ctimers b { font-size: 21px; font-weight: 800; line-height: 1.15; font-variant-numeric: tabular-nums; }
@@ -294,17 +306,17 @@ p.source { margin: 0; color: var(--soft); }
 /* time's up: stays at the top, and beeps, until it is tapped */
 .alarm {
   position: sticky; top: 0; z-index: 3; flex: none; display: flex; flex-direction: column; align-items: center; gap: 2px; width: 100%;
-  padding: calc(14px + env(safe-area-inset-top)) 20px 14px; border: 0; background: var(--tomato); color: var(--cream); font: inherit; cursor: pointer;
+  padding: calc(14px + env(safe-area-inset-top)) 16px 14px; border: 0; background: var(--tomato); color: var(--cream); font: inherit; cursor: pointer;
   animation: alarm 1s ease-in-out infinite alternate;
 }
 .alarm b { font-size: 24px; font-weight: 800; }
 .alarm span { font-size: 15px; font-weight: 700; opacity: .9; }
 @keyframes alarm { to { background: var(--tomato-deep); } }
-.step { flex: 1; display: flex; flex-direction: column; gap: 18px; padding: 30px 24px 24px; }
+.step { flex: 1; display: flex; flex-direction: column; gap: 18px; padding: 30px calc(16px + env(safe-area-inset-right)) 24px calc(16px + env(safe-area-inset-left)); }
 .step .kick { font-size: 14px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--kick); }
 .step p { margin: 0; font-weight: 500; font-size: 31px; line-height: 1.24; letter-spacing: -.005em; overflow-wrap: anywhere; }
 .timer {
-  flex: none; display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 0 20px;
+  flex: none; display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 0 calc(16px + env(safe-area-inset-right)) 0 calc(16px + env(safe-area-inset-left));
   padding: 18px 18px 18px 22px; border-radius: 28px; background: var(--surface);
 }
 .timer .left { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
@@ -315,7 +327,7 @@ p.source { margin: 0; color: var(--soft); }
 .timer .right { display: flex; flex-direction: column; gap: 8px; }
 .timer .go { min-width: 112px; min-height: 48px; font-size: 17px; font-weight: 800; }
 .timer .pill:not(.go) { border-color: var(--line); }
-.moves { flex: none; display: grid; grid-template-columns: 1fr 1.7fr; gap: 12px; padding: 20px calc(20px + env(safe-area-inset-right)) calc(30px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left)); }
+.moves { flex: none; display: grid; grid-template-columns: 1fr 1.7fr; gap: 12px; padding: 20px calc(16px + env(safe-area-inset-right)) calc(30px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left)); }
 .moves .pill { min-height: 60px; font-size: 17px; font-weight: 800; }
 .moves .back { border-color: var(--line); background: var(--surface); }
 .moves .next { font-size: 19px; }
@@ -324,7 +336,7 @@ p.source { margin: 0; color: var(--soft); }
 .over { background: var(--dim); }
 .over .panel {
   position: absolute; left: 0; right: 0; bottom: 0; top: calc(84px + env(safe-area-inset-top)); display: flex; flex-direction: column; gap: 10px;
-  max-width: 640px; margin: 0 auto; padding: 20px calc(24px + env(safe-area-inset-right)) calc(30px + env(safe-area-inset-bottom)) calc(24px + env(safe-area-inset-left));
+  max-width: 640px; margin: 0 auto; padding: 20px calc(16px + env(safe-area-inset-right)) calc(30px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
   border-radius: 28px 28px 0 0; background: var(--surface); box-shadow: 0 -20px 40px rgba(0, 0, 0, .4); overflow-y: auto; overscroll-behavior: contain;
 }
 .over .panel .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -345,7 +357,7 @@ p.source { margin: 0; color: var(--soft); }
   width: 100%; height: 50px; padding: 0 14px; border: 1.5px solid var(--edge); border-radius: 14px; background: var(--surface); font-size: 17px;
   -webkit-appearance: none; appearance: none;
 }
-.field textarea { height: auto; min-height: 120px; padding: 12px 14px; line-height: 1.45; resize: vertical; overflow: hidden; }
+.field textarea { field-sizing: content; height: auto; min-height: 120px; padding: 12px 14px; line-height: 1.45; resize: vertical; overflow: hidden; }
 .field input.short { width: 160px; }
 .field .bad { border-color: var(--link); box-shadow: 0 0 0 1.5px var(--link); }
 .cats { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -396,13 +408,13 @@ p.source { margin: 0; color: var(--soft); }
 #sImport .box .pill { align-self: flex-start; }
 
 /* settings */
-.sethead { display: flex; flex-direction: column; gap: 4px; padding: calc(30px + env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right)) 22px calc(20px + env(safe-area-inset-left)); background: var(--tint); border-radius: 0 0 28px 28px; }
+.sethead { display: flex; flex-direction: column; gap: 4px; padding: calc(30px + env(safe-area-inset-top)) max(calc(16px + env(safe-area-inset-right)), calc((100% - 640px) / 2 + 16px)) 22px max(calc(16px + env(safe-area-inset-left)), calc((100% - 640px) / 2 + 16px)); background: var(--tint); border-radius: 0 0 28px 28px; }
 .sethead .backlink { align-self: flex-start; margin: -16px 0 2px -8px; }
-.sethead h1 { font-weight: 800; font-size: 44px; line-height: 1; letter-spacing: -.01em; }
+.sethead h1 { font-weight: 800; font-size: 46px; line-height: .98; letter-spacing: -.01em; }
 .setbody { display: flex; flex-direction: column; gap: 20px; max-width: 640px; margin: 0 auto; padding: 18px calc(16px + env(safe-area-inset-right)) 24px calc(16px + env(safe-area-inset-left)); }
 body.has-nav #settings .setbody { padding-bottom: calc(96px + max(16px, env(safe-area-inset-bottom))); }
 .group { display: flex; flex-direction: column; gap: 8px; }
-.group > h2 { margin: 0 4px; font-size: 13px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--soft); }
+.group > h2 { margin: 0; font-size: 13px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--soft); }
 .box { display: flex; flex-direction: column; gap: 14px; padding: 16px; border-radius: 22px; background: var(--surface); box-shadow: 0 1px 0 var(--lift-edge); }
 .me { flex-direction: row; align-items: center; }
 .who { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
@@ -459,12 +471,12 @@ body.has-nav #settings .setbody { padding-bottom: calc(96px + max(16px, env(safe
 /* the meal plan and the grocery list: tabs for everyone signed in. The carrot and butter headers keep their colors at
    night, with ink text. */
 .planhead, .grohead {
-  display: flex; flex-direction: column; gap: 14px; color: #2A1D17; border-radius: 0 0 28px 28px;
-  padding: calc(30px + env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right)) 18px calc(20px + env(safe-area-inset-left));
+  display: flex; flex-direction: column; gap: 14px; color: var(--on-butter); border-radius: 0 0 28px 28px;
+  padding: calc(30px + env(safe-area-inset-top)) max(calc(16px + env(safe-area-inset-right)), calc((100% - 640px) / 2 + 16px)) 22px max(calc(16px + env(safe-area-inset-left)), calc((100% - 640px) / 2 + 16px));
 }
 .planhead { background: var(--carrot); }
-.grohead { padding-bottom: 20px; background: var(--butter); }
-.planhead h1, .grohead h1 { font-weight: 800; font-size: 44px; line-height: 1; letter-spacing: -.01em; }
+.grohead { background: var(--butter); }
+.planhead h1, .grohead h1 { font-weight: 800; font-size: 46px; line-height: .98; letter-spacing: -.01em; }
 .headline { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
 .heading { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .heading .sub { font-size: 15px; font-weight: 700; }
@@ -472,11 +484,11 @@ body.has-nav #settings .setbody { padding-bottom: calc(96px + max(16px, env(safe
 .faces { flex: none; display: flex; }
 .faces .av { width: 40px; height: 40px; border: 2.5px solid var(--carrot); font-size: 18px; }
 .faces .av + .av { margin-left: -10px; }
-.weeks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 20px; background: #FFF6E6; }
-.weeks button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; min-height: 52px; border: 0; border-radius: 16px; background: transparent; color: #2A1D17; }
+.weeks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 20px; background: var(--cream); }
+.weeks button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; min-height: 52px; border: 0; border-radius: 16px; background: transparent; color: var(--on-butter); }
 .weeks b { font-size: 15px; font-weight: 800; }
 .weeks span { font-size: 12px; font-weight: 600; }
-.weeks button[aria-pressed="true"] { background: #2A1D17; color: #FFF6E6; }
+.weeks button[aria-pressed="true"] { background: var(--on-butter); color: var(--cream); }
 .planbody, .grobody {
   display: flex; flex-direction: column; gap: 8px; max-width: 640px; margin: 0 auto;
   padding: 14px calc(16px + env(safe-area-inset-right)) calc(28px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
@@ -498,19 +510,19 @@ body.has-nav #plan .planbody, body.has-nav #grocery .grobody { padding-bottom: c
   text-align: left; font-size: 18px; font-weight: 700; line-height: 1.2; overflow-wrap: anywhere; -webkit-user-select: auto; user-select: auto;
 }
 .dinner.note .what { font-size: 17px; }
-.av.by { width: 28px; height: 28px; border: 2px solid #FFF6E6; font-family: inherit; font-size: 13px; }
+.av.by { width: 28px; height: 28px; border: 2px solid var(--cream); font-family: inherit; font-size: 13px; }
 .dinner .x { flex: none; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 999px; background: transparent; color: inherit; }
 .planit {
   flex: 1; display: flex; align-items: center; gap: 8px; min-height: 60px; padding: 0 16px; border: 2px dashed var(--edge); border-radius: 16px;
   background: transparent; color: var(--soft); font-size: 16px; font-weight: 700;
 }
-.shop { width: 100%; margin-top: 10px; min-height: 56px; gap: 10px; font-size: 16px; font-weight: 800; }
+.shop { width: 100%; margin-top: 10px; gap: 10px; }
 .gchips { display: flex; flex-wrap: wrap; gap: 8px; }
-.gchip { display: flex; align-items: center; min-height: 44px; padding-left: 14px; border-radius: 999px; background: #FFF6E6; color: #2A1D17; font-size: 14px; font-weight: 700; }
-.gchip button { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 999px; background: transparent; color: #2A1D17; }
+.gchip { display: flex; align-items: center; min-height: 44px; padding-left: 14px; border-radius: 999px; background: var(--cream); color: var(--on-butter); font-size: 14px; font-weight: 700; }
+.gchip button { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 999px; background: transparent; color: var(--on-butter); }
 .addrec {
-  display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 16px; border: 1.5px dashed #2A1D17; border-radius: 999px;
-  background: transparent; color: #2A1D17; font-size: 14px; font-weight: 700;
+  display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 16px; border: 1.5px dashed var(--on-butter); border-radius: 999px;
+  background: transparent; color: var(--on-butter); font-size: 14px; font-weight: 700;
 }
 .gform { display: flex; gap: 8px; padding-bottom: 4px; }
 .gform input, .pick form input {
@@ -518,13 +530,14 @@ body.has-nav #plan .planbody, body.has-nav #grocery .grobody { padding-bottom: c
   -webkit-appearance: none; appearance: none;
 }
 .gform .round { flex: none; display: flex; align-items: center; justify-content: center; width: 50px; height: 50px; border: 0; border-radius: 999px; background: var(--solid); color: var(--on-solid); }
-.gsec > h2, .ghead h2 { margin: 10px 4px 0; font-size: 13px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--soft); }
-.ghead { display: flex; align-items: center; justify-content: space-between; margin: 14px 0 0 4px; }
+.gsec > h2, .ghead h2 { margin: 10px 0 0; font-size: 13px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--soft); }
+.ghead { display: flex; align-items: center; justify-content: space-between; margin: 14px 0 0; }
 .ghead h2 { margin: 0; }
 .ghead .pill { padding: 0 14px; }
 .items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .items label { display: flex; align-items: center; gap: 14px; min-height: 58px; padding: 8px 4px; border-bottom: 1px solid var(--line); cursor: pointer; }
-.items input { flex: none; width: 24px; height: 24px; margin: 0; accent-color: var(--tomato); }
+.items input { flex: none; width: 24px; height: 24px; margin: 0; border: 2px solid var(--edge); border-radius: 7px; background: transparent; -webkit-appearance: none; appearance: none; }
+.items input:checked { border-color: var(--tomato); background: var(--tomato) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FFF6E6' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4 8-9'/%3E%3C/svg%3E") center / 100% no-repeat; }
 .items .t { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .items .nm { font-size: 17px; font-weight: 600; overflow-wrap: anywhere; }
 .items small { font-size: 13px; color: var(--soft); overflow-wrap: anywhere; }
@@ -534,21 +547,34 @@ body.has-nav #plan .planbody, body.has-nav #grocery .grobody { padding-bottom: c
 /* the recipe card: Start cooking, and Add to grocery list for the planners */
 .acts { display: flex; flex-direction: column; gap: 12px; }
 .acts:not(:has(> :not([hidden]))) { display: none; }
-.pill.big.bookbtn { min-height: 56px; gap: 10px; border: 2px solid var(--ink); background: var(--surface); color: var(--ink); font-size: 17px; }
+.pill.big.bookbtn { gap: 10px; border: 2px solid var(--ink); background: var(--surface); color: var(--ink); }
 /* the "Share with the family" switch in the editor */
 .field.switchrow { flex-direction: row; align-items: center; justify-content: space-between; gap: 16px; }
 .switch { flex: none; position: relative; width: 64px; height: 44px; padding: 0; border: 0; background: none; }
 .switch::before { content: ''; position: absolute; left: 2px; top: 6px; width: 60px; height: 32px; border-radius: 999px; background: var(--edge); transition: background .16s; }
-.switch i { position: absolute; top: 10px; left: 6px; width: 24px; height: 24px; border-radius: 999px; background: #FFF6E6; transition: transform .16s; }
+.switch i { position: absolute; top: 10px; left: 6px; width: 24px; height: 24px; border-radius: 999px; background: var(--cream); transition: transform .16s; }
 .switch[aria-checked="true"]::before { background: var(--tomato); }
 .switch[aria-checked="true"] i { transform: translateX(28px); }
-.pill.big.listbtn { min-height: 56px; gap: 10px; border: 2px solid var(--butter); background: var(--butter); color: var(--on-butter); font-size: 17px; }
+.pill.big.listbtn { gap: 10px; border: 2px solid var(--butter); background: var(--butter); color: var(--on-butter); }
 .pill.big.listbtn[aria-pressed="true"] { border-color: var(--ink); background: var(--surface); color: var(--ink); }
+/* the sheet that adds the open recipe to a day of the meal plan: the plan's own day rows */
+.apsub { flex: none; margin: -4px 0 0; font-size: 15px; font-weight: 700; color: var(--soft); overflow-wrap: anywhere; }
+.pick .days.pickdays { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.pickdays .wk { margin: 8px 4px 0; font-size: 13px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--soft); }
+.pickdays .wk:first-child { margin-top: 0; }
+.pickdays button.dinner { width: 100%; border: 0; font: inherit; text-align: left; padding-right: 16px; }
+.pickdays button.dinner.note { border: 1.5px solid var(--line); }
+.pickdays .dinner .what { display: flex; padding: 8px 0; font-size: 18px; font-weight: 700; line-height: 1.2; }
 /* the sheet that picks a dinner, over the meal plan */
 .over.pick .panel {
   top: calc(96px + env(safe-area-inset-top)); gap: 12px; overflow: hidden; background: var(--ground); box-shadow: 0 -20px 40px rgba(42, 29, 23, .25);
   padding: 20px calc(16px + env(safe-area-inset-right)) calc(28px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
 }
+/* with the keyboard up the sheet takes the whole visible height, so the list keeps room */
+html.kb .over.pick .panel { top: calc(12px + env(safe-area-inset-top)); padding-top: 14px; padding-bottom: 14px; }
+html.kb .over.pick h2 { display: none; }
+html.kb .over.pick .row { justify-content: flex-end; }
+@media (max-height: 480px) { html.kb .over.pick .panel { gap: 8px; padding-top: 8px; padding-bottom: 8px; } html.kb .over.pick .row { display: none; } }
 .over.pick h2 { font-size: 22px; font-weight: 800; line-height: 1.15; text-wrap: balance; }
 .find { flex: none; display: flex; align-items: center; gap: 10px; height: 50px; padding: 0 16px; border: 1.5px solid var(--edge); border-radius: 999px; background: var(--surface); color: var(--soft); }
 .find:focus-within { outline: 3px solid var(--focus); outline-offset: 2px; }
@@ -568,7 +594,11 @@ body.has-nav #plan .planbody, body.has-nav #grocery .grobody { padding-bottom: c
   transform: translate(-50%, 20px); opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s;
 }
 .toast.on { transform: translate(-50%, 0); opacity: 1; }
-.toast.tap { pointer-events: auto; cursor: pointer; }
+.toast.tap { pointer-events: auto; display: flex; align-items: center; gap: 4px; padding: 0 4px 0 0; }
+.toast .go, .toast .no { border: 0; background: none; color: inherit; font: inherit; }
+.toast .go { min-height: 44px; padding: 0 8px 0 18px; cursor: pointer; }
+.toast .no { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 999px; }
+.toast :focus-visible { outline-color: var(--on-solid); }
 
 @media (prefers-reduced-motion: reduce) {
   .alarm { animation: none; }
@@ -590,7 +620,9 @@ body.has-nav #plan .planbody, body.has-nav #grocery .grobody { padding-bottom: c
       <button class="addbtn" id="addBtn" type="button" aria-label="Add a recipe" hidden>
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
       </button>
-      <button class="pill signin" id="signInBtn" type="button">Sign in</button>
+      <button class="pill signin" id="signInBtn" type="button" aria-label="Sign in">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20c.8-3.6 3.5-5.5 7-5.5s6.2 1.9 7 5.5"/></svg>
+      </button>
     </div>
     <label class="search">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6B5348" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>
@@ -658,9 +690,10 @@ body.has-nav #plan .planbody, body.has-nav #grocery .grobody { padding-bottom: c
       <button class="iconbtn" type="button" data-close aria-label="Leave cooking mode">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
-      <span class="title" id="cName"></span>
+      <h2 class="title" id="cName"></h2>
       <button class="pill" id="cIngBtn" type="button">Ingredients</button>
     </div>
+    <div class="vh" id="cLive" role="status"></div>
     <div class="progress" id="cProgress" aria-hidden="true"></div>
     <div class="ctimers" id="cElse" role="group" aria-label="Timers on other steps" hidden></div>
     <div class="step">
@@ -686,7 +719,7 @@ body.has-nav #plan .planbody, body.has-nav #grocery .grobody { padding-bottom: c
     </div>
   </div>
 </section>
-<section class="layer fade over" id="cookIng" aria-labelledby="ciTitle" tabindex="-1" hidden>
+<section class="layer fade over" id="cookIng" role="dialog" aria-modal="true" aria-labelledby="ciTitle" tabindex="-1" hidden>
   <div class="panel">
     <div class="row">
       <h2 class="serif" id="ciTitle">Ingredients</h2>
@@ -881,7 +914,17 @@ body.has-nav #plan .planbody, body.has-nav #grocery .grobody { padding-bottom: c
     </button>
   </div>
 </section>
-<section class="layer fade over pick" id="pick" aria-labelledby="pkTitle" tabindex="-1" hidden>
+<section class="layer fade over pick" id="addPlan" role="dialog" aria-modal="true" aria-labelledby="apTitle" tabindex="-1" hidden>
+  <div class="panel">
+    <div class="row">
+      <h2 class="serif" id="apTitle">Add to meal plan</h2>
+      <button class="pill" type="button" data-close>Close</button>
+    </div>
+    <p class="apsub" id="apSub"></p>
+    <ul class="days pickdays" id="apList" aria-label="Days"></ul>
+  </div>
+</section>
+<section class="layer fade over pick" id="pick" role="dialog" aria-modal="true" aria-labelledby="pkTitle" tabindex="-1" hidden>
   <div class="panel">
     <div class="row">
       <h2 class="serif" id="pkTitle">Dinner</h2>

@@ -308,7 +308,14 @@
   }
 
   /* ---- search ---- */
-  const reFor = (term, flags) => new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), flags);
+  // The last regex for each kind of search is kept: one query matches every recipe, so it is built once.
+  const made = {};
+  function reFor(term, flags) {
+    let m = made[flags];
+    if (!m || m.term !== term) m = made[flags] = { term, re: new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), flags) };
+    m.re.lastIndex = 0;
+    return m.re;
+  }
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   // Escaped HTML with each match of `term` in a <mark>.
   function hl(text, term) {

@@ -8,6 +8,7 @@ const { webkit, devices } = require('playwright');
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
+const { duo } = require('../../test/devices.cjs');
 
 const root = path.join(__dirname, '..', '..');
 // A frozen copy of the recipe book, so that the family's edits to recipes.json do not change what the checks expect.
@@ -151,15 +152,18 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
   await tap('#tabs [data-tab="Soup"]');
   check('the Soup divider shows only soups, and the band under it is tomato', (await names()).join() === ZUPPA && (await bg('#band')) === TOMATO && (await pressed('#tabs button')).join() === 'Soup1');
   await page.fill('#q', 'chili');
+  await page.waitForTimeout(150);   // the search waits for a pause in the typing
   check('a search in a divider with nothing found says so', (await text('#none')) === 'No recipe under Soup has “chili”.' && await page.isVisible('#none'));
   await tap('#tabs [data-tab=""]');
   check('All again: the search finds White chicken chili', (await names()).join() === 'White chicken chili');
   await page.fill('#q', 'onion');
+  await page.waitForTimeout(150);   // the search waits for a pause in the typing
   const hits = await page.$$eval('#deck .rc', cs => cs.map(c => [c.querySelector('.nm').textContent, c.querySelector('.hit')?.innerHTML || '']));
   check('a search for an ingredient shows why each card matched', hits.length === 4 && hits.every(([, h]) => /<mark>onion<\/mark>/i.test(h)), hits);
   const hitStrips = (await deck()).slice(0, -1);
   check('cards with a reason still show their name and the reason above the next card', hitStrips.every(c => c.shows >= 64 && c.onIt === c.i), hitStrips);
   await page.fill('#q', 'zzz');
+  await page.waitForTimeout(150);   // the search waits for a pause in the typing
   check('nothing found: says so', (await text('#none')) === 'No recipe has “zzz”.');
   await tap('#qClear');
   check('the clear button empties the search', (await page.inputValue('#q')) === '' && (await names()).length === 11 && await page.isHidden('#qClear'));
@@ -169,6 +173,7 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
   check('the recipe opens as an index card with its name', (await text('#vName')) === ZUPPA);
   check('chips: the category, then Serves', (await page.$$eval('#vBody .chip', cs => cs.map(c => c.textContent))).join('|') === 'Soup|Serves 6');
   check('the card has a tomato strip', (await bg('#vBody .strip')) === TOMATO);
+  check('signed out: no Add to meal plan', await page.isHidden('#planBtn'));
   const ings = await page.$$eval('#vBody .half.ing .lines li', ls => ls.map(l => [l.querySelector('strong')?.textContent || '', l.querySelector('span').textContent]));
   check('ingredients: the amount in bold, ¼ for 1/4, and none for "Salt and pepper"',
     ings.length === 11 && ings[0].join('|') === '5 strips|bacon (thick-cut)' && ings[7].join('|') === '¼ tsp|Italian seasoning' && ings[10].join('|') === '|Salt and pepper', ings);
@@ -206,6 +211,8 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
   check('the progress bar has 9 parts, 1 done', (await page.$$eval('#cProgress span', s => [s.length, s.filter(x => x.className === 'done').length].join())) === '9,1');
   check('a step with "5 minutes" has a 5:00 timer', await page.isVisible('#cTimer') && (await text('#cClock')) === '5:00' && (await text('#cWhat')) === '5 min in this step' && (await text('#cGo')) === 'Start');
   check('Back is off on the first step', await page.$eval('#cBack', b => b.disabled));
+  check('the recipe name in cooking mode is an h2, and the Time’s up bar has a status region beside it', await page.$eval('#cName', h => h.tagName === 'H2') && (await page.getAttribute('#cLive', 'role')) === 'status');
+  check('the ingredient sheet and the day picker are modal dialogs', await page.$$eval('#cookIng, #pick', ls => ls.every(l => l.getAttribute('role') === 'dialog' && l.getAttribute('aria-modal') === 'true')));
   await phoneRules('cooking');
   await tap('#cNext');
   check('Next step: step 2, a 15-minute timer', (await text('#cKick')) === 'Step 2 of 9' && (await text('#cClock')) === '15:00');
@@ -256,9 +263,10 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
   await page.goBack();
   await closed('view');
 
-  // iPhone Duo sizes (CSS px). Closed: the tab bar picks ingredients or steps. Open upright: both side by side, no tab
+  // iPhone Duo sizes (CSS px). Closed upright: the tab bar picks ingredients or steps. Closed sideways and open upright: both side by side, no tab
   // bar. Open sideways: the box stays on the left and the recipe opens beside it.
-  for (const [w, h, kind] of [[382, 580, 'phone'], [594, 368, 'phone'], [669, 867, 'both'], [951, 585, 'beside']]) {
+  for (const [size, kind] of [['closed', 'phone'], ['closedSideways', 'both'], ['open', 'both'], ['openSideways', 'beside']]) {
+    const { width: w, height: h } = duo[size];
     const c = await newContext({ viewport: { width: w, height: h } }), p = await c.newPage();
     watch(p);
     await p.goto(base); await p.waitForSelector('#deck .rc');
@@ -278,12 +286,41 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
       await p.tap('#deck .rc:has-text("Pepperoncini")'); await p.waitForTimeout(300);
       check(`${w}×${h}: another card shows that recipe, one history entry`, (await p.textContent('#vName')) === 'Pepperoncini roast' && (await p.evaluate(() => history.state && history.state.sheets)) === 1
         && await p.$eval('#deck .rc[aria-current]', el => el.textContent.includes('Pepperoncini')));
-      await p.setViewportSize({ width: 585, height: 951 }); await p.waitForTimeout(400);   // turned upright
+      await p.setViewportSize({ width: h, height: w }); await p.waitForTimeout(400);   // turned upright
       check('turned upright, the recipe covers the box again', await p.evaluate(() => document.getElementById('page').inert && !document.querySelector('#deck .rc[aria-current]')));
       await p.setViewportSize({ width: w, height: h }); await p.waitForTimeout(400);
       await p.tap('#view [data-close]'); await closed('view', p);
       check('Recipe box closes it and the box fills the screen', await p.evaluate(() => !document.getElementById('page').inert && document.getElementById('page').getBoundingClientRect().width > 600 && !document.documentElement.classList.contains('side')));
     }
+    await c.close();
+  }
+
+  // The phone keyboard, on the Duo's Safari sizes: a stand-in visualViewport that the test shrinks and pans, the way iOS does
+  // (the layout viewport stays full height). The sign-in screen is a layer with fields, so it needs no account.
+  for (const [w, h] of [[466, 594], [678, 382], [669, 867], [951, 585], [469, 585]]) {
+    const c = await newContext({ viewport: { width: w, height: h } });
+    await c.addInitScript(() => {
+      const t = new EventTarget(), vv = { width: innerWidth, height: innerHeight, offsetTop: 0, offsetLeft: 0, scale: 1, addEventListener: (a, b) => t.addEventListener(a, b), removeEventListener() {} };
+      Object.defineProperty(window, 'visualViewport', { value: vv });
+      window.__kb = (kh, off) => { vv.height = innerHeight - kh; vv.offsetTop = off || 0; t.dispatchEvent(new Event('resize')); };
+    });
+    const p = await c.newPage(), kh = Math.round(h * .45), tag = `${w}×${h}`;
+    watch(p);
+    await p.goto(base); await p.waitForSelector('#deck .rc');
+    await p.tap('#signInBtn'); await opened('settings', p);
+    check(`${tag} keyboard: the page behind the sign-in screen is held still`, await p.evaluate(() => getComputedStyle(document.body).position === 'fixed' && document.documentElement.classList.contains('locked')));
+    await p.focus('#aPass');
+    await p.evaluate(kb => __kb(kb, 0), kh); await p.waitForTimeout(500);
+    const k = await p.evaluate(() => {
+      const r = document.getElementById('aPass').getBoundingClientRect(), l = document.getElementById('settings').getBoundingClientRect();
+      return { kb: document.documentElement.classList.contains('kb'), layerH: l.height, top: r.top, bottom: r.bottom, layerTop: l.top };
+    });
+    check(`${tag} keyboard: html.kb is set and the screen fits the visible height`, k.kb && Math.abs(k.layerH - (h - kh)) < 2, k);
+    check(`${tag} keyboard: the focused field is in the visible part`, k.top >= k.layerTop - 1 && k.bottom <= k.layerTop + k.layerH + 1, k);
+    await p.evaluate(kb => __kb(kb, 80), kh); await p.waitForTimeout(200);
+    check(`${tag} keyboard: the screen follows the panned viewport`, await p.evaluate(() => Math.abs(document.getElementById('settings').getBoundingClientRect().top - 80) < 2));
+    await p.evaluate(() => __kb(0, 0)); await p.waitForTimeout(200);
+    check(`${tag} keyboard: html.kb goes away with the keyboard`, await p.evaluate(() => !document.documentElement.classList.contains('kb')));
     await c.close();
   }
 
@@ -626,6 +663,10 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
   /* ---- the meal plan and the grocery list: everyone has one, and Mitchell shares theirs with Nicole ---- */
   // From here every page says it is Saturday, October 24, 2026: Date.now() stands still and the timers run.
   const DAY0 = new Date(2026, 9, 24, 18, 0);
+  // The Worker runs in this process and reads the real date for what a plan keeps (14 days back), so it needs the same day as the pages:
+  // a Date that says Oct 24 when asked for no particular time. Date.now() and the timers stay real.
+  const RealDate = Date;
+  globalThis.Date = class extends RealDate { constructor(...a) { super(...(a.length ? a : [DAY0.getTime()])); } };
   const INK = 'rgb(42, 29, 23)';
   await api.addUser('Nicole', 'nicole-password');
   // Mitchell's plan in KV: the one they share, or their own
@@ -729,9 +770,9 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
   await closed('settings');
   check('Meal plan takes the place of Settings, at the same depth', (await depth()) === 1 && (await navTabs()) === 'Recipes,Meal plan*,Grocery list,Settings');
   check('the header: Dinners for Mitchell and Nicole, two faces, This week picked',
-    (await text('#pWho')) === 'Dinners for Mitchell and Nicole' && (await page.$$('#pFaces .av')).length === 2 && (await pressed('#pWeeks button')).join() === 'This weekOct 19–25');
-  check('Monday to Sunday, all empty, and Saturday the 24th is today',
-    (await days()) === 'Mon 19: + | Tue 20: + | Wed 21: + | Thu 22: + | Fri 23: + | Sat 24: + | Sun 25: +'
+    (await text('#pWho')) === 'Dinners for Mitchell and Nicole' && (await page.$$('#pFaces .av')).length === 2 && (await pressed('#pWeeks button')).join() === 'This weekOct 24–30');
+  check('Saturday to Friday, all empty, and Saturday the 24th is today',
+    (await days()) === 'Sat 24: + | Sun 25: + | Mon 26: + | Tue 27: + | Wed 28: + | Thu 29: + | Fri 30: +'
     && await page.$eval('#pDays li[data-date="2026-10-24"] .date', d => d.classList.contains('today')) && await page.isHidden('#pShop'));
   check('the browser bar takes the carrot header', (await bar()) === CARROT);
   await phoneRules('meal plan');
@@ -757,7 +798,7 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
   check('the Worker keeps both, with who planned them', d.days['2026-10-24'].recipe === 'megans-zuppa-toscana' && d.days['2026-10-24'].by === 'Mitchell' && d.days['2026-10-25'].note === 'Leftovers');
   await page.focus('#pDays [data-clear="2026-10-25"]');   // with a keyboard: a tap does not focus a button in Safari
   await page.keyboard.press('Enter');
-  check('x clears Sunday, and the focus goes to its Plan dinner', (await days()).endsWith('Sun 25: +') && await page.evaluate(() => document.activeElement.dataset.plan === '2026-10-25'));
+  check('x clears Sunday, and the focus goes to its Plan dinner', (await days()).includes('Sun 25: +') && await page.evaluate(() => document.activeElement.dataset.plan === '2026-10-25'));
   await sent();
 
   // Nicole plans next week, and each sees the other's dinner
@@ -765,20 +806,20 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
   await opened('plan', np);
   await poke(np);
   await np.waitForFunction(z => document.querySelector('#pDays li[data-date="2026-10-24"] .what')?.textContent === z, ZUPPA);
-  check('Nicole sees the zuppa, planned by Mitchell, and Sunday cleared', (await days(np)).includes(`Sat 24: ${ZUPPA} (Mitchell)`) && (await days(np)).endsWith('Sun 25: +'));
+  check('Nicole sees the zuppa, planned by Mitchell, and Sunday cleared', (await days(np)).includes(`Sat 24: ${ZUPPA} (Mitchell)`) && (await days(np)).includes('Sun 25: +'));
   await np.tap('#pWeeks [data-week="1"]');
-  check('Next week: Oct 26 to Nov 1', (await days(np)).startsWith('Mon 26: +') && (await days(np)).endsWith('Sun 1: +') && (await np.$eval('#pWeeks [aria-pressed="true"]', b => b.textContent)) === 'Next weekOct 26–Nov 1');
-  await np.tap('#pDays [data-plan="2026-10-26"]');
+  check('Next week: Oct 31 to Nov 6', (await days(np)).startsWith('Sat 31: +') && (await days(np)).endsWith('Fri 6: +') && (await np.$eval('#pWeeks [aria-pressed="true"]', b => b.textContent)) === 'Next weekOct 31–Nov 6');
+  await np.tap('#pDays [data-plan="2026-10-31"]');
   await opened('pick', np);
   await np.tap('#pkList button:has-text("Pepperoncini roast")');
   await closed('pick', np);
   await sent(np);
   d = await mealsKV();
-  check('the roast, planned by Nicole, is kept with Mitchell’s dinner', d.days['2026-10-26'].by === 'Nicole' && d.days['2026-10-24'].by === 'Mitchell');
+  check('the roast, planned by Nicole, is kept with Mitchell’s dinner', d.days['2026-10-31'].by === 'Nicole' && d.days['2026-10-24'].by === 'Mitchell');
   await poke(page);
   await tap('#pWeeks [data-week="1"]');
-  await page.waitForFunction(() => !!document.querySelector('#pDays li[data-date="2026-10-26"] .what'));
-  check('Mitchell sees the roast, planned by Nicole', (await days()).includes('Mon 26: Pepperoncini roast (Nicole)'));
+  await page.waitForFunction(() => !!document.querySelector('#pDays li[data-date="2026-10-31"] .what'));
+  check('Mitchell sees the roast, planned by Nicole', (await days()).includes('Sat 31: Pepperoncini roast (Nicole)'));
 
   // The recipe card: Add to grocery list
   await tap('#pWeeks [data-week="0"]');
@@ -790,8 +831,39 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
     && await page.$eval('#listBtn', b => b.previousElementSibling?.id === 'cookBtn'));
   await tap('#listBtn');
   check('tapped: On the grocery list', (await text('#listBtn')) === 'On the grocery list' && (await page.getAttribute('#listBtn', 'aria-pressed')) === 'true');
+  // The recipe card: Add to meal plan, a sheet of the days from today to the end of next week
+  check('the recipe has Add to meal plan in butter, under Add to grocery list',
+    (await text('#planBtn')) === 'Add to meal plan' && (await bg('#planBtn')) === BUTTER && await page.$eval('#planBtn', b => b.previousElementSibling?.id === 'listBtn'));
+  await phoneRules('recipe card with Add to meal plan');
+  await tap('#planBtn');
+  await opened('addPlan');
+  const dayRows = () => page.$$eval('#apList li', ls => ls.map(l => l.classList.contains('wk') ? l.textContent : `${l.querySelector('.dw').textContent} ${l.querySelector('.dn').textContent}: ${l.querySelector('.what')?.textContent || '+'}`));
+  const rows0 = await dayRows();
+  check('the sheet is over the recipe and lists this week from today, then next week, with what is planned',
+    (await depth()) === 3 && rows0[0] === 'This week · Oct 24–30' && rows0[1] === `Sat 24: ${ZUPPA}` && rows0.includes('Sun 25: +') && rows0.includes('Next week · Oct 31–Nov 6') && rows0.length === 16
+    && (await text('#apSub')) === ZUPPA && await page.getAttribute('#addPlan', 'role') === 'dialog', rows0);
+  await phoneRules('Add to meal plan sheet');
+  await page.keyboard.press('Escape');
+  await closed('addPlan');
+  check('Escape closes the sheet and the focus goes back to Add to meal plan', (await depth()) === 2 && await page.evaluate(() => document.activeElement.id === 'planBtn'));
+  await tap('#planBtn');
+  await opened('addPlan');
+  await page.goBack();
+  await closed('addPlan');
+  check('the back button closes the sheet, back on the recipe', (await depth()) === 2 && await page.isVisible('#vName'));
+  await tap('#planBtn');
+  await opened('addPlan');
+  await tap('#apList [data-add="2026-10-30"]');
+  await closed('addPlan');
+  check('tapping Friday closes the sheet, with a toast, and the focus on Add to meal plan',
+    (await depth()) === 2 && (await text('#toast')) === `${ZUPPA} is on Friday, Oct 30.` && await page.evaluate(() => document.activeElement.id === 'planBtn'));
+  await sent();
+  check('the Worker keeps the zuppa on Friday, planned by Mitchell', (await mealsKV()).days['2026-10-30'].recipe === 'megans-zuppa-toscana' && (await mealsKV()).days['2026-10-30'].by === 'Mitchell');
   await tap('#view [data-close]');
   await closed('view');
+  check('back on the plan: Friday has the zuppa', (await days()).endsWith(`Fri 30: ${ZUPPA} (Mitchell)`));
+  await tap('#pDays [data-clear="2026-10-30"]');   // put the plan back as it was
+  await sent();
   check('back on the plan: the zuppa is on the list, so the button opens the list', (await text('#pShopText')) === 'Open the grocery list');
   await tap('#pWeeks [data-week="1"]');
   check('next week: Put 1 dinner on the grocery list (the roast)', (await text('#pShopText')) === 'Put 1 dinner on the grocery list');
@@ -895,7 +967,7 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
     { say: await text('#sSay'), who: await text('#pWho'), days: await days(), chips: await askChips() });
   await poke(np);
   await np.waitForFunction(() => document.getElementById('pWho').textContent === 'Dinners for Nicole');
-  check('Nicole keeps the shared plan, the roast and all', (await days(np)).includes('Mon 26: Pepperoncini roast (Nicole)'));
+  check('Nicole keeps the shared plan, the roast and all', (await days(np)).includes('Sat 31: Pepperoncini roast (Nicole)'));
   await tap('#sShare [data-ask="nicole"]');
   await page.waitForSelector('#sShare [data-share="cancel"]');
   await np.tap('#nav [data-go="settings"]');
@@ -1042,7 +1114,10 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
     const shown = await p.waitForSelector('#toast.tap.on', { timeout: 8000 }).then(() => true, () => false);
     check('an update shows "Updated · Tap to reload"', shown && (await p.textContent('#toast')) === 'Updated · Tap to reload');
     if (shown) {
-      await Promise.all([p.waitForEvent('load'), p.tap('#toast')]);
+      check('the notice is a real button with a Dismiss beside it', await p.$eval('#toast', t => t.querySelector('button.go')?.textContent === 'Updated · Tap to reload' && !!t.querySelector('button.no[aria-label="Dismiss"]')));
+      await p.waitForTimeout(3500);
+      check('and it stays past the 2.8 s a toast lasts', await p.isVisible('#toast.on'));
+      await Promise.all([p.waitForEvent('load'), p.tap('#toast .go')]);
       await p.waitForSelector('#deck .rc');
       const keys = await p.evaluate(() => caches.keys());
       check('tapping it reloads, on the new cache only', keys.includes('recipes-v999') && !keys.some(k => k.startsWith('recipes-') && k !== 'recipes-v999'), keys);
