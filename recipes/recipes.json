@@ -538,6 +538,38 @@
         "2 cloves of garlic"
       ],
       "owner": "Mitchell"
+    },
+    {
+      "id": "salsa-chicken",
+      "name": "Salsa chicken",
+      "servings": "4",
+      "tags": [
+        "Crock pot"
+      ],
+      "ingredients": [
+        "1 lb chicken",
+        "1 jar Pace salsa",
+        "1 packet taco seasoning",
+        "1 packet ranch seasoning",
+        "2 cups rice",
+        "1 can black beans",
+        "Sour cream",
+        "Red onion",
+        "Tortillas"
+      ],
+      "steps": [
+        "Put the chicken in the crock pot.",
+        "Sprinkle the taco seasoning and ranch seasoning over the chicken.",
+        "Pour the salsa over the top.",
+        "Cook on low for 4 to 6 hours.",
+        "Shred the chicken with two forks and stir it into the sauce.",
+        "Drain and rinse the black beans. Stir them in and cook 15 minutes more.",
+        "Bring 4 cups of water to a boil. Add the rice, cover, and simmer 18 minutes.",
+        "Dice the red onion. Warm the tortillas.",
+        "Serve the chicken over rice or in tortillas. Top with sour cream and red onion."
+      ],
+      "notes": "Maybe more than 2 cups of rice.",
+      "owner": "Mitchell"
     }
   ],
   "books": {
