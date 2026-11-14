@@ -6,6 +6,7 @@ const { webkit, devices } = require('playwright');
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
+const { duo } = require('../../test/devices.cjs');
 
 const root = path.join(__dirname, '..', '..');
 const out = path.resolve(process.argv[2] || path.join(__dirname, 'shots'));
@@ -45,7 +46,7 @@ const chart = c => async p => { await ready(p); await p.waitForSelector('#v-stat
 const end = async p => { await p.evaluate(() => { const m = document.getElementById('main'); m.scrollTop = m.scrollHeight; }); };
 const fillOn = date => async p => { await tab('fuel')(p); await p.click(`#v-fuel .row:has-text("${date}") >> nth=0`); await p.waitForSelector('#fillLayer'); };
 const scenes = [
-  ...[[382,580],[594,368],[669,867],[951,585],[385,867]].flatMap(([width,height]) => ['stats','fuel','costs','more'].map(t => ({ name: `duo-${width}-${t}`, viewport: {width,height}, act: tab(t) }))),
+  ...Object.values(duo).flatMap(({width,height}) => ['stats','fuel','costs','more'].map(t => ({ name: `duo-${width}-${t}`, viewport: {width,height}, act: tab(t) }))),
   { name: '01-stats-day', act: ready },
   { name: '02-stats-night', theme: 'dark', act: ready },
   { name: '03-stats-touch-day', act: async p => { await ready(p); const b = await p.locator('#ch').boundingBox(); await p.mouse.move(b.x + b.width * 0.62, b.y + 90); } },
@@ -89,7 +90,7 @@ const scenes = [
   { name: '40-info-typing-day', act: async p => { await tab('more')(p); const t = p.locator('.iv[data-label="Tires"]'); await t.scrollIntoViewIfNeeded(); await t.click(); await p.keyboard.type('225/50R17'); } },
   { name: '41-info-add-day', act: async p => { await tab('more')(p); await p.click('[data-act="info-add"]'); await p.fill('#iLabel', 'Spark plugs'); await p.fill('#iValue', 'NGK 97506'); } },
   { name: '42-info-added-day', act: async p => { await tab('more')(p); await p.click('[data-act="info-add"]'); await p.fill('#iLabel', 'Spark plugs'); await p.fill('#iValue', 'NGK 97506'); await p.click('#iSave'); await p.locator('.iv[data-label="Spark plugs"]').scrollIntoViewIfNeeded(); } },
-  { name: '43-info-duo-951', viewport: { width: 951, height: 585 }, act: tab('more') }
+  { name: '43-info-duo-951', viewport: duo.openSideways, act: tab('more') }
 ];
 
 (async () => {

@@ -6,6 +6,7 @@ const http = require('node:http');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { duo } = require('../../test/devices.cjs');
 
 const root = path.join(__dirname, '..', '..');
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png' };
@@ -379,9 +380,10 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
   check('backup adds its tab', names.includes('Den') && names.length === 2, names);
   fs.unlinkSync(tmp);
 
-  // iPhone Duo sizes (CSS px): closed upright and sideways keep the phone layout; open, the sketch and results sit
+  // iPhone Duo sizes (CSS px): closed upright keeps the phone layout; closed sideways and open, the sketch and results sit
   // on the left, the form on the right, and the keypad covers only the form
-  for (const [w, h, two] of [[382, 580, false], [594, 368, false], [669, 867, true], [951, 585, true]]) {
+  for (const [size, two] of [['closed', false], ['closedSideways', true], ['open', true], ['openSideways', true]]) {
+    const { width: w, height: h } = duo[size];
     const c = await browser.newContext({ viewport: { width: w, height: h }, isMobile: true, hasTouch: true, serviceWorkers: 'block' }), p = await c.newPage();
     p.on('console', m => { if (m.type() === 'error') errors.push(m.text()); }); p.on('pageerror', e => errors.push(e.message));
     await p.goto(base); await p.waitForSelector('#form [data-k]');
@@ -393,8 +395,8 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
     const kp = await box('#kp'), f = await box(field);
     if (two) check(`${w}×${h}: the keypad leaves the sketch uncovered`, kp.l >= sk.r, { kp, sk });
     if (h > 400) check(`${w}×${h}: the field being typed shows above the keypad`, f.b <= kp.t && f.t >= 0, { f, kp });
-    if (w === 669) {   // fold it shut with the keypad open: the keypad room moves to the page
-      await p.setViewportSize({ width: 382, height: 580 }); await p.waitForTimeout(400);
+    if (size === 'open') {   // fold it shut with the keypad open: the keypad room moves to the page
+      await p.setViewportSize(duo.closed); await p.waitForTimeout(400);
       const pads = await p.evaluate(() => [document.getElementById('main').style.paddingBottom, document.getElementById('rcol').style.paddingBottom]);
       check('folding shut with the keypad open moves its room to the page', parseInt(pads[0]) > 100 && !pads[1], pads);
     }

@@ -32,7 +32,7 @@ main{padding-bottom:20px}
 .tabbar svg{width:24px;height:24px}
 .tabbar button.on{color:var(--sel-text);background:var(--sel)}
 .badge{position:absolute;top:3px;left:calc(50% + 6px);min-width:19px;height:19px;border-radius:10px;background:var(--red);color:var(--tile);font-size:11.5px;font-weight:800;display:grid;place-items:center;padding:0 5px}
-/* sideways on a wide screen (the open iPhone Duo, 951×585): the tab bar is a rail on the right, so the short screen
+/* sideways on a wide screen (the open iPhone Duo sideways, see test/devices.cjs): the tab bar is a rail on the right, so the short screen
    keeps its height, and Stats, Expenses and More use two columns */
 @media (orientation:landscape) and (min-width:800px){
   body{display:grid;grid-template-columns:minmax(0,1fr) 92px;grid-template-rows:auto minmax(0,1fr)}

@@ -140,7 +140,7 @@
   .panel.on{transform:translateX(0)}
   @media (prefers-reduced-motion:reduce){.panel{transition:none}.scrim{transition:none}}
 
-  /* ---- full width at every size; wide and short screens (iPhone Duo: open 669×867 / 951×585, closed sideways 594×368) ---- */
+  /* ---- full width at every size; wide and short screens (iPhone Duo sizes: see test/devices.cjs) ---- */
   @media (orientation:portrait){ .pad{height:clamp(420px,72vh,680px)} }
   @media (orientation:landscape) and (min-width:800px){
     .panel{transform:none;width:min(320px,34vw);transition:none}

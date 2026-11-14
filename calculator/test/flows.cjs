@@ -5,6 +5,7 @@ const { webkit, devices } = require('playwright');
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
+const { duo } = require('../../test/devices.cjs');
 
 const root = path.join(__dirname, '..', '..');
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.ico': 'image/x-icon' };
@@ -80,7 +81,8 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
 
   // iPhone Duo sizes: closed upright and sideways, open upright and sideways (CSS px). The keypad spans the
   // width and fits the height; history stays open on the left only on the open screen sideways.
-  for (const [w, h, docked] of [[382, 580, false], [594, 368, false], [669, 867, false], [951, 585, true]]) {
+  for (const [size, docked] of [['closed', false], ['closedSideways', false], ['open', false], ['openSideways', true]]) {
+    const { width: w, height: h } = duo[size];
     const c = await browser.newContext({ viewport: { width: w, height: h }, isMobile: true, hasTouch: true, serviceWorkers: 'block' }), p = watch(await c.newPage());
     await p.goto(base); await p.waitForSelector('#value');
     const r = await p.evaluate(() => { const box = s => document.querySelector(s).getBoundingClientRect(), pad = box('.pad'), v = box('#value'), pn = box('#panel');

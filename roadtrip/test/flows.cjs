@@ -3,6 +3,7 @@ const { webkit, devices } = require('playwright');
 const assert = require('node:assert/strict');
 const http = require('node:http'), fs = require('node:fs'), path = require('node:path');
 const X = require('./rtexport.cjs'), fixture = require('./fixture.json');
+const { duo } = require('../../test/devices.cjs');
 const root = path.resolve(__dirname, '../..');
 const types = {'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.png':'image/png','.svg':'image/svg+xml'};
 let bump = false, api;
@@ -64,9 +65,10 @@ const server = http.createServer(async (req,res)=>{
  // iPhone Duo: closed upright and sideways, open upright and sideways, and half the open screen. Only open sideways
  // moves the tab bar to a rail on the right and puts Stats and Expenses in two columns.
  const box=sel=>p.$eval(sel,el=>{const r=el.getBoundingClientRect();return{l:r.left,r:r.right,t:r.top,b:r.bottom};});
- for(const [width,height] of [[382,580],[594,368],[669,867],[951,585],[385,867]]){
+ for(const size of ['closed','closedSideways','open','openSideways','split']){
+  const {width,height}=duo[size];
   await p.setViewportSize({width,height});
-  const wide=width===951;
+  const wide=size==='openSideways';
   for(const tab of ['stats','fuel','costs','more']){
    await p.click(`[data-tab="${tab}"]`);
    assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`${width} ${tab}: horizontal overflow`);

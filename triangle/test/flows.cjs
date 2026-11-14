@@ -5,6 +5,7 @@ const { webkit, devices } = require('playwright');
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
+const { duo } = require('../../test/devices.cjs');
 
 const root = path.join(__dirname, '..', '..');
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.ico': 'image/x-icon' };
@@ -70,7 +71,8 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
   const sized = async (w, h) => { const c = await browser.newContext({ viewport: { width: w, height: h }, isMobile: true, hasTouch: true, serviceWorkers: 'block' }); return { c, p: watch(await c.newPage()) }; };
   const box = (p, sel) => p.$eval(sel, e => { const r = e.getBoundingClientRect(); return { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) }; });
   const sideways = p => p.evaluate(() => document.documentElement.scrollWidth - innerWidth);
-  for (const [w, h, side] of [[382, 580, false], [594, 368, true], [669, 867, false], [951, 585, true]]) {
+  for (const [size, side] of [['closed', false], ['closedSideways', true], ['open', false], ['openSideways', true]]) {
+    const { width: w, height: h } = duo[size];
     const { c, p } = await sized(w, h);
     await p.goto(base); await p.waitForSelector('#a');
     await p.fill('#a', '3'); await p.fill('#b', '4'); await p.fill('#c', '5');
