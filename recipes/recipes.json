@@ -523,6 +523,21 @@
       ],
       "owner": "Mitchell",
       "shared": false
+    },
+    {
+      "id": "cilantro-lime-dressing",
+      "name": "Cilantro Lime Dressing",
+      "ingredients": [
+        "2 bunches of cilantro",
+        "2 tomatillos",
+        "1 Jalapeño",
+        "2 limes",
+        "1 Packet of ranch dressing",
+        "1 cup of buttermilk",
+        "1 cup of mayo",
+        "2 cloves of garlic"
+      ],
+      "owner": "Mitchell"
     }
   ],
   "books": {
