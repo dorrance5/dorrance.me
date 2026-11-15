@@ -127,6 +127,9 @@ const server = http.createServer(async (req,res)=>{
   assert.ok(reach.fTotal&&reach.fSave,`${tag} keyboard: Total and Save can be scrolled into the visible area ${JSON.stringify(reach)}`);
   await q.evaluate(()=>document.getElementById('fOdo').scrollIntoView({block:'nearest'}));
   assert.ok(k.fTop>=k.lo-1&&k.fBottom<=k.vis+1,`${tag} keyboard: focused field visible ${JSON.stringify(k)}`);
+  // the glass keyboard shows what is under the layout viewport edge: 20 px under the visible area is still the backdrop
+  const under=await q.evaluate(()=>{const vv=visualViewport,y=vv.offsetTop+vv.height+20,b=document.querySelector('.backdrop'),r=b.getBoundingClientRect(),hit=y<innerHeight?document.elementFromPoint(innerWidth/2,y):null;return{y,innerHeight,bottom:r.bottom,hit:hit&&(hit.className||hit.tagName),ok:r.bottom>=y&&(!hit||b.contains(hit))};});
+  assert.ok(under.ok,`${tag} keyboard: 20 px under the visible area is still the backdrop, not the page ${JSON.stringify(under)}`);
   await q.tap('.backdrop',{position:{x:5,y:5}}); await q.waitForTimeout(150);
   assert.ok(await q.evaluate(()=>!!document.querySelector('.sheet')&&document.activeElement!==document.getElementById('fOdo')&&document.getElementById('fOdo').value==='200200'),`${tag} keyboard: backdrop tap only blurs`);
   await q.tap('.backdrop',{position:{x:5,y:5}}); await q.waitForTimeout(150);

@@ -97,6 +97,7 @@ button { cursor: pointer; -webkit-user-select: none; user-select: none; }
 button:disabled { cursor: default; }
 a { color: var(--link); }
 a:hover { color: var(--link-hover); }
+input, textarea { caret-color: var(--focus); }
 input::placeholder, textarea::placeholder { color: var(--hint); opacity: 1; }
 :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -254,10 +255,17 @@ html.kb .layer:not(.over)::after { content: ''; display: block; height: calc(var
 .layer {
   position: fixed; left: 0; right: 0; top: var(--vvt, 0px); height: var(--vvh, 100%); z-index: 20; overflow-y: auto; overscroll-behavior: contain;
   background: var(--ground); transform: translateX(100%); transition: transform .32s cubic-bezier(.2, .8, .2, 1); outline: none;
+  /* iOS 26: the keyboard and its accessory bar are glass over the page under the layout viewport. The layer's content and
+     Save bar stay in the visible area (height); its own background goes on 100lvh below it, under a transparent border */
+  box-sizing: content-box; border-bottom: 100vh solid transparent; border-bottom-width: 100lvh;
 }
 .layer.up { transform: translateY(100%); }
 .layer.fade { transform: none; opacity: 0; transition: opacity .16s ease; }
 .layer.open { transform: none; opacity: 1; }
+/* a screen fully covered by another is hidden once the slide ends (app.js sets .covered): nothing shows through, less to paint */
+.covered { visibility: hidden; transition: visibility 0s .34s; }
+.layer.covered { transition: transform .32s cubic-bezier(.2, .8, .2, 1), visibility 0s .34s; }
+.layer.fade.covered { transition: opacity .16s ease, visibility 0s .34s; }
 .screen {
   display: flex; flex-direction: column; gap: 20px; max-width: 640px; margin: 0 auto;
   padding: calc(14px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(40px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
@@ -701,7 +709,7 @@ html.kb .over.pick .row { justify-content: flex-end; }
 
 @media (prefers-reduced-motion: reduce) {
   .alarm { animation: none; }
-  .layer, .rc, .toast, .switch::before, .switch i { transition: none; }
+  .layer, .layer.covered, .rc, .toast, .switch::before, .switch i { transition: none; }
 }
 </style>
 </head>
@@ -843,20 +851,20 @@ html.kb .over.pick .row { justify-content: flex-end; }
     </button>
     <div class="field">
       <label for="fName">Name</label>
-      <input id="fName" type="text" autocomplete="off" autocapitalize="sentences" enterkeyhint="next">
+      <input id="fName" name="rcp_title" type="text" autocomplete="off" autocapitalize="sentences" enterkeyhint="next">
     </div>
     <div class="field">
       <span class="label" id="fCatLabel">Category</span>
       <div class="cats" id="fCats" role="group" aria-labelledby="fCatLabel"></div>
       <div class="newcat" id="fNewRow" hidden>
         <label class="vh" for="fNew">New category</label>
-        <input id="fNew" type="text" placeholder="New category" autocomplete="off" autocapitalize="sentences" enterkeyhint="done" maxlength="30">
+        <input id="fNew" name="rcp_newcat" type="text" placeholder="New category" autocomplete="off" autocapitalize="sentences" enterkeyhint="done" maxlength="30">
         <button class="pill solid" id="fNewAdd" type="button">Add</button>
       </div>
     </div>
     <div class="field">
       <label for="fServings">Serves</label>
-      <input class="short" id="fServings" type="text" autocomplete="off" enterkeyhint="next">
+      <input class="short" id="fServings" name="rcp_yield" type="text" autocomplete="off" enterkeyhint="next">
     </div>
     <div class="field">
       <div class="labels"><label for="fIngredients">Ingredients</label><span id="fIngHint">One per line</span></div>
@@ -872,7 +880,7 @@ html.kb .over.pick .row { justify-content: flex-end; }
     </div>
     <div class="field">
       <label for="fSource">Where it’s from</label>
-      <input id="fSource" type="text" placeholder="A link, a cookbook or a person" autocomplete="off" autocapitalize="off" enterkeyhint="done">
+      <input id="fSource" name="rcp_source" type="text" placeholder="A link, a cookbook or a person" autocomplete="off" autocapitalize="off" enterkeyhint="done">
     </div>
     <div class="field switchrow">
       <div class="labels"><label for="fShare">Share with the family</label><span id="fShareHint"></span></div>
@@ -1040,7 +1048,7 @@ html.kb .over.pick .row { justify-content: flex-end; }
     <ul class="choices" id="pkList" aria-label="Recipes"></ul>
     <form id="pkForm" novalidate>
       <label class="vh" for="pkNote">Or write something else</label>
-      <input id="pkNote" type="text" placeholder="Or write something, like Leftovers" autocomplete="off" autocapitalize="sentences" enterkeyhint="done" maxlength="80">
+      <input id="pkNote" name="plan_note" type="text" placeholder="Or write something, like Leftovers" autocomplete="off" autocapitalize="sentences" enterkeyhint="done" maxlength="80">
       <button class="pill solid" type="submit">Add</button>
     </form>
   </div>
@@ -1059,7 +1067,7 @@ html.kb .over.pick .row { justify-content: flex-end; }
     <p class="alert" id="gNote" role="status" hidden></p>
     <form class="gform" id="gForm" novalidate>
       <label class="vh" for="gExtra">Add something else</label>
-      <input id="gExtra" type="text" placeholder="Add something else" autocomplete="off" autocapitalize="sentences" enterkeyhint="done" maxlength="80">
+      <input id="gExtra" name="shop_extra" type="text" placeholder="Add something else" autocomplete="off" autocapitalize="sentences" enterkeyhint="done" maxlength="80">
       <button class="round" type="submit" aria-label="Add to the list">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
       </button>

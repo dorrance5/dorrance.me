@@ -267,6 +267,10 @@
     const beside = side();
     page.inert = stack.length > 0 && !beside;
     layers.forEach(l => { l.inert = l !== top(); });
+    let cover = -1;   // the topmost full screen; the dimmed ones (.over) leave what is under them showing
+    stack.forEach((l, i) => { if (!l.classList.contains('over')) cover = i; });
+    layers.forEach(l => l.classList.toggle('covered', stack.indexOf(l) >= 0 && stack.indexOf(l) < cover));
+    page.classList.toggle('covered', cover >= 0 && !beside);
     holdPage(stack.length > 0 && !beside);
     fit();
     root.classList.toggle('side', beside);

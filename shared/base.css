@@ -117,7 +117,7 @@ html.locked{overflow:hidden;overscroll-behavior:none}
 html.kb .kb-pad::after{content:'';display:block;flex:none;grid-column:1/-1;height:max(calc(var(--vvh,100%) * .4),calc(100vh - var(--vvh,100vh)))}
 
 /* sheets */
-.backdrop{position:fixed;left:0;right:0;top:var(--vvt,0px);height:var(--vvh,100%);overscroll-behavior:contain;background:rgba(0,0,0,.4);display:flex;align-items:flex-end;z-index:10;animation:fade .15s}
+.backdrop{position:fixed;left:0;right:0;top:var(--vvt,0px);height:var(--vvh,100%);overscroll-behavior:contain;background:rgba(0,0,0,.4);box-sizing:content-box;border-bottom:100vh solid transparent;border-bottom-width:100lvh;display:flex;align-items:flex-end;z-index:10;animation:fade .15s}
 .backdrop.top{align-items:flex-start;padding:calc(env(safe-area-inset-top,0px) + 56px) 12px 0}
 .sheet{background:var(--sheet);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);border:.5px solid var(--line);width:100%;max-width:560px;margin:0 auto;border-radius:22px 22px 0 0;padding:20px 16px calc(env(safe-area-inset-bottom,0px) + 16px);animation:up .2s ease-out;max-height:85dvh;max-height:min(85dvh,calc(var(--vvh,100dvh) - 12px));overflow-y:auto;overscroll-behavior:contain}
 .top .sheet{border-radius:22px;padding-bottom:16px;max-height:min(85dvh,calc(var(--vvh,100dvh) - 68px - env(safe-area-inset-top,0px)))}
