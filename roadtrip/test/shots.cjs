@@ -63,7 +63,7 @@ const scenes = [
   { name: '13-add-fuel-night', theme: 'dark', act: async p => { await tab('fuel')(p); await p.click('#addBtn'); } },
   { name: '14-expenses-day', act: tab('costs') },
   { name: '15-expenses-night', theme: 'dark', act: tab('costs') },
-  { name: '16-add-expense-day', act: async p => { await tab('costs')(p); await p.click('#addBtn'); await p.click('#nameChips [data-name="Air filter"]'); } },
+  { name: '16-add-expense-day', act: async p => { await tab('costs')(p); await p.click('#addBtn'); await p.click('#whatChips [data-pick="Air filter"]'); } },
   { name: '17-reminder-day', act: async p => { await tab('costs')(p); await p.click('#v-costs .rem >> nth=1'); } },
   { name: '18-more-day', act: tab('more') },
   { name: '19-more-end-day', act: async p => { await tab('more')(p); await p.waitForSelector('.ask, .person'); await end(p); } },

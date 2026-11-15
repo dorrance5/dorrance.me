@@ -86,7 +86,7 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
   await page.tap('[data-id="a"] [data-action="reset"]');
   await page.tap('.sheet [data-act="ok"]');
   check('Reset sets it to 0', await n('a') === '0');
-  await page.tap('#addBtn'); await page.fill('#fName', 'Mounts'); await page.tap('[data-act="save"]');
+  await page.tap('#addBtn'); await page.fill('#fLabel', 'Mounts'); await page.tap('[data-act="save"]');
   const added = (await saved()).find(c => c.name === 'Mounts');
   check('a new counter starts at 0', !!added && added.n === 0 && await n(added.id) === '0', added);
 
@@ -130,18 +130,18 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
     });
     const p = watch(await c.newPage()), kh = h - kbd.visibleHeight, tag = `${pose} ${w}×${h}`;
     await p.goto(base); await p.waitForSelector('#addBtn');
-    await p.tap('#addBtn'); await p.waitForSelector('#fName');
-    await p.fill('#fName', 'Pallets'); await p.focus('#fName');
+    await p.tap('#addBtn'); await p.waitForSelector('#fLabel');
+    await p.fill('#fLabel', 'Pallets'); await p.focus('#fLabel');
     await p.evaluate(([kb, o]) => __kb(kb, o), [kh, kbd.offsetTop]); await p.waitForTimeout(600);
     const k = await p.evaluate(kh => {
-      const r = document.getElementById('fName').getBoundingClientRect(), s = document.querySelector('.sheet').getBoundingClientRect();
+      const r = document.getElementById('fLabel').getBoundingClientRect(), s = document.querySelector('.sheet').getBoundingClientRect();
       return { kb: document.documentElement.classList.contains('kb'), locked: document.documentElement.classList.contains('locked'), top: r.top, bottom: r.bottom, sTop: s.top, sBottom: s.bottom, lo: visualViewport.offsetTop, vis: visualViewport.offsetTop + visualViewport.height };
     }, kh);
     check(`${tag} keyboard: html.kb is set and the page behind the sheet is locked`, k.kb && k.locked, k);
     check(`${tag} keyboard: the open sheet fits the visible area`, k.sTop >= k.lo - 1 && k.sBottom <= k.vis + 1, k);
     check(`${tag} keyboard: the focused field is visible`, k.top >= k.lo - 1 && k.bottom <= k.vis + 1, k);
     await p.tap('.backdrop', { position: { x: 5, y: 5 } }); await p.waitForTimeout(150);
-    check(`${tag} keyboard: a backdrop tap while typing only puts the keyboard away`, await p.evaluate(() => !!document.querySelector('.sheet') && document.activeElement !== document.getElementById('fName') && document.getElementById('fName').value === 'Pallets'));
+    check(`${tag} keyboard: a backdrop tap while typing only puts the keyboard away`, await p.evaluate(() => !!document.querySelector('.sheet') && document.activeElement !== document.getElementById('fLabel') && document.getElementById('fLabel').value === 'Pallets'));
     await p.tap('.backdrop', { position: { x: 5, y: 5 } }); await p.waitForTimeout(150);
     check(`${tag} keyboard: a second tap closes the sheet`, await p.evaluate(() => !document.querySelector('.backdrop') && !document.documentElement.classList.contains('locked')));
     await p.evaluate(() => __kb(0, 0)); await p.waitForTimeout(200);
@@ -179,6 +179,17 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
     const src = fs.readFileSync(path.join(root, 'counter', 'sw.js'), 'utf8');
     check('sw.js: the cache write is awaited and held open with waitUntil', /await cache\.put/.test(src) && /e\.waitUntil\(net/.test(src), src.slice(-600));
     check('sw.js: refreshes the page, JS and CSS only, with no-cache', /no-cache/.test(src) && /navigate/.test(src) && /\(js\|css\)/.test(src));
+  }
+
+  {
+    const c = await browser.newContext({ ...devices['iPhone 13'], serviceWorkers: 'block' }), p = await c.newPage();
+    await p.goto(base); await p.waitForTimeout(300);
+    const miss = await require('../../test/tap44.cjs')(p);
+    check('shared controls (seg, tabs, chips, home link) have a 44px tap area', miss.length === 0, miss);
+    await p.tap('#addBtn'); await p.waitForSelector('#fLabel');
+    const a = await p.evaluate(() => { const e = document.getElementById('fLabel'); return [e.id, e.name, e.autocomplete, e.placeholder, e.getAttribute('aria-label')].join('|'); });
+    check('counter label field has no "name" in id, name, placeholder or aria-label', !/name/i.test(a) && /off/.test(a), a);
+    await c.close();
   }
 
   check('no console errors', errors.length === 0, errors);

@@ -19,6 +19,7 @@ window.App = (function () {
      An app can leave Aurora out (App.init({ aurora: false })); it then shows Night for that setting. */
   const darkMQ = matchMedia('(prefers-color-scheme: dark)');
   let aurora = true;
+  const THEME_BG = { light: '#F4F4F5', dark: '#141517', aurora: '#0E0A1E' };
   function themePref() { try { return localStorage.getItem('theme') || 'auto'; } catch (e) { return 'auto'; } }
   const shown = t => t === 'aurora' && !aurora ? 'dark' : t;
   function applyTheme() {
@@ -26,8 +27,7 @@ window.App = (function () {
     const mode = t === 'auto' ? (darkMQ.matches ? 'dark' : 'light') : t;
     const r = document.documentElement;
     if (mode === 'light') delete r.dataset.mode; else r.dataset.mode = mode;
-    const m = $('meta[name="theme-color"]');
-    if (m) m.content = getComputedStyle(document.body).backgroundColor;
+    document.querySelectorAll('meta[name="theme-color"]').forEach(m => { m.content = THEME_BG[mode]; });
     document.querySelectorAll('[data-theme]').forEach(b => {
       b.classList.toggle('on', b.dataset.theme === t);
       if (b.dataset.theme === 'aurora') b.hidden = t !== 'aurora';

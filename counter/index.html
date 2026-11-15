@@ -160,16 +160,16 @@ function bump(id) {
 function openCounterSheet(c) {
   let color = c ? c.color : COLORS[S.counters.length % COLORS.length];
   const el = sheet(`<h2>${c ? 'Edit counter' : 'New counter'}</h2>
-    <input class="input" id="fName" type="text" placeholder="Name" maxlength="30" autocomplete="off" enterkeyhint="done" value="${c ? esc(c.name) : ''}">
+    <input class="input" id="fLabel" name="counter_label" type="text" placeholder="What you're counting" aria-label="What you're counting" maxlength="30" autocomplete="off" enterkeyhint="done" value="${c ? esc(c.name) : ''}">
     <div class="swatches">${COLORS.map(x => `<button class="sw${x === color ? ' on' : ''} c-${HUE[x]}" data-color="${x}" aria-label="Color"></button>`).join('')}</div>
     <div class="actions">${c ? '<button class="danger" data-act="del">Delete</button>' : ''}<span class="sp"></span>
       <button class="btn" data-act="cancel">Cancel</button><button class="primary" data-act="save">${c ? 'Save' : 'Add'}</button></div>`, 'top');
-  const input = el.querySelector('#fName');
+  const input = el.querySelector('#fLabel');
   input.focus();
 
   const doSave = () => {
     const name = input.value.trim();
-    if (!name) { input.placeholder = 'Enter a name'; input.focus(); return; }
+    if (!name) { input.placeholder = "Type what you're counting"; input.focus(); return; }
     if (c) { c.name = name; c.color = color; }
     else S.counters.push({id: uid(), name, color, n: 0});
     save(); closeSheet(); render();

@@ -504,7 +504,7 @@
     let html = '';
     if (car) {
       html += `<section class="card sec hue-blue"><div class="sec-h"><span class="ic blue">${ICON.car}</span>Car${car.archived ? ' <span class="tag">Archived</span>' : ''}</div><div class="sec-b">
-        <div class="grid2"><label class="fld"><span class="fk">Name</span><input class="fv" id="mName" value="${esc(car.name)}" maxlength="40" autocapitalize="words" enterkeyhint="next"></label>
+        <div class="grid2"><label class="fld"><span class="fk">Car</span><input class="fv" id="mCar" name="rt_car_label" autocomplete="off" value="${esc(car.name)}" maxlength="40" autocapitalize="words" enterkeyhint="next"></label>
         <label class="fld"><span class="fk">Tank size, gal</span><input class="fv" id="mTank" value="${car.tank != null ? car.tank : ''}" inputmode="decimal" enterkeyhint="done" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="14.8"></label></div>
         <div class="label">Info</div>${infoHTML(car)}
         <label class="fld wide"><span class="fk">Other notes</span><textarea id="mNotes" rows="3" placeholder="Anything that is not a box">${esc(car.notes)}</textarea></label>
@@ -625,7 +625,7 @@
   // A new entry with its own label, at the bottom of the form.
   function infoSheet(car) {
     const box = sheet(`<h2>Add an entry</h2>
-      ${fld('iLabel', 'What', 'maxlength="30" autocapitalize="sentences" placeholder="Spark plugs"', 'wide')}
+      ${fld('iLabel', 'What', 'name="rt_info_what" autocomplete="off" maxlength="30" autocapitalize="sentences" placeholder="Spark plugs"', 'wide')}
       <label class="fld wide"><span class="fk">Value</span><textarea id="iValue" rows="2" maxlength="${T.MAX.value}" placeholder="NGK 97506"></textarea></label>
       <p class="hint">To take an entry off, clear it in the form.</p>
       <div class="actions"><button class="primary" type="button" id="iSave">Add</button></div>`);
@@ -643,9 +643,9 @@
     $i('iLabel').focus({ preventScroll: true });
   }
   byId('v-more').addEventListener('keydown', e => {
-    if (!isEnter(e) || e.target.id !== 'mName' && e.target.id !== 'mTank') return;
+    if (!isEnter(e) || e.target.id !== 'mCar' && e.target.id !== 'mTank') return;
     e.preventDefault();
-    if (e.target.id === 'mName') byId('mTank').focus(); else e.target.blur();   // leaving the field saves it
+    if (e.target.id === 'mCar') byId('mTank').focus(); else e.target.blur();   // leaving the field saves it
   });
   byId('v-more').addEventListener('input', e => { if (e.target.classList.contains('iv')) grow(e.target); });
   byId('v-more').addEventListener('change', e => {
@@ -654,8 +654,8 @@
       if (!change({ op: 'car', ...carFields(car), info: formInfo() })) toast('That is too long to keep.');
       return;
     }
-    if (!car || !['mName', 'mTank', 'mNotes'].includes(e.target.id)) return;
-    const name = byId('mName').value.trim() || car.name, tankText = byId('mTank').value.trim(), tank = tankText ? parseFloat(tankText) : null;
+    if (!car || !['mCar', 'mTank', 'mNotes'].includes(e.target.id)) return;
+    const name = byId('mCar').value.trim() || car.name, tankText = byId('mTank').value.trim(), tank = tankText ? parseFloat(tankText) : null;
     if (tankText && !(tank > 0 && tank <= 200)) { toast('Type the tank size in gallons, like 14.8.'); return; }
     if (!change({ op: 'car', ...carFields(car), name, tank, notes: byId('mNotes').value })) toast('That is too long to keep.');
   });
@@ -835,15 +835,15 @@
     for (const n of extra) if (!seen.has(n.toLowerCase())) seen.set(n.toLowerCase(), n);
     return [...seen.values()].slice(0, 10);
   }
-  const chips = list => list.length ? `<div class="chips" id="nameChips">${list.map(n => `<button class="chip" type="button" data-name="${esc(n)}">${esc(n)}</button>`).join('')}</div>` : '';
+  const chips = list => list.length ? `<div class="chips" id="whatChips">${list.map(n => `<button class="chip" type="button" data-pick="${esc(n)}">${esc(n)}</button>`).join('')}</div>` : '';
   function wireChips(box, input, after) {
-    box.querySelector('#nameChips')?.addEventListener('click', e => { const b = e.target.closest('[data-name]'); if (b) { input.value = b.dataset.name; after && after(); } });
+    box.querySelector('#whatChips')?.addEventListener('click', e => { const b = e.target.closest('[data-pick]'); if (b) { input.value = b.dataset.pick; after && after(); } });
   }
 
   function costSheet(car, c, preset) {
     const last = T.latest(car), p = preset || {};
     const box = sheet(`<h2>${c ? 'Edit expense' : 'Add expense'}</h2>
-      ${fld('cName', 'What', `value="${esc(c ? c.name : p.name || '')}" maxlength="40" autocapitalize="sentences" placeholder="Oil change"`, 'wide')}
+      ${fld('cWhat', 'What', `name="rt_expense_what" autocomplete="off" value="${esc(c ? c.name : p.name || '')}" maxlength="40" autocapitalize="sentences" placeholder="Oil change"`, 'wide')}
       ${chips(c ? [] : names(car, ['Oil change', 'Tire rotation', 'Air filter', 'Registration']))}
       <div class="grid2">${fld('cDate', 'Date', `type="date" value="${c ? c.date : today()}"`)}${fld('cOdo', 'Odometer', `inputmode="decimal" value="${c && c.odo != null ? c.odo : ''}" placeholder="Optional"`)}</div>
       ${fld('cCost', 'Cost $', `${pad()} value="${c && c.cost ? c.cost.toFixed(2) : ''}" placeholder="0.00"`, 'wide')}
@@ -854,21 +854,21 @@
     const $c = id => box.querySelector('#' + id), kind = wireSeg(box, '#cKind');
     // A reminder with this name counts from here.
     function hint() {
-      const r = car.reminders.find(x => T.same(x.name, $c('cName').value || ' ')), h = $c('cHint');
+      const r = car.reminders.find(x => T.same(x.name, $c('cWhat').value || ' ')), h = $c('cHint');
       h.hidden = !r;
       if (!r) return;
       const odo = num($c('cOdo').value), date = $c('cDate').value;
       const at = [r.miles && odo != null && `${mi(odo + r.miles)} mi`, r.months && date && dLong(T.addMonths(date, r.months))].filter(Boolean).join(' or ');
       h.textContent = `The ${r.name.toLowerCase()} reminder counts from this one${at ? `: next at ${at}` : ''}.`;
     }
-    ['cName', 'cOdo', 'cDate'].forEach(id => $c(id).addEventListener('input', hint));
+    ['cWhat', 'cOdo', 'cDate'].forEach(id => $c(id).addEventListener('input', hint));
     autoShift(box, 'cCost', 2);
-    wireChips(box, $c('cName'), hint);
+    wireChips(box, $c('cWhat'), hint);
     hint();
     delButton(box, () => bin(car, 'costs', c.id, 'Expense'));
     $c('cSave').addEventListener('click', () => {
-      const name = $c('cName').value.trim(), date = $c('cDate').value, odoText = $c('cOdo').value.trim(), costText = $c('cCost').value.trim();
-      if (!name) { $c('cName').focus(); return toast('Type what it was.'); }
+      const name = $c('cWhat').value.trim(), date = $c('cDate').value, odoText = $c('cOdo').value.trim(), costText = $c('cCost').value.trim();
+      if (!name) { $c('cWhat').focus(); return toast('Type what it was.'); }
       if (!date) return toast('Pick the date.');
       const odo = odoText ? num(odoText) : null, cost = costText ? num(costText) : 0;
       if (odoText && odo == null) return toast('Check the odometer.');
@@ -879,38 +879,38 @@
       if (!c) toast('Expense added.');
     });
     wireEnter(box, 'input.fv:not([type=date])', () => $c('cSave').click());
-    if (!c && !p.name) $c('cName').focus({ preventScroll: true });
+    if (!c && !p.name) $c('cWhat').focus({ preventScroll: true });
   }
 
   function remSheet(car, r) {
     const box = sheet(`<h2>${r ? 'Reminder' : 'Add a reminder'}</h2>
-      ${fld('rName', 'What', `value="${esc(r ? r.name : '')}" maxlength="40" autocapitalize="sentences" placeholder="Oil change"`, 'wide')}
+      ${fld('rWhat', 'What', `name="rt_reminder_what" autocomplete="off" value="${esc(r ? r.name : '')}" maxlength="40" autocapitalize="sentences" placeholder="Oil change"`, 'wide')}
       ${chips(r ? [] : names(car, ['Oil change', 'Tire rotation', 'Air filter', 'Cabin air filter']))}
       <div class="grid2">${fld('rMiles', 'Every … miles', `inputmode="numeric" value="${r && r.miles ? r.miles : ''}" placeholder="5,000"`)}${fld('rMonths', 'Or every … months', `inputmode="numeric" value="${r && r.months ? r.months : ''}" placeholder="6"`)}</div>
       <p class="hint" id="rHint"></p>
       <div class="actions">${r ? '<button class="danger" type="button" data-del>Delete</button><button class="btn" type="button" id="rLog">Log it</button>' : ''}<button class="primary" type="button" id="rSave">Save</button></div>`);
     const $r = id => box.querySelector('#' + id);
     function hint() {
-      const name = $r('rName').value.trim(), done = name && car.costs.filter(c => T.same(c.name, name)).sort((a, b) => (a.date < b.date ? 1 : -1))[0];
+      const name = $r('rWhat').value.trim(), done = name && car.costs.filter(c => T.same(c.name, name)).sort((a, b) => (a.date < b.date ? 1 : -1))[0];
       $r('rHint').textContent = !name ? 'It counts from the last expense with the same name.'
         : done ? `Counts from the last ${name.toLowerCase()}: ${dLong(done.date)}${done.odo != null ? ` at ${mi(done.odo)} mi` : ''}.`
         : `No ${name.toLowerCase()} logged yet. It starts once you log one.`;
     }
-    $r('rName').addEventListener('input', hint);
-    wireChips(box, $r('rName'), hint);
+    $r('rWhat').addEventListener('input', hint);
+    wireChips(box, $r('rWhat'), hint);
     hint();
     delButton(box, () => bin(car, 'reminders', r.id, 'Reminder'));
     $r('rLog')?.addEventListener('click', () => costSheet(car, null, { name: r.name }));
     $r('rSave').addEventListener('click', () => {
-      const name = $r('rName').value.trim(), m = $r('rMiles').value.trim(), mo = $r('rMonths').value.trim();
+      const name = $r('rWhat').value.trim(), m = $r('rMiles').value.trim(), mo = $r('rMonths').value.trim();
       const miles = m ? Math.round(num(m)) : null, months = mo ? Math.round(num(mo)) : null;
-      if (!name) { $r('rName').focus(); return toast('Type what it is for.'); }
+      if (!name) { $r('rWhat').focus(); return toast('Type what it is for.'); }
       if (!miles && !months) return toast('Type the miles, the months, or both.');
       if (!change({ op: 'remind', car: car.id, id: r ? r.id : uid(), name, miles, months })) return toast('Check the numbers.');
       closeSheet();
     });
     wireEnter(box, 'input.fv', () => $r('rSave').click());
-    if (!r) $r('rName').focus({ preventScroll: true });
+    if (!r) $r('rWhat').focus({ preventScroll: true });
   }
 
   // The list of cars, from the header.
@@ -933,13 +933,13 @@
   }
   function newCarSheet() {
     const box = sheet(`<h2>Add a car</h2>
-      <div class="grid2">${fld('nName', 'Name', 'maxlength="40" autocapitalize="words" placeholder="Pilot"')}${fld('nTank', 'Tank size, gal', 'inputmode="decimal" placeholder="14.8"')}</div>
-      <p class="hint">The name can be anything: the model, or what you call it.</p>
+      <div class="grid2">${fld('nCar', 'Car', 'name="rt_car_label" autocomplete="off" maxlength="40" autocapitalize="words" placeholder="Pilot"')}${fld('nTank', 'Tank size, gal', 'inputmode="decimal" placeholder="14.8"')}</div>
+      <p class="hint">Anything works: the model, or what you call it.</p>
       <div class="actions"><button class="primary" type="button" id="nSave">Add the car</button></div>`);
     const $n = id => box.querySelector('#' + id);
     $n('nSave').addEventListener('click', () => {
-      const name = $n('nName').value.trim(), tankText = $n('nTank').value.trim(), tank = tankText ? num(tankText) : null;
-      if (!name) { $n('nName').focus(); return toast('Type a name.'); }
+      const name = $n('nCar').value.trim(), tankText = $n('nTank').value.trim(), tank = tankText ? num(tankText) : null;
+      if (!name) { $n('nCar').focus(); return toast('Type a name.'); }
       if (tankText && !(tank > 0 && tank <= 200)) return toast('Type the tank size in gallons, like 14.8.');
       const id = uid();
       if (!change({ op: 'car', id, name, tank, info: [], notes: '', archived: false })) return toast('Check the name.');
@@ -949,7 +949,7 @@
       render();
     });
     wireEnter(box, 'input.fv', () => $n('nSave').click());
-    $n('nName').focus({ preventScroll: true });
+    $n('nCar').focus({ preventScroll: true });
   }
 
   // Archived: the archived cars, and what was deleted from each car, to put back or delete for good.

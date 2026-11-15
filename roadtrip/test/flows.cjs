@@ -57,7 +57,11 @@ const server = http.createServer(async (req,res)=>{
  await p.click('[data-tab="fuel"]'); await p.locator('#v-fuel .row').first().click();
  await p.click('#fillLayer [data-edit]'); await p.click('.sheet [data-del]');
  await p.waitForFunction(id=>JSON.parse(localStorage.roadtrip).queue.length===0&&JSON.parse(localStorage.roadtrip).state.cars.some(c=>c.fuel.some(f=>f.id===id&&f.gone)),saved.id);
- await p.click('[data-tab="more"]'); await p.click('#v-more [data-act="archived"]');
+ const attrs=id=>p.evaluate(i=>{const e=document.getElementById(i);return [e.id,e.name,e.autocomplete,e.placeholder,e.getAttribute('aria-label'),e.closest('label')?.querySelector('.fk')?.textContent].join('|')},id);
+ await p.click('[data-tab="more"]');
+ {const t=await attrs('mCar'); assert.ok(!/name/i.test(t)&&/off/.test(t),'car field: '+t);}
+ {const miss=await require('../../test/tap44.cjs')(p); assert.deepEqual(miss,[],'44px tap area on the tabs, More and the home link');}
+ await p.click('#v-more [data-act="archived"]');
  await p.locator(`[data-back$=":${saved.id}"]`).click();
  await p.waitForFunction(id=>JSON.parse(localStorage.roadtrip).queue.length===0&&JSON.parse(localStorage.roadtrip).state.cars.some(c=>c.fuel.some(f=>f.id===id&&!f.gone)),saved.id);
  console.log('ok automatic decimal, fuel save, archive and restore');
@@ -76,7 +80,10 @@ const server = http.createServer(async (req,res)=>{
  await p.waitForFunction(()=>!document.querySelector('.sheet')&&JSON.parse(localStorage.roadtrip).state.cars.flatMap(c=>c.fuel).some(f=>f.odo===200050));
  await p.click('[data-tab="costs"]');
  await p.evaluate(()=>{document.getElementById('addBtn').click();window.__focus=document.activeElement.id;});
- assert.equal(await p.evaluate(()=>window.__focus),'cName');
+ assert.equal(await p.evaluate(()=>window.__focus),'cWhat');
+ {const t=await attrs('cWhat'); assert.ok(!/name/i.test(t)&&/off/.test(t),'expense What field: '+t);}
+ {await p.waitForTimeout(400);}
+ {const miss=await require('../../test/tap44.cjs')(p); assert.deepEqual(miss,[],'44px tap area in the expense sheet');}
  await p.keyboard.press('Escape');
  console.log('ok first field focused in the tap; Enter advances, then saves');
  await p.reload(); await p.evaluate(()=>navigator.serviceWorker.ready); await p.reload();

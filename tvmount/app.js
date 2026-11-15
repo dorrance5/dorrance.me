@@ -917,14 +917,14 @@
   function tabSheet(isNew) {
     const t = tab();
     const el = sheet(`<h2>${isNew ? 'New TV location' : 'TV location'}</h2>
-      <input class="input" id="tabName" value="${esc(t.name)}" maxlength="40" autocomplete="off" enterkeyhint="done" aria-label="Name">
+      <input class="input" id="tabRoom" value="${esc(t.name)}" maxlength="40" autocomplete="off" enterkeyhint="done" name="tv_room" aria-label="Room">
       <div class="stack">
         <button class="btn" data-act="copy">Copy as text</button>
         <button class="btn" data-act="dup">Duplicate</button>
         <button class="btn" data-act="clear">Clear sheet</button>
         <button class="danger" data-act="del">Delete</button>
       </div>`);
-    const inp = el.querySelector('#tabName');
+    const inp = el.querySelector('#tabRoom');
     const rename = () => { const v = inp.value.trim(); if (v && v !== t.name) { t.name = v; persist(); renderTabs(); } };
     inp.addEventListener('input', rename);
     inp.addEventListener('keydown', e => { if (App.isEnter(e)) { rename(); closeSheet(); } });

@@ -135,7 +135,7 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
   check('soundbar drill height has its own card', /Drill soundbar holes\s*22 1\/8"/.test(barHero.replace(/\u00a0/g, ' ')), barHero);
   check('soundbar is drawn', await page.$('#sk rect.sbar') !== null);
   check('placement offers Soundbar bottom in place of TV bottom', (await page.textContent('[data-seg="ref.floor.edge"] [data-v="bottom"]')) === 'Soundbar bottom');
-  check('the Soundbar bottom button fits its text', await page.$eval('[data-seg="ref.floor.edge"] [data-v="bottom"]', el => el.scrollWidth <= el.clientWidth && el.scrollHeight <= el.clientHeight));
+  check('the Soundbar bottom button fits its text', await page.$eval('[data-seg="ref.floor.edge"] [data-v="bottom"]', el => el.scrollWidth <= el.clientWidth && el.scrollHeight <= el.clientHeight + 6));   // +6: the invisible tap area
   check('TV size is not repeated under the results', !/^TV$/m.test(await page.$$eval('#res .li .k', ks => ks.map(k => k.textContent).join('\n'))));
   await page.tap('[data-seg="bar.place"] [data-v="center"]');
   check('centered hides the gap and asks for a console', !(await page.$('[data-k="bar.gap"]')) && !!(await page.$('[data-k="bar.below"]')));
@@ -206,7 +206,7 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
 
   // tabs
   await page.tap('#tabs .add');
-  await page.fill('#tabName', 'Garage'); await page.waitForTimeout(150);   // the sheet focuses the name field after 60 ms
+  await page.fill('#tabRoom', 'Garage'); await page.waitForTimeout(150);   // the sheet focuses the name field after 60 ms
   await page.tap('.backdrop', { position: { x: 20, y: 20 } });   // while typing, the first tap only puts the keyboard away
   await page.tap('.backdrop', { position: { x: 20, y: 20 } });
   let names = await page.$$eval('#tabs [data-tab]:not(.add)', b => b.map(x => x.textContent));
@@ -427,18 +427,18 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
     await p.tap('#kp [data-key="done"]'); await p.waitForTimeout(200);
     check(`${tag} keyboard: closing the keypad turns nokb off`, await p.evaluate(() => !document.documentElement.classList.contains('nokb')));
     // a sheet with a field (the keyboard shows for real)
-    await p.tap('#tabs .on'); await p.waitForSelector('#tabName');
-    await p.fill('#tabName', 'Den'); await p.focus('#tabName');
+    await p.tap('#tabs .on'); await p.waitForSelector('#tabRoom');
+    await p.fill('#tabRoom', 'Den'); await p.focus('#tabRoom');
     await p.evaluate(([kb, o]) => __kb(kb, o), [kh, kbd.offsetTop]); await p.waitForTimeout(600);
     const k = await p.evaluate(kh => {
-      const r = document.getElementById('tabName').getBoundingClientRect(), s = document.querySelector('.sheet').getBoundingClientRect();
+      const r = document.getElementById('tabRoom').getBoundingClientRect(), s = document.querySelector('.sheet').getBoundingClientRect();
       return { kb: document.documentElement.classList.contains('kb'), locked: document.documentElement.classList.contains('locked'), top: r.top, bottom: r.bottom, sTop: s.top, sBottom: s.bottom, lo: visualViewport.offsetTop, vis: visualViewport.offsetTop + visualViewport.height };
     }, kh);
     check(`${tag} keyboard: html.kb is set and the page behind the sheet is locked`, k.kb && k.locked, k);
     check(`${tag} keyboard: the open sheet fits the visible area`, k.sTop >= k.lo - 1 && k.sBottom <= k.vis + 1, k);
     check(`${tag} keyboard: the focused field is visible`, k.top >= k.lo - 1 && k.bottom <= k.vis + 1, k);
     await p.tap('.backdrop', { position: { x: 5, y: 5 } }); await p.waitForTimeout(150);
-    check(`${tag} keyboard: a backdrop tap while typing only puts the keyboard away`, await p.evaluate(() => !!document.querySelector('.sheet') && document.activeElement !== document.getElementById('tabName') && document.getElementById('tabName').value === 'Den'));
+    check(`${tag} keyboard: a backdrop tap while typing only puts the keyboard away`, await p.evaluate(() => !!document.querySelector('.sheet') && document.activeElement !== document.getElementById('tabRoom') && document.getElementById('tabRoom').value === 'Den'));
     await p.tap('.backdrop', { position: { x: 5, y: 5 } }); await p.waitForTimeout(150);
     check(`${tag} keyboard: a second tap closes the sheet`, await p.evaluate(() => !document.querySelector('.backdrop')));
     await p.evaluate(() => __kb(0, 0)); await p.waitForTimeout(200);
@@ -501,6 +501,18 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
     check('sw.js: refreshes the page, JS and CSS only, with no-cache', /no-cache/.test(sw) && /navigate/.test(sw) && /\(js\|css\)/.test(sw));
     check('library fetch has a timeout', /AbortSignal\.timeout\(8000\)/.test(app));
     check('light and dark theme-color metas', await page.$$eval('meta[name=theme-color][media]', m => m.length) === 2);
+  }
+
+  {
+    const c = await browser.newContext({ ...devices['iPhone 13'], serviceWorkers: 'block' }), p = await c.newPage();
+    await p.goto(base); await p.waitForTimeout(300);
+    const miss = await require('../../test/tap44.cjs')(p);
+    check('shared controls (seg, tabs, chips, home link) have a 44px tap area', miss.length === 0, miss);
+    await p.tap('#tabs .on'); await p.waitForSelector('#tabRoom');
+    const a = await p.evaluate(() => { const e = document.getElementById('tabRoom'); return [e.id, e.name, e.autocomplete, e.placeholder, e.getAttribute('aria-label')].join('|'); });
+    check('location field has no "name" in id, name, placeholder or aria-label', !/name/i.test(a) && /off/.test(a), a);
+    miss.push(...await require('../../test/tap44.cjs')(p)); check('shared controls in the location sheet keep a 44px tap area', miss.length === 0, miss);
+    await c.close();
   }
 
   check('no console errors', errors.length === 0, errors);

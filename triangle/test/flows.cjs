@@ -160,6 +160,14 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
     check('sw.js: refreshes the page, JS and CSS only, with no-cache', /no-cache/.test(src) && /navigate/.test(src) && /\(js\|css\)/.test(src));
   }
 
+  {
+    const c = await browser.newContext({ ...devices['iPhone 13'], serviceWorkers: 'block' }), p = await c.newPage();
+    await p.goto(base); await p.waitForTimeout(300);
+    const miss = await require('../../test/tap44.cjs')(p);
+    check('shared controls (seg, tabs, chips, home link) have a 44px tap area', miss.length === 0, miss);
+    await c.close();
+  }
+
   check('no console errors', errors.length === 0, errors);
   await browser.close();
   server.close();
