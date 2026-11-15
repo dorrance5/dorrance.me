@@ -1,6 +1,6 @@
 /* TV Mount — offline cache. Bump CACHE when files change. */
-const CACHE = 'tvmount-v44';
-const FILES = ['./', './index.html', './app.js', './geometry.js', './store.js', './manifest.json', './icon-180.png', './icon-512.png', '../shared/base.css', '../shared/base.js'];
+const CACHE = 'tvmount-v45';
+const FILES = ['./', './index.html', './app.js', './geometry.js', './store.js', './manifest.json', './icon-180.png', './icon-512.png', '../shared/base.css', '../shared/base.js', '../shared/keypad.css', '../shared/keypad.js'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES.map(f => new Request(f, { cache: 'reload' })))).then(() => self.skipWaiting()));

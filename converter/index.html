@@ -16,6 +16,7 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-180.png">
 <link rel="stylesheet" href="../shared/base.css">
+<link rel="stylesheet" href="../shared/keypad.css">
 <title>Converter</title>
 <style>
 .conv{display:grid;grid-template-columns:1fr 48px 1fr;gap:8px;margin-top:8px}
@@ -44,6 +45,13 @@ main{padding-bottom:16px}
   #outCard{grid-column:1;grid-row:2}
   #table{grid-column:2;grid-row:1/span 2}
 }
+/* the keypad (shared/keypad.css): the amount opens it. Its keys are at most 480 px wide; open sideways it sits under
+   the left pane only, so every unit on the right stays in view */
+.amt,.amt input{cursor:pointer}
+.kp-in{max-width:480px}
+@media (min-width:800px){
+  .kp{right:50%;border-right:.5px solid var(--line);border-top-right-radius:20px}
+}
 </style>
 </head>
 <body>
@@ -57,7 +65,7 @@ main{padding-bottom:16px}
   <section class="card sec" id="card">
     <div class="sec-h"><span class="ic" id="catIc"></span><span id="catName"></span></div>
     <div class="sec-b">
-      <label class="fld amt"><span class="fk">Amount</span><input class="fv" id="val" type="text" inputmode="decimal" enterkeyhint="done" autocomplete="off" placeholder="0"></label>
+      <label class="fld amt"><span class="fk">Amount</span><input class="fv" id="val" type="text" inputmode="none" readonly autocomplete="off"></label>
       <div class="conv">
         <label class="fld"><span class="fk">From</span><select class="fv" id="from"></select></label>
         <button class="swap" id="swap" aria-label="Swap units"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h15M15 4l4 4-4 4M20 16H5M9 12l-4 4 4 4"/></svg></button>
@@ -73,6 +81,7 @@ main{padding-bottom:16px}
 <nav class="tabs" id="cats" aria-label="What to convert"></nav>
 
 <script src="../shared/base.js"></script>
+<script src="../shared/keypad.js"></script>
 <script>
 const { $, esc, load, save, buzz, sheet, toast, copy, themeSegHTML, homeLinkHTML } = App;
 App.init();
@@ -201,11 +210,12 @@ function paintUnits() {
 function convert() {
   const cat = S.cat, from = $('#from').value, to = $('#to').value, raw = $('#val').value;
   S.pick[cat] = [from, to]; S.val = raw; persist();
-  const v = from === 'ft in' ? parseFtIn(raw) : parseFrac(raw);
-  $('#hint').textContent = from === 'ft in' ? 'Type 5\' 3 1/2", 5 ft 3.5 in, 5-3, or inches' : (cat === 'Length' ? 'Fractions work: 3 1/2' : '');
+  // Feet from the keypad's feet key (5' 3 1/4") on inches or feet: parseFtIn gives inches.
+  const v = from === 'ft in' ? parseFtIn(raw) : FEET.includes(from) && /['’′]/.test(raw) ? parseFtIn(raw) / (from === 'ft' ? 12 : 1) : parseFrac(raw);
+  $('#hint').textContent = from === 'ft in' ? 'Inches, or feet then ′ then inches' : '';
   $('#outName').textContent = 'In ' + (NAMES[to] || to);
   $('#outUnit').textContent = to === 'ft in' ? '' : to;
-  if (isNaN(v)) { $('#out').textContent = '–'; $('#sub').textContent = raw.trim() ? 'Numbers only' : 'Type an amount'; $('#table').innerHTML = ''; $('#table').hidden = true; return; }
+  if (isNaN(v)) { $('#out').textContent = '–'; $('#sub').textContent = raw.trim() ? 'Numbers only' : 'Type an amount'; $('#table').innerHTML = ''; $('#table').hidden = true; syncPad(); return; }
   const b = toBase(v, from, cat), r = fromBase(b, to, cat);
   $('#out').textContent = to === 'ft in' ? fmtFtIn(r) : fmt(r);
   let sub = '';
@@ -218,22 +228,56 @@ function convert() {
     const x = fromBase(b, u, cat);
     return `<button class="ur${u === to ? ' on' : ''}" data-u="${esc(u)}"><span class="u">${esc(u)}<small>${esc(NAMES[u] || '')}</small></span><span class="v">${u === 'ft in' ? fmtFtIn(x) : fmt(x)}</span></button>`;
   }).join('');
+  syncPad();
 }
+
+/* ---- keypad (shared/keypad.js), as in TV Mount: the amount is read-only and opens it ---- */
+// Fractions for lengths; the feet key for inches and feet; ± for temperatures. One field, so no arrows.
+const FEET = ['in', 'ft', 'ft in'];
+function openPad() {
+  const from = $('#from').value, len = S.cat === 'Length', feet = len && FEET.includes(from);
+  $('#val').parentElement.classList.add('on');
+  Keypad.open({ value: $('#val').value, frac: len, slot: feet ? 'feet' : 'sign', slotOff: !feet && S.cat !== 'Temperature', nav: false,
+    unit: from === 'in' || from === 'ft in' ? '"' : ' ' + from, input: padInput, done: closePad });
+  $('main').style.paddingBottom = (Keypad.height + 16) + 'px';
+  Keypad.reveal($('#val').parentElement, $('main'));
+  syncPad();
+}
+function padInput() {
+  const t = Keypad.text(false);
+  if (t === null) { syncPad(); return; }   // half typed, like 3/: the amount stays as it was
+  $('#val').value = t; convert();
+}
+function closePad() {
+  if (!Keypad.isOpen) return;
+  const t = Keypad.touched ? Keypad.text(true) : null;   // leaving saves a fraction held back while typing, like 3/2
+  Keypad.close();
+  $('#val').parentElement.classList.remove('on');
+  $('main').style.paddingBottom = '';
+  if (t !== null && t !== $('#val').value) { $('#val').value = t; convert(); }
+}
+function syncPad() {
+  if (!Keypad.isOpen) return;
+  const out = $('#out').textContent, to = $('#to').value, from = $('#from').value;
+  Keypad.sync('Amount in ' + (NAMES[from] || from), out === '–' ? $('#sub').textContent : '= ' + out + (to === 'ft in' ? '' : ' ' + to));
+}
+// A tap focuses the read-only field: open the keypad instead, and let go of the focus so nothing else scrolls to it.
+$('#val').addEventListener('focus', () => { buzz(4); openPad(); $('#val').blur(); });
 
 $('#cats').addEventListener('click', e => {
   const b = e.target.closest('[data-cat]'); if (!b) return;
   S.cat = b.dataset.cat; buzz(8); paintCats(); paintUnits(); convert();
 });
-$('#from').addEventListener('change', convert);
+// New units while the keypad is open: it starts over on the amount, with the keys for them.
+const unitsChanged = () => { convert(); if (Keypad.isOpen) openPad(); };
+$('#from').addEventListener('change', unitsChanged);
 $('#to').addEventListener('change', convert);
-$('#val').addEventListener('input', convert);
-$('#val').addEventListener('keydown', e => { if (App.isEnter(e)) e.target.blur(); });
 $('#swap').onclick = () => {
   buzz(8);
   const f = $('#from').value, t = $('#to').value, out = $('#out').textContent;
   $('#from').value = t; $('#to').value = f;
   if (out !== '–') $('#val').value = out.replace(/[≈,]/g, '').replace('−', '-');
-  convert();
+  unitsChanged();
 };
 $('#table').addEventListener('click', e => { const b = e.target.closest('[data-u]'); if (b) { $('#to').value = b.dataset.u; buzz(6); convert(); } });
 $('#outCard').addEventListener('keydown', e => { if (App.isEnter(e)) { e.preventDefault(); e.target.click(); } });
@@ -249,7 +293,6 @@ $('#setBtn').onclick = () => {
 };
 
 paintCats(); paintUnits(); $('#val').value = S.val; convert();
-if (matchMedia('(hover:hover)').matches) $('#val').focus({ preventScroll: true });
 </script>
 </body>
 </html>

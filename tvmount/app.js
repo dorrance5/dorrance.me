@@ -99,45 +99,21 @@
     return (F[path] || [path])[0];
   }
 
-  /* ---------- keypad ---------- */
-  // Like Calculator: whole inches on the left, numerator over denominator on the right.
-  // kp.at is where keyboard digits go: w, n or d.
-  const DIGITS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
-  $('#kpNu').innerHTML = DIGITS.map(d => `<button data-key="n${d}" aria-label="Numerator ${d}">${d}</button>`).join('');
-  $('#kpDe').innerHTML = DIGITS.map(d => `<button data-key="d${d}" aria-label="Denominator ${d}">${d}</button>`).join('');
-  const kp = { path: null, w: '', n: '', d: '', neg: false, fresh: true, at: 'w' };
-  const kpBlank = () => !kp.w && !kp.n && !kp.d;
-
-  function loadKp(v) {
-    kp.w = ''; kp.n = ''; kp.d = ''; kp.neg = false; kp.at = 'w';
-    if (!isNum(v)) return;
-    kp.neg = v < 0;
-    if (inMm(kp.path)) { kp.w = String(+Math.abs(v).toFixed(2)); return; }
-    const a = Math.abs(v), n64 = Math.round(a * 64);
-    if (Math.abs(a * 64 - n64) < 1e-7) {
-      const w = Math.floor(n64 / 64);
-      let num = n64 % 64, den = 64;
-      while (num && num % 2 === 0) { num /= 2; den /= 2; }
-      kp.w = w || !num ? String(w) : '';
-      if (num) { kp.n = String(num); kp.d = String(den); }
-    } else kp.w = String(+a.toFixed(4));
-  }
-  // null when blank, NaN while half typed. A fraction like 1/1 is half typed until the field
-  // is left, since 1/16 starts out that way.
-  function kpValue(leaving) {
-    if (kpBlank()) return null;
-    let f = 0;
-    if (kp.n || kp.d) {
-      const n = +kp.n, d = +kp.d;
-      if (!kp.n || !d || (!leaving && n >= d)) return NaN;
-      f = n / d;
-    }
-    return (kp.neg ? -1 : 1) * ((kp.w ? parseFloat(kp.w) : 0) + f);
+  /* ---------- keypad (shared/keypad.js) ---------- */
+  // Like Calculator: whole inches on the left, numerator over denominator on the right. kp.path is the field being typed.
+  const kp = { path: null };
+  // A key changed the value: save it, unless it is half typed (then only the keypad's display changes).
+  function kpInput() {
+    const v = Keypad.value(false);
+    if (v === null) set(tab(), kp.path, null);
+    else if (isNum(v)) set(tab(), kp.path, v);
+    else { syncKeypad(); return; }
+    update();
   }
   // Leaving a field saves a fraction that was held back while typing, like 3/2.
   function commitKp() {
     if (!kp.path) return false;
-    const v = kpValue(true);
+    const v = Keypad.value(true);
     if (!isNum(v) || v === get(tab(), kp.path)) return false;
     set(tab(), kp.path, v); persist();
     return true;
@@ -148,15 +124,13 @@
   const scroller = () => wide.matches ? $('#rcol') : $('#main');
   function padForKeypad() {
     $('#main').style.paddingBottom = $('#rcol').style.paddingBottom = '';
-    if (kp.path) scroller().style.paddingBottom = ($('#kp').offsetHeight + 16) + 'px';
+    if (kp.path) scroller().style.paddingBottom = (Keypad.height + 16) + 'px';
   }
   function openKeypad(path) {
     const first = !kp.path, changed = commitKp();
-    kp.path = path; kp.fresh = true;
-    loadKp(get(tab(), path));
-    $('#kp').hidden = false;
-    document.documentElement.classList.add('nokb');   // the keypad is the input method: no html.kb (base.js)
-    $('#kp').classList.toggle('mm', inMm(path));   // millimeters have no fractions
+    kp.path = path;
+    // millimeters have no fractions
+    Keypad.open({ value: get(tab(), path), frac: !inMm(path), unit: inMm(path) ? ' mm' : '"', input: kpInput, done: closeKeypad, step: stepField });
     if (changed) render(); else { renderForm(); syncKeypad(); }
     if (first) padForKeypad();
     reveal(path);
@@ -165,77 +139,22 @@
     if (!kp.path) return;
     commitKp();
     kp.path = null;
-    $('#kp').hidden = true;
-    document.documentElement.classList.remove('nokb');
+    Keypad.close();
     padForKeypad();
     const t = tab();
     if (t.studs.list.some(v => !isNum(v))) { t.studs.list = t.studs.list.filter(isNum); persist(); }
     render();
   }
-  function reveal(path) {
-    const el = document.querySelector(`#form [data-k="${path}"]`);
-    if (!el) return;
-    const main = scroller(), rc = el.getBoundingClientRect(), mr = main.getBoundingClientRect();
-    const bottom = innerHeight - $('#kp').offsetHeight - 12;
-    if (rc.bottom > bottom) main.scrollBy({ top: rc.bottom - bottom, behavior: 'smooth' });
-    else if (rc.top < mr.top + 8) main.scrollBy({ top: rc.top - mr.top - 8, behavior: 'smooth' });
-  }
+  const reveal = path => Keypad.reveal(document.querySelector(`#form [data-k="${path}"]`), scroller());
   function syncKeypad() {
     if (!kp.path) return;
-    let h = kpBlank() ? (kp.neg ? '−' : '—') : (kp.neg ? '−' : '') + esc(kp.w);
-    if (kp.n || kp.d) h += `<span class="fr"><span class="nu${kp.n ? ' lit' : ''}">${kp.n || '·'}</span><span class="de${kp.d ? ' lit' : ''}">${kp.d || '·'}</span></span>`;
-    $('#kpVal').innerHTML = h + (kpBlank() ? '' : inMm(kp.path) ? ' mm' : '"');
-    $('#kpVal').classList.toggle('ph', kpBlank());
-    const live = r && r.ok ? 'Drill ' + fmt(r.m.hole) + ' ' + r.rows[0].sub : '';
-    $('#kpName').innerHTML = esc(label(kp.path)) + (live ? `<span class="live">${esc(live)}</span>` : '');
-  }
-  function key(k) {
-    if (k === 'done') { closeKeypad(); return; }
-    if (k === 'next' || k === 'prev') { stepField(k === 'next' ? 1 : -1); return; }
-    if (inMm(kp.path) && (/^[nd]\d$/.test(k) || k === 'space' || k === 'over')) return;
-    if (k === 'space') { if (kp.w) kp.at = 'n'; return; }       // keyboard: "57 1/8"
-    if (k === 'over') {                                          // keyboard: "3/4" moves the 3 up
-      if (kp.at === 'w' && !kp.n && kp.w && !kp.w.includes('.') && !kp.fresh) { kp.n = kp.w; kp.w = ''; }
-      kp.at = 'd'; syncKeypad(); return;
-    }
-    const fresh = kp.fresh;
-    kp.fresh = false;
-    if (/^[nd]?\d$/.test(k) || k === '.') {
-      const at = k.length === 2 ? k[0] : 'w';
-      // The first key on a filled field replaces it. A whole-inch key starts over,
-      // a numerator key keeps the whole inches, a denominator key keeps the numerator too.
-      if (fresh) {
-        if (at === 'w') { kp.w = ''; kp.neg = false; }
-        if (at !== 'd') kp.n = '';
-        kp.d = '';
-      }
-      kp.at = at;
-      if (k === '.') { if (!kp.w.includes('.')) kp.w = (kp.w || '0') + '.'; }
-      else if (kp[at].replace('.', '').length < (at === 'w' ? 6 : 3)) kp[at] = (kp[at] === '0' ? '' : kp[at]) + k.slice(-1);
-    } else if (k === 'back') {
-      const at = ['d', 'n', 'w'].find(p => kp[p]);
-      if (at) { kp[at] = kp[at].slice(0, -1); kp.at = at; }
-    } else if (k === 'sign') kp.neg = !kp.neg;
-    else if (k === 'clear') { kp.w = ''; kp.n = ''; kp.d = ''; kp.neg = false; kp.at = 'w'; }
-    const v = kpValue(false);
-    if (v === null) set(tab(), kp.path, null);
-    else if (isNum(v)) set(tab(), kp.path, v);
-    else { syncKeypad(); return; }                 // half typed: leave the saved value alone
-    update();
+    Keypad.sync(label(kp.path), r && r.ok ? 'Drill ' + fmt(r.m.hole) + ' ' + r.rows[0].sub : '');
   }
   function stepField(dir) {
     const keys = [...document.querySelectorAll('#form [data-k]')].map(b => b.dataset.k);
     const i = keys.indexOf(kp.path), next = keys[i + dir];
     if (next) openKeypad(next); else if (dir > 0) closeKeypad();
   }
-  $('#kp').addEventListener('click', e => { const b = e.target.closest('[data-key]'); if (b) { buzz(4); key(b.dataset.key); } });
-  document.addEventListener('keydown', e => {
-    if (!kp.path || e.metaKey || e.ctrlKey || document.querySelector('.backdrop')) return;
-    const m = { Backspace: 'back', Enter: 'next', Escape: 'done', Delete: 'clear', '-': 'sign', '.': '.', ' ': 'space', '/': 'over' };
-    let k = /^\d$/.test(e.key) ? (kp.at === 'w' ? '' : kp.at) + e.key : m[e.key];
-    if (e.key === 'Tab') k = e.shiftKey ? 'prev' : 'next';
-    if (k) { e.preventDefault(); key(k); }
-  });
 
   /* ---------- form ---------- */
   let formFields = [];

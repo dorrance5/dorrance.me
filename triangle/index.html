@@ -16,6 +16,7 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-180.png">
 <link rel="stylesheet" href="../shared/base.css">
+<link rel="stylesheet" href="../shared/keypad.css">
 <title>Triangle</title>
 <style>
 .draw{padding:10px;margin-bottom:10px}
@@ -48,6 +49,13 @@
   main>.draw{grid-column:1;grid-row:1/span 6;position:sticky;top:0}
   main>:not(.draw){grid-column:2}
 }
+/* the keypad (shared/keypad.css): the fields open it. Its keys are at most 480 px wide; open sideways it sits under
+   the right pane only, so the drawing on the left stays in view */
+.fld input[readonly]{cursor:pointer}
+.kp-in{max-width:480px}
+@media (orientation:landscape) and (min-width:800px){
+  .kp{left:calc(18px + (100% - 36px) / 2.2);border-left:.5px solid var(--line);border-top-left-radius:20px}
+}
 </style>
 </head>
 <body>
@@ -62,11 +70,11 @@
 
   <section class="card sec hue-orange">
     <div class="sec-h"><span class="ic orange"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19 12 5l8 14z"/><path d="M8 12.2 6.2 11.2M16 12.2l1.8-1M12 19v2"/></svg></span><span>Sides</span></div>
-    <div class="sec-b"><div class="grid3"><label class="fld"><span class="fk">a</span><input class="fv" id="a" inputmode="decimal" enterkeyhint="next" autocomplete="off"></label><label class="fld"><span class="fk">b</span><input class="fv" id="b" inputmode="decimal" enterkeyhint="next" autocomplete="off"></label><label class="fld"><span class="fk">c</span><input class="fv" id="c" inputmode="decimal" enterkeyhint="next" autocomplete="off"></label></div></div>
+    <div class="sec-b"><div class="grid3"><label class="fld"><span class="fk">a</span><input class="fv" id="a" inputmode="none" readonly autocomplete="off"></label><label class="fld"><span class="fk">b</span><input class="fv" id="b" inputmode="none" readonly autocomplete="off"></label><label class="fld"><span class="fk">c</span><input class="fv" id="c" inputmode="none" readonly autocomplete="off"></label></div></div>
   </section>
   <section class="card sec hue-teal">
     <div class="sec-h"><span class="ic teal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19h16M4 19 16 6"/><path d="M10 19a6 6 0 0 0-1.8-4.4"/></svg></span><span>Angles, in degrees</span></div>
-    <div class="sec-b"><div class="grid3"><label class="fld"><span class="fk">A</span><input class="fv" id="A" inputmode="decimal" enterkeyhint="next" autocomplete="off"></label><label class="fld"><span class="fk">B</span><input class="fv" id="B" inputmode="decimal" enterkeyhint="next" autocomplete="off"></label><label class="fld"><span class="fk">C</span><input class="fv" id="C" inputmode="decimal" enterkeyhint="done" autocomplete="off"></label></div></div>
+    <div class="sec-b"><div class="grid3"><label class="fld"><span class="fk">A</span><input class="fv" id="A" inputmode="none" readonly autocomplete="off"></label><label class="fld"><span class="fk">B</span><input class="fv" id="B" inputmode="none" readonly autocomplete="off"></label><label class="fld"><span class="fk">C</span><input class="fv" id="C" inputmode="none" readonly autocomplete="off"></label></div></div>
   </section>
   <div class="note" id="note"></div>
   <div class="seg alt" id="alt" hidden><button class="on" data-sol="0">Solution 1</button><button data-sol="1">Solution 2</button></div>
@@ -76,6 +84,7 @@
 </main>
 
 <script src="../shared/base.js"></script>
+<script src="../shared/keypad.js"></script>
 <script>
 const { $, esc, load, save, buzz, sheet, toast, copy, themeSegHTML, homeLinkHTML } = App;
 App.init();
@@ -223,7 +232,9 @@ function kind(t) {
   const angs = Math.abs(mx - 90) < 1e-7 ? 'right' : mx > 90 ? 'obtuse' : 'acute';
   return sides + ', ' + angs;
 }
-function update() {
+let solveNote = '';   // for the keypad's result line: what the solver says, or how many values are missing
+function update() { paint(); syncPad(); }
+function paint() {
   const k = {}; const bad = [];
   for (const x of KEYS) { const raw = $('#' + x).value.trim(); S.v[x] = raw; k[x] = raw ? parseFrac(raw) : NaN; if (raw && isNaN(k[x])) bad.push(x); }
   persist();
@@ -231,11 +242,13 @@ function update() {
   const r = bad.length ? { err: 'Numbers only. Fractions like 3 1/2 are fine.' } : solve(k);
   const note = $('#note'); note.className = 'note' + (r.err ? ' err' : '');
   $('#alt').hidden = !r.ambiguous;
+  const given = KEYS.filter(x => isFinite(k[x])).length;
+  solveNote = r.err && !bad.length && given < 3 ? `Need ${3 - given} more value${given === 2 ? '' : 's'}` : r.err || '';
   if (r.err) { note.textContent = r.err; draw(null); $('#facts').innerHTML = ''; return; }
   if (which >= r.sols.length) which = 0;
   const t = r.sols[which];
   document.querySelectorAll('#alt button').forEach(c => c.classList.toggle('on', +c.dataset.sol === which));
-  note.textContent = r.ambiguous ? 'Two triangles fit these values.' : kind(t);
+  note.textContent = solveNote = r.ambiguous ? 'Two triangles fit these values.' : kind(t);
   for (const x of KEYS) if (!isFinite(k[x])) { $('#' + x).value = x === x.toLowerCase() ? fmt(t[x]) : fmt(t[x]); $('#' + x).parentElement.classList.add('solved'); }
   draw(t);
   const s = (t.a + t.b + t.c) / 2, area = Math.sqrt(Math.max(0, s * (s - t.a) * (s - t.b) * (s - t.c)));
@@ -246,21 +259,58 @@ function update() {
 }
 function clearSolved() { KEYS.forEach(x => { const f = $('#' + x).parentElement; if (f.classList.contains('solved')) { $('#' + x).value = ''; f.classList.remove('solved'); } }); }
 
+/* ---- keypad (shared/keypad.js), as in TV Mount: the fields are read-only and open it ---- */
+// Sides take fractions and the feet key (5' 3 1/4", read as inches); angles take whole numbers and decimals.
+// The arrows walk a, b, c, A, B, C. An answer (a solved field) shows in the keypad and stays until a key is tapped.
+let cur = null;   // the field being typed
+const isSide = x => x === x.toLowerCase();
+function openPad(x) {
+  commitPad();
+  if (cur) $('#' + cur).parentElement.classList.remove('on');
+  const first = !cur;
+  cur = x;
+  $('#' + x).parentElement.classList.add('on');
+  Keypad.open({ value: $('#' + x).value, frac: isSide(x), slot: 'feet', slotOff: !isSide(x), nav: true, unit: isSide(x) ? '' : '°',
+    input: padInput, done: closePad, step: dir => { const nx = KEYS[KEYS.indexOf(cur) + dir]; if (nx) openPad(nx); else if (dir > 0) closePad(); } });
+  if (first) $('main').style.paddingBottom = (Keypad.height + 16) + 'px';
+  Keypad.reveal($('#' + x).parentElement, $('main'));
+  syncPad();
+}
+function padInput() {
+  const t = Keypad.text(false), el = $('#' + cur);
+  if (t === null) { syncPad(); return; }   // half typed, like 3/: the field stays as it was
+  el.parentElement.classList.remove('solved');   // typed over an answer: it is a value now
+  el.value = t; clearSolved(); which = 0; update();
+}
+// Leaving a field saves a fraction held back while typing, like 3/2.
+function commitPad() {
+  if (!cur || !Keypad.touched) return;
+  const t = Keypad.text(true), el = $('#' + cur);
+  if (t !== null && t !== el.value) { el.value = t; clearSolved(); update(); }
+}
+function closePad(save) {
+  if (!cur) return;
+  if (save !== false) commitPad();
+  $('#' + cur).parentElement.classList.remove('on');
+  cur = null;
+  Keypad.close();
+  $('main').style.paddingBottom = '';
+}
+function syncPad() { if (cur) Keypad.sync((isSide(cur) ? 'Side ' : 'Angle ') + cur, solveNote); }
+
 KEYS.forEach(x => {
+  // A tap focuses the read-only field: open the keypad instead, and let go of the focus so nothing else scrolls to it.
   const el = $('#' + x);
-  el.addEventListener('focus', () => { if (el.parentElement.classList.contains('solved')) { el.value = ''; el.parentElement.classList.remove('solved'); } });
-  el.addEventListener('input', () => { clearSolved(); which = 0; update(); });
-  // Return goes to the next field that is not an answer (focusing an answer clears it), and puts the keyboard away after the last.
-  el.addEventListener('keydown', e => {
-    if (!App.isEnter(e)) return;
-    e.preventDefault();
-    const nx = KEYS.slice(KEYS.indexOf(x) + 1).find(k => !$('#' + k).parentElement.classList.contains('solved'));
-    if (nx) $('#' + nx).focus(); else el.blur();
-  });
+  el.addEventListener('focus', () => { buzz(4); openPad(x); el.blur(); });
 });
 $('#alt').addEventListener('click', e => { const b = e.target.closest('[data-sol]'); if (b) { which = +b.dataset.sol; clearSolved(); update(); } });
-$('#clear').onclick = () => { KEYS.forEach(x => $('#' + x).value = ''); which = 0; buzz(8); update(); $('#a').focus(); };
-$('#right').onclick = () => { clearSolved(); $('#C').value = '90'; buzz(8); update(); if (!$('#a').value) $('#a').focus(); };
+$('#clear').onclick = () => { closePad(false); KEYS.forEach(x => $('#' + x).value = ''); which = 0; buzz(8); update(); openPad('a'); };
+$('#right').onclick = () => {
+  const was = cur;
+  closePad();
+  clearSolved(); $('#C').value = '90'; buzz(8); update();
+  if (!$('#a').value) openPad('a'); else if (was) openPad(was);
+};
 $('#setBtn').onclick = () => {
   const el = sheet(`<h2>Settings</h2>${themeSegHTML()}
     <div class="label">Inch fractions next to lengths</div>

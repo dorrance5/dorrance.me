@@ -306,11 +306,11 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
   // VESA spacing is typed in millimeters, so the fraction keys are off
   await page.tap('[data-k="tv.vesaW"]');
   await keys('clear', '4', '0', '0');
-  check('VESA width typed in millimeters', (await tab0()).tv.vesaW === 400 && (await page.textContent('#kpVal')).endsWith(' mm') && !!(await page.$('#kp.mm')));
+  check('VESA width typed in millimeters', (await tab0()).tv.vesaW === 400 && (await page.textContent('#kpVal')).endsWith(' mm') && !!(await page.$('#kp.nofrac')));
   await keys('next');
-  check('VESA height is in millimeters too', !!(await page.$('#kp.mm')));
+  check('VESA height is in millimeters too', !!(await page.$('#kp.nofrac')));
   await keys('next');
-  check('the fraction keys come back for top holes to TV top', !(await page.$('#kp.mm')));
+  check('the fraction keys come back for top holes to TV top', !(await page.$('#kp.nofrac')));
   await keys('done');
   check('the field shows millimeters', (await page.textContent('[data-k="tv.vesaW"] .fv')).replace(/\u00a0/g, ' ') === '400 mm');
   await page.tap('[data-libsave="tv"]');

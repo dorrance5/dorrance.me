@@ -16,6 +16,7 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-180.png">
 <link rel="stylesheet" href="../shared/base.css">
+<link rel="stylesheet" href="../shared/keypad.css">
 <title>TV Mount</title>
 <style>
 :root{
@@ -117,39 +118,7 @@
 .libi .ed{width:44px;height:44px;border-radius:12px;color:var(--muted);display:grid;place-items:center}
 .sheet .input{margin-bottom:10px}
 .sheet .stack{margin-top:14px}
-
-/* keypad: whole inches on the left, numerator over denominator on the right, like Calculator */
-.kp{position:fixed;left:0;right:0;bottom:0;z-index:8;background:var(--bg);border-top:.5px solid var(--line);padding:8px 8px calc(env(safe-area-inset-bottom,0px) + 8px);box-shadow:0 -10px 30px rgba(0,0,0,.14);animation:up .16s ease-out}
-.kp-in{max-width:560px;margin:0 auto}
-.kp-top{display:flex;align-items:center;gap:10px;padding:0 4px 8px;min-height:40px}
-.kp-name{font-size:13px;font-weight:700;color:var(--muted);line-height:1.2;flex:1;min-width:0}
-.kp-name .live{display:block;color:var(--blue);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.kp-val{display:flex;align-items:center;justify-content:flex-end;font-size:30px;font-weight:550;font-variant-numeric:tabular-nums;white-space:nowrap;max-width:58%;overflow:hidden;height:34px}
-.kp-val.ph{color:var(--muted);opacity:.6}
-.kp-val .fr{display:flex;flex-direction:column;align-items:center;font-size:.48em;line-height:1;margin:0 .1em 0 .14em;font-weight:650}
-.kp-val .fr .de{border-top:1.5px solid currentColor;padding-top:1px;margin-top:1px}
-.kp-val .fr .lit.nu{color:var(--teal)}
-.kp-val .fr .lit.de{color:var(--purple)}
-.kp-keys{display:grid;grid-template-columns:3fr 5fr;gap:10px;height:202px}
-.kp-whole{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(4,1fr);gap:6px;min-height:0}
-.kp-frac{display:flex;flex-direction:column;gap:6px;min-height:0}
-.kp.mm .kp-frac{opacity:.3;pointer-events:none}
-.kp-sub{flex:1;display:grid;grid-template-columns:repeat(5,1fr);grid-template-rows:1fr 1fr;gap:5px;min-height:0}
-.kp-div{flex:none;height:5px;border-radius:2.5px;background:linear-gradient(90deg,var(--teal),var(--purple))}
-.kp button{height:46px;border-radius:13px;background:var(--tile);border:.5px solid var(--tile-line);box-shadow:var(--tile-shadow);font-size:24px;font-weight:450;font-variant-numeric:tabular-nums;padding:0;transition:transform .08s}
-.kp button:active{transform:scale(.94);filter:brightness(.92)}
-.kp-keys button{height:auto;min-height:0;min-width:0}
-.kp .kp-sub button{font-size:21px;font-weight:550;border-radius:11px}
-.kp .nu button{color:var(--teal)}
-.kp .de button{color:var(--purple)}
-.kp .kp-whole .sym{font-size:22px;color:var(--muted)}
-.kp button svg{display:block;margin:auto}
-.kp-bar{display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1.5fr;gap:6px;margin-top:6px}
-.kp-bar button{font-size:16px;font-weight:600;background:var(--chip);border-color:var(--chip-line);box-shadow:none}
-.kp-bar .clr{background:var(--danger);border-color:var(--danger-line);color:var(--danger-text)}
-.kp-bar .nav{background:var(--blue-bg);color:var(--blue)}
-.kp-bar .done{background:var(--primary);border-color:var(--primary-line);color:var(--primary-text)}
-.kp-bar svg{width:20px;height:20px;vertical-align:middle}
+/* the keypad: shared/keypad.css */
 
 /* wide screens like the open iPhone Duo (open upright or sideways; sizes in test/devices.cjs): the sketch and results on the left, the form
    on the right, each scrolling by itself; the keypad covers only the form. Narrower, the columns don't exist. */
@@ -158,13 +127,6 @@
   #main{display:grid;grid-template-columns:54fr 46fr;grid-template-rows:minmax(0,1fr);column-gap:12px;overflow:hidden;padding-bottom:0}
   .col{display:block;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 16px)}
   .kp{left:calc(18px + (100% - 36px) * .54);border-left:.5px solid var(--line);border-top-left-radius:20px}
-}
-/* The closed phone (382, 385): tighter gaps and side padding so every key is 44 px wide. */
-@media (max-width:400px){
-  .kp{padding-left:4px;padding-right:4px}
-  .kp-keys{grid-template-columns:140px 1fr;gap:2px}
-  .kp-whole{gap:4px}
-  .kp-sub{gap:2px}
 }
 /* screenshot mode */
 .shot{position:fixed;inset:0;z-index:30;background:var(--bg);display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 8px) 8px calc(env(safe-area-inset-bottom,0px) + 8px)}
@@ -209,35 +171,9 @@
   </div>
 </main>
 
-<div class="kp" id="kp" hidden>
-  <div class="kp-in">
-    <div class="kp-top"><div class="kp-name" id="kpName"></div><div class="kp-val" id="kpVal"></div></div>
-    <div class="kp-keys">
-      <div class="kp-whole" role="group" aria-label="Whole inches">
-        <button data-key="7">7</button><button data-key="8">8</button><button data-key="9">9</button>
-        <button data-key="4">4</button><button data-key="5">5</button><button data-key="6">6</button>
-        <button data-key="1">1</button><button data-key="2">2</button><button data-key="3">3</button>
-        <button data-key="." class="sym" aria-label="Decimal point">.</button><button data-key="0">0</button>
-        <button data-key="back" class="sym" aria-label="Delete"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.6 5.5h9.9a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9.6a2 2 0 0 1-1.5-.7l-5.1-5.8 5.1-5.8a2 2 0 0 1 1.5-.7z"/><path d="m12 9.5 5 5m0-5-5 5"/></svg></button>
-      </div>
-      <div class="kp-frac">
-        <div class="kp-sub nu" id="kpNu" role="group" aria-label="Numerator"></div>
-        <div class="kp-div"></div>
-        <div class="kp-sub de" id="kpDe" role="group" aria-label="Denominator"></div>
-      </div>
-    </div>
-    <div class="kp-bar">
-      <button data-key="sign" aria-label="Plus or minus">±</button>
-      <button data-key="clear" class="clr">Clear</button>
-      <button data-key="prev" class="nav" aria-label="Previous field"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 15 6-6 6 6"/></svg></button>
-      <button data-key="next" class="nav" aria-label="Next field"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
-      <button data-key="done" class="done">Done</button>
-    </div>
-  </div>
-</div>
-
 <input type="file" id="importFile" accept=".json,application/json" hidden>
 <script src="../shared/base.js"></script>
+<script src="../shared/keypad.js"></script>
 <script src="geometry.js"></script>
 <script src="store.js"></script>
 <script src="app.js"></script>

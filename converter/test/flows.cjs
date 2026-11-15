@@ -44,13 +44,80 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
   for (const [s, want] of [["5' 11/16\"", 60.6875], ["5' 3 1/2\"", 63.5], ['5 ft 3.5 in', 63.5], ['5-3', 63], ['63', 63]])
     check(`feet-inches: ${s} is ${want} in`, await page.evaluate(s => parseFtIn(s), s) === want);
 
-  const conv = async (from, to, val) => { await page.selectOption('#from', from); await page.selectOption('#to', to); await page.fill('#val', val); return page.textContent('#out'); };
+  // The amount is read-only and typed on the shared keypad (shared/keypad.js); the parsers still read what it builds.
+  // conv() puts text in straight, for the parser checks.
+  const conv = async (from, to, val) => { await page.selectOption('#from', from); await page.selectOption('#to', to); await page.evaluate(v => { document.getElementById('val').value = v; convert(); }, val); return page.textContent('#out'); };
   await page.tap('[data-cat="Length"]');
   check('15/16 in is 23.8125 mm', await conv('in', 'mm', '15/16') === '23.8125');
   check('1000 mm is 3\' 3 3/8"', await conv('mm', 'ft in', '1000') === '3\' 3 3/8"');
   check('3/0 says Numbers only', await conv('in', 'mm', '3/0') === '–' && (await page.textContent('#sub')) === 'Numbers only');
   check('1,5 mm shows 1.5 (a decimal comma), not 15', await conv('mm', 'cm', '1,5') === '0.15');
-  check('Return puts the keyboard away', await page.getAttribute('#val', 'enterkeyhint') === 'done' && await (async () => { await page.focus('#val'); await page.keyboard.press('Enter'); return page.evaluate(() => document.activeElement !== document.getElementById('val')); })());
+
+  const keys = async (...ks) => { for (const k of ks) await page.tap(`#kp [data-key="${k}"]`); };
+  const val = () => page.inputValue('#val');
+  const live = sel => page.$$eval(sel, l => l.map(b => !b.disabled && getComputedStyle(b).opacity !== '0' && getComputedStyle(b.closest('.kp-frac') || b).opacity === '1'));
+  // what is live: [fraction keys, slot 1 key, its key name, arrows]
+  const state = async () => [(await live('#kp .kp-sub button')).every(Boolean) ? 'frac' : (await live('#kp .kp-sub button')).some(Boolean) ? 'mixed' : 'nofrac',
+    (await live('#kp [data-slot]'))[0] ? 'slot' : 'slotoff', await page.getAttribute('#kp [data-slot]', 'data-key'), (await live('#kp .kp-bar .nav')).some(Boolean) ? 'nav' : 'nonav'].join(' ');
+  check('the amount is read-only, opens no phone keyboard and has no placeholder', await page.$eval('#val', i => i.readOnly && i.inputMode === 'none' && !i.placeholder && !i.hasAttribute('enterkeyhint')));
+  check('no keypad until the amount is tapped', !(await page.$('#kp')));
+  await conv('in', 'mm', '1');
+  check('no fraction hint', !(await page.textContent('#hint')).includes('Fractions'));
+  await page.tap('#val');
+  check('tapping the amount opens the keypad, not the phone keyboard', await page.isVisible('#kp') && await page.evaluate(() => document.documentElement.classList.contains('nokb') && document.activeElement !== document.getElementById('val')));
+  check('the amount field shows it is being typed', await page.$eval('#val', i => i.parentElement.classList.contains('on')));
+  check('the keypad covers the category bar', await page.evaluate(() => document.getElementById('kp').getBoundingClientRect().top < document.getElementById('cats').getBoundingClientRect().top));
+  check('in: fractions, the feet key, no arrows', await state() === 'frac slot feet nonav', await state());
+  check('the feet key is called "Feet"', await page.getAttribute('#kp [data-slot]', 'aria-label') === 'Feet');
+  await keys('3', 'n1', 'd2');
+  check('3, numerator 1, denominator 2 types 3 1/2 = 88.9 mm', await val() === '3 1/2' && await page.textContent('#out') === '88.9', [await val(), await page.textContent('#out')]);
+  check('the result line in the keypad says = 88.9 mm', (await page.textContent('#kpName .live')) === '= 88.9 mm', await page.textContent('#kpName'));
+  await keys('clear', '5', 'feet', '3', 'n1', 'd4');
+  check('5, feet, 3, 1/4 types 5\' 3 1/4" = 1,606.55 mm', await val() === '5\' 3 1/4"' && await page.textContent('#out') === '1,606.55', [await val(), await page.textContent('#out')]);
+  check('the keypad shows the feet and the inch mark', (await page.textContent('#kpVal')).replace(/\s+/g, ' ') === '5\' 314"', await page.textContent('#kpVal'));
+  await keys('back');
+  check('delete: the denominator first (half typed, the amount waits)', await val() === '5\' 3 1/4"' && (await page.textContent('#kpVal')).includes('·'));
+  await keys('back');
+  check('delete: then the numerator', await val() === '5\' 3"', await val());
+  await keys('back');
+  check('delete: then the inches', await val() === '5\'', await val());
+  await keys('back');
+  check('delete: then the feet mark (5 inches again)', await val() === '5' && await page.textContent('#out') === '127', [await val(), await page.textContent('#out')]);
+  await keys('clear', '3', 'n3', 'd2');
+  check('3 3/2 is held back while typing (the amount stays 3)', await val() === '3', await val());
+  await keys('done');
+  check('Done closes the keypad and saves 3 3/2 (4.5 in)', !(await page.isVisible('#kp')) && await val() === '3 3/2' && await page.textContent('#out') === '114.3', [await val(), await page.textContent('#out')]);
+  check('Done brings back the category bar and the phone keyboard rules (nokb off)', await page.evaluate(() => !document.documentElement.classList.contains('nokb') && !document.getElementById('val').parentElement.classList.contains('on') && document.elementFromPoint(innerWidth / 2, document.getElementById('cats').getBoundingClientRect().top + 20)?.closest('#cats')));
+  await page.tap('#val');
+  check('the first key replaces the amount', await (async () => { await keys('7'); return await val() === '7'; })());
+  await page.selectOption('#from', 'ft');
+  check('ft: the feet key still', await state() === 'frac slot feet nonav', await state());
+  await keys('6', 'feet', '9');
+  check('ft: 6, feet, 9 is 6.75 ft = 2,057.4 mm', await val() === '6\' 9"' && await page.textContent('#out') === '2,057.4', [await val(), await page.textContent('#out')]);
+  await page.selectOption('#from', 'ft in');
+  check('ft in: the feet key still', await state() === 'frac slot feet nonav', await state());
+  await page.selectOption('#from', 'mm');
+  check('mm: fractions, no feet key (± dimmed), no arrows', await state() === 'frac slotoff sign nonav', await state());
+  await keys('2', '5', '.', '4');
+  check('mm: 25.4 is 1 in', await val() === '25.4' && (await conv('mm', 'in', '25.4')) === '1');
+  // a hardware keyboard: digits, / and Return
+  await page.keyboard.type('15/16');
+  check('a hardware keyboard types 15/16', await val() === '15/16', await val());
+  await page.keyboard.press('Enter');
+  check('Return is Done (one field)', !(await page.isVisible('#kp')));
+  await page.tap('[data-cat="Weight"]'); await page.tap('#val');
+  check('weight: no fractions, ± and arrows dimmed', await state() === 'nofrac slotoff sign nonav', await state());
+  await keys('2');
+  await page.$$eval('#kp [data-key="n1"], #kp [data-key="d2"], #kp [data-key="sign"]', l => l.forEach(b => b.click()));
+  await page.keyboard.type('/-');
+  check('weight: dimmed keys and their keyboard keys do nothing', await val() === '2', await val());
+  await keys('done');
+  await page.tap('[data-cat="Temperature"]'); await page.tap('#val');
+  check('temperature: no fractions, ± works, no arrows', await state() === 'nofrac slot sign nonav', await state());
+  await page.selectOption('#from', '°F'); await page.selectOption('#to', '°C');
+  await keys('4', '0', 'sign');
+  check('temperature: 4, 0, ± is -40 °F = -40 °C', await val() === '-40' && await page.textContent('#out') === '-40', [await val(), await page.textContent('#out')]);
+  await keys('done');
   check('light and dark theme-color metas', await page.$$eval('meta[name=theme-color][media]', m => m.length) === 2);
   // The category bar keeps its scroll when a category is tapped (a phone width where the seven do not all fit)
   {
@@ -93,6 +160,24 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
     check(`${w}×${h}: no sideways scrolling`, (await sideways(p)) <= 0);
     const cats = await box(p, '#cats'), main = await box(p, 'main');
     check(`${w}×${h}: the categories are a bar at the bottom`, cats.y >= main.y + main.h - 1 && Math.abs(cats.y + cats.h - h) <= 1, { cats, main });
+    // The keypad: the amount sits above it; closed every key is 44 px wide; open upright it spans the width with its keys
+    // at most 480 px wide, centred; open sideways it sits under the left pane only, and the units on the right update live.
+    await p.tap('#val'); await p.waitForTimeout(450);
+    const kp = await box(p, '#kp'), kin = await box(p, '#kp .kp-in'), f = await box(p, '#val');
+    check(`${w}×${h}: the amount shows above the keypad`, f.y + f.h <= kp.y && f.y >= 0, { f, kp });
+    if (size === 'closed') {
+      const kw = await p.$$eval('#kp .kp-whole button, #kp .kp-sub button', l => Math.min(...l.map(b => b.getBoundingClientRect().width)));
+      check('keypad keys are 44 px wide at 382', kw >= 43.9, kw);
+    }
+    if (size !== 'closed') check(`${w}×${h}: the keys are at most 480 px wide, centred`, kin.w <= 480 && Math.abs((kin.x - kp.x) - (kp.x + kp.w - kin.x - kin.w)) <= 1, { kin, kp });
+    if (size === 'open' || size === 'closedSideways') check(`${w}×${h}: the keypad spans the width`, kp.x === 0 && kp.w === w, kp);
+    if (size === 'openSideways') {
+      const t = await box(p, '#table');
+      check(`${w}×${h}: the keypad sits under the left pane only, the units stay uncovered`, kp.x === 0 && kp.x + kp.w <= t.x && kp.w >= card.w, { kp, t, card });
+      const before = await p.textContent('#table');
+      await p.tap('#kp [data-key="2"]');
+      check(`${w}×${h}: the units update live as keys are tapped`, (await p.textContent('#table')) !== before && await p.isVisible('#table'));
+    }
     await c.close();
   }
 
@@ -109,15 +194,16 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
     });
     const p = watch(await c.newPage()), kh = h - kbd.visibleHeight, tag = `${pose} ${w}×${h}`;
     await p.goto(base); await p.waitForSelector('#val');
-    await p.focus('#val');
-    // a field on the page itself: iOS pans the page to put it in view, so the stand-in is not panned for this check
-    await p.evaluate(kb => __kb(kb, 0), kh); await p.waitForTimeout(600);
-    const k = await p.evaluate(([sel, kh]) => {
-      const r = document.querySelector(sel).getBoundingClientRect();
-      return { kb: document.documentElement.classList.contains('kb'), top: r.top, bottom: r.bottom, lo: visualViewport.offsetTop, vis: visualViewport.offsetTop + visualViewport.height };
-    }, ['#val', kh]);
-    check(`${tag} keyboard: html.kb is set`, k.kb, k);
-    check(`${tag} keyboard: the focused field is visible`, k.top >= k.lo - 1 && k.bottom <= k.vis + 1, k);
+    // The keypad is the amount's input method: with it open, a shrinking visible area (a picker, say) does not set html.kb
+    // and the keypad does not move. Done turns html.nokb off, and the phone keyboard rules (html.kb) apply again.
+    await p.tap('#val'); await p.waitForTimeout(300);
+    const kb0 = await box(p, '#kp');
+    await p.evaluate(kb => __kb(kb, 0), kh); await p.waitForTimeout(300);
+    const kb1 = await box(p, '#kp');
+    check(`${tag} keyboard: with the keypad open html.kb stays off and the keypad does not move`, await p.evaluate(() => !document.documentElement.classList.contains('kb') && document.documentElement.classList.contains('nokb')) && JSON.stringify(kb0) === JSON.stringify(kb1), { kb0, kb1 });
+    await p.tap('#kp [data-key="done"]');
+    await p.evaluate(kb => __kb(kb, 0), kh); await p.waitForTimeout(300);
+    check(`${tag} keyboard: after Done, html.kb is set again`, await p.evaluate(() => document.documentElement.classList.contains('kb') && !document.documentElement.classList.contains('nokb')));
     await p.evaluate(([kb, o]) => __kb(kb, o), [kh, kbd.offsetTop]); await p.waitForTimeout(200);   // now panned as measured
     await p.evaluate(() => document.getElementById('setBtn').click()); await p.waitForSelector('.sheet'); await p.waitForTimeout(300);
     const s = await p.evaluate(kh => { const r = document.querySelector('.sheet').getBoundingClientRect(); return { top: r.top, bottom: r.bottom, lo: visualViewport.offsetTop, vis: visualViewport.offsetTop + visualViewport.height }; }, kh);
