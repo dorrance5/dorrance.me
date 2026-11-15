@@ -102,11 +102,11 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
     await c.close();
   }
 
-  // iPhone Duo sizes (594 is one column: two 290 px columns need 590 plus the 24 px margins): closed upright and sideways, open upright and sideways (CSS px)
+  // iPhone Duo sizes : closed upright, open upright and sideways (CSS px)
   const sized = async (w, h) => { const c = await browser.newContext({ viewport: { width: w, height: h }, isMobile: true, hasTouch: true, serviceWorkers: 'block' }); return { c, p: watch(await c.newPage()) }; };
   const box = (p, sel) => p.$eval(sel, e => { const r = e.getBoundingClientRect(); return { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) }; });
   const sideways = p => p.evaluate(() => document.documentElement.scrollWidth - innerWidth);
-  for (const [size, cols] of [['closed', 1], ['closedSideways', 1], ['open', 2], ['openSideways', 3]]) {
+  for (const [size, cols] of [['closed', 1], ['open', 2], ['openSideways', 3]]) {
     const { width: w, height: h } = duo[size];
     const { c, p } = await sized(w, h);
     await p.addInitScript(() => localStorage.setItem('counter-v1', JSON.stringify({ sort: 'manual', counters: ['a', 'b', 'c', 'd'].map(id => ({ id, name: 'Counter ' + id, color: '#0A57D0', n: 7 })) })));

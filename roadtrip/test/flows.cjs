@@ -90,7 +90,7 @@ const server = http.createServer(async (req,res)=>{
  // iPhone Duo: closed upright and sideways, open upright and sideways, and half the open screen. Only open sideways
  // moves the tab bar to a rail on the right and puts Stats and Expenses in two columns.
  const box=sel=>p.$eval(sel,el=>{const r=el.getBoundingClientRect();return{l:r.left,r:r.right,t:r.top,b:r.bottom};});
- for(const size of ['closed','closedSideways','open','openSideways','split']){
+ for(const size of ['closed','open','openSideways','split']){
   const {width,height}=duo[size];
   await p.setViewportSize({width,height});
   const wide=size==='openSideways';

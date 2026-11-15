@@ -79,9 +79,9 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
   await page.reload(); await page.waitForSelector('#value');
   check('history is kept after a reload', (await page.evaluate(() => JSON.parse(localStorage.getItem('calculator.hist'))[0].expr)) === '6 + 2 × 3');
 
-  // iPhone Duo sizes: closed upright and sideways, open upright and sideways (CSS px). The keypad spans the
+  // iPhone Duo sizes: closed upright, open upright and sideways (CSS px). The keypad spans the
   // width and fits the height; history stays open on the left only on the open screen sideways.
-  for (const [size, docked] of [['closed', false], ['closedSideways', false], ['open', false], ['openSideways', true], ['split', false]]) {
+  for (const [size, docked] of [['closed', false], ['open', false], ['openSideways', true], ['split', false]]) {
     const { width: w, height: h } = duo[size];
     const c = await browser.newContext({ viewport: { width: w, height: h }, isMobile: true, hasTouch: true, serviceWorkers: 'block' }), p = watch(await c.newPage());
     await p.goto(base); await p.waitForSelector('#value');

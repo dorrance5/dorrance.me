@@ -381,9 +381,9 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
   check('backup adds its tab', names.includes('Den') && names.length === 2, names);
   fs.unlinkSync(tmp);
 
-  // iPhone Duo sizes (CSS px): closed upright and closed sideways (594, under the 640 breakpoint) keep the phone layout; open, the sketch and results sit
+  // iPhone Duo sizes (CSS px): closed upright keeps the phone layout; open, the sketch and results sit
   // on the left, the form on the right, and the keypad covers only the form
-  for (const [size, two] of [['closed', false], ['closedSideways', false], ['open', true], ['openSideways', true]]) {
+  for (const [size, two] of [['closed', false], ['open', true], ['openSideways', true]]) {
     const { width: w, height: h } = duo[size];
     const c = await browser.newContext({ viewport: { width: w, height: h }, isMobile: true, hasTouch: true, serviceWorkers: 'block' }), p = await c.newPage();
     p.on('console', m => { if (m.type() === 'error') errors.push(m.text()); }); p.on('pageerror', e => errors.push(e.message));

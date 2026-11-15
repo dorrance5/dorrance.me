@@ -1,17 +1,19 @@
 // The owner's iPhone Duo screen sizes, defined once. Measured in iOS Safari on 2026-11-14 (real device, toolbars showing).
 // This file is the only place to change them: every app's flows.cjs and shots.cjs require it.
 // width x height is the page's window.innerWidth x innerHeight in CSS px, DPR 3.
-//   closed: folded shut, upright     closedSideways: folded shut, turned
+//   closed: folded shut, upright
 //   open: unfolded, upright          openSideways: unfolded, turned
 //   split: the open screen upright with another app beside this one (each gets about half of the width)
 // Do NOT use screen.width/height: Safari reports 466x678 for every pose.
 const duo = {
   closed: { width: 382, height: 588 },
-  closedSideways: { width: 594, height: 466 },
   open: { width: 669, height: 735 },
   openSideways: { width: 951, height: 601 },
   split: { width: 385, height: 579 }
 };
+
+// closed sideways is not tested; the owner doesn't use it (2026-11-15)
+// Reference size only: { width: 594, height: 466 }, safe-area bottom inset 34.
 
 // Screen pixels per CSS pixel.
 const deviceScaleFactor = 3;
@@ -20,7 +22,6 @@ const deviceScaleFactor = 3;
 // insets, so these are only recorded here.
 const insets = {
   closed: {},
-  closedSideways: { bottom: 34 },
   open: {},
   openSideways: { top: 14, bottom: 34 },
   split: {}

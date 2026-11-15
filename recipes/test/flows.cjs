@@ -265,9 +265,9 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
   await page.goBack();
   await closed('view');
 
-  // iPhone Duo sizes (CSS px). Closed upright and closed sideways (594, under the 640 breakpoint): the tab bar picks ingredients or steps. Open upright: both side by side, no tab
+  // iPhone Duo sizes (CSS px). Closed upright: the tab bar picks ingredients or steps. Open upright: both side by side, no tab
   // bar. Open sideways: the box stays on the left and the recipe opens beside it.
-  for (const [size, kind] of [['closed', 'phone'], ['closedSideways', 'phone'], ['open', 'both'], ['openSideways', 'beside']]) {
+  for (const [size, kind] of [['closed', 'phone'], ['open', 'both'], ['openSideways', 'beside']]) {
     const { width: w, height: h } = duo[size];
     const c = await newContext({ viewport: { width: w, height: h } }), p = await c.newPage();
     watch(p);
@@ -309,7 +309,6 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
       return { over: document.documentElement.scrollWidth - innerWidth, list: Math.min(innerHeight, deck.bottom) - deck.top, hero: r('.hero').height };
     });
     check(`${size} ${d.width}×${d.height}: no sideways scroll in the box`, m.over <= 0, m);
-    if (size === 'closedSideways') check('594×466: the box list area is at least 250 px tall', m.list >= 250 && m.hero <= 70, m);
     const sel = await p.evaluate(() => { const b = document.querySelector('#tabs [aria-pressed="true"]'), i = document.querySelector('#tabs [aria-pressed="false"]'), x = getComputedStyle(b), y = getComputedStyle(i), r = getComputedStyle(document.documentElement); return { on: x.backgroundColor, onText: x.color, off: y.backgroundColor, ink: r.getPropertyValue('--solid').trim() }; });
     check(`${size}: the open divider is ink with cream text, the others sand`, sel.on === 'rgb(42, 29, 23)' && sel.onText === 'rgb(255, 246, 230)' && sel.off === 'rgb(241, 226, 199)', sel);
     await p.tap('#signInBtn'); await opened('settings', p);

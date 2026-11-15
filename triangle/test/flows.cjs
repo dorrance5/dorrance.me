@@ -83,7 +83,7 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
   const sized = async (w, h) => { const c = await browser.newContext({ viewport: { width: w, height: h }, isMobile: true, hasTouch: true, serviceWorkers: 'block' }); return { c, p: watch(await c.newPage()) }; };
   const box = (p, sel) => p.$eval(sel, e => { const r = e.getBoundingClientRect(); return { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) }; });
   const sideways = p => p.evaluate(() => document.documentElement.scrollWidth - innerWidth);
-  for (const [size, side] of [['closed', false], ['closedSideways', true], ['open', false], ['openSideways', true]]) {
+  for (const [size, side] of [['closed', false], ['open', false], ['openSideways', true]]) {
     const { width: w, height: h } = duo[size];
     const { c, p } = await sized(w, h);
     await p.goto(base); await p.waitForSelector('#a');
