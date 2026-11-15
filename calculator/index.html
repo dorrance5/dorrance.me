@@ -128,7 +128,7 @@
   .zone.ops button.eq{background:linear-gradient(180deg,rgba(255,255,255,.18),transparent) rgba(255,166,48,.42);border-color:rgba(255,206,140,.55);font-weight:500}
   .subpad button.del{font-size:12.5px;letter-spacing:.09em;text-transform:uppercase;font-weight:600;
                      color:rgba(255,255,255,.72)}
-  .zone.whole button.sym{font-size:21px;color:rgba(255,255,255,.72)}
+  .zone.whole button.sym{font-size:24px;font-weight:400}   /* ± and . : the digit colour, so the dot is not lost */
 
   /* ---- history panel ---- */
   .scrim{position:fixed;inset:0;z-index:8;background:rgba(6,3,16,.5);opacity:0;pointer-events:none;
@@ -228,13 +228,20 @@
   body[data-theme="night"] .bar{background:linear-gradient(90deg,#6CC3E0,#B8ACF6);box-shadow:none}
   body[data-theme="night"] .pill.danger{background:rgba(248,113,104,.16);border-color:rgba(248,113,104,.45);color:#FD9891}
   body[data-theme="night"] .toast{background:rgba(30,31,34,.97)}
+  /* the menu button: no shadow halo on the display, and a solid orange history dot */
+  body[data-theme="night"] .menu{box-shadow:none}
+  body[data-theme="night"] .dot{background:#FEA362;box-shadow:none}
   /* flat background: nothing shows through, so the blur is skipped */
   body[data-theme="night"] .glass,body[data-theme="night"] .toast,
   body[data-theme="day"] .glass,body[data-theme="day"] .toast{-webkit-backdrop-filter:none;backdrop-filter:none}
   body[data-theme="night"] .zone.whole button:active,body[data-theme="night"] .subpad button:active{background:#2B2D31;filter:none}
-  body[data-theme="night"] .subpad button.del,body[data-theme="night"] .zone.whole button.sym{color:#A0A3A9}
+  body[data-theme="night"] .subpad button.del{color:#A0A3A9}
   body[data-theme="night"] .seg button.sel{background:#1C2B41;
     border-color:#579DFF;color:#85B8FF}
+
+  /* Day and Night: past expressions, the Theme label and the second answer line in the label grey (the site's
+     --muted), not the fainter grey, so they read as clearly as the answers beside them */
+  body[data-theme] .rexpr,body[data-theme] .plabel,body[data-theme] .alt{color:var(--dim)}
 
   /* ============ DAY (light) ============ */
   body[data-theme="day"]{background:#F4F4F5;
@@ -255,8 +262,7 @@
     box-shadow:0 1px 3px rgba(0,0,0,.06),0 4px 12px rgba(0,0,0,.05);text-shadow:none;
     backdrop-filter:none;-webkit-backdrop-filter:none}
   body[data-theme="day"] .bar{background:linear-gradient(90deg,#227D9B,#6E5DC6);box-shadow:none}
-  body[data-theme="day"] .subpad button.del,
-  body[data-theme="day"] .zone.whole button.sym{color:#60646C}
+  body[data-theme="day"] .subpad button.del{color:#60646C}
   body[data-theme="day"] .zone.ops button{background:#E9F2FF;
     border-color:rgba(12,102,228,.28);color:#0C66E4}
   body[data-theme="day"] .zone.ops button.clear{background:#FFECEB;

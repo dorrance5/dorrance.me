@@ -145,6 +145,29 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
     await c.close();
   }
 
+  // Review 4: in Day and Night the secondary lines use the label grey (--dim), ± and . the digit colour at 24 px,
+  // and in Night the menu button has no shadow halo and the history dot is solid orange.
+  for (const scheme of ['light', 'dark']) {
+    const c = await browser.newContext({ viewport: { width: 382, height: 588 }, isMobile: true, hasTouch: true, colorScheme: scheme, serviceWorkers: 'block' }), p = watch(await c.newPage());
+    await p.addInitScript(() => localStorage.setItem('calculator.hist', JSON.stringify([{ expr: '1 3/4 + 15/16 × 2', res: { n: 43, d: 16 } }])));
+    await p.goto(base); await p.waitForSelector('#value');
+    await p.keyboard.press('1'); await p.keyboard.press('Space'); await p.keyboard.press('3'); await p.keyboard.press('/'); await p.keyboard.press('4'); await p.keyboard.press('Enter');
+    await p.tap('#menuBtn'); await p.waitForSelector('#rows .rexpr');
+    const r = await p.evaluate(() => {
+      const col = e => getComputedStyle(e).color, dim = getComputedStyle(document.body).getPropertyValue('--dim').trim();
+      const t = document.createElement('i'); t.style.color = dim; document.body.appendChild(t); const dimC = col(t); t.remove();
+      const sym = [...document.querySelectorAll('.zone.whole button.sym')], digit = document.querySelector('.zone.whole button:not(.sym)');
+      const m = getComputedStyle(document.getElementById('menuBtn')), d = getComputedStyle(document.getElementById('dot'));
+      return { dimC, rexpr: col(document.querySelector('.rexpr')), plabel: col(document.getElementById('themeLabel')), alt: col(document.getElementById('alt')),
+        sym: sym.map(b => [b.textContent, col(b), getComputedStyle(b).fontSize]), digit: col(digit), menuShadow: m.boxShadow, dot: [d.backgroundColor, d.boxShadow] };
+    });
+    const tag = scheme === 'light' ? 'Day' : 'Night';
+    check(`${tag}: history lines, the Theme label and the second answer line are the label grey`, r.rexpr === r.dimC && r.plabel === r.dimC && r.alt === r.dimC, r);
+    check(`${tag}: ± and . are the digit colour at 24 px`, r.sym.length === 2 && r.sym.every(x => x[1] === r.digit && x[2] === '24px'), r.sym);
+    if (scheme === 'dark') check('Night: no shadow on the menu button, a solid orange history dot', r.menuShadow === 'none' && /254, 163, 98|0\.99\d* 0\.63\d* 0\.38/.test(r.dot[0]) && r.dot[1] === 'none', r);
+    await c.close();
+  }
+
   const swSrc = fs.readFileSync(path.join(root, 'calculator', 'sw.js'), 'utf8');
   check('sw.js refreshes past the browser\'s copy (no-cache) inside waitUntil', /no-cache/.test(swSrc) && /waitUntil\(net/.test(swSrc));
 
