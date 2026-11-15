@@ -409,7 +409,7 @@
     if (l && a && l.contains(a) && a.matches('input, textarea') && !a.closest('.over')) a.scrollIntoView({ block: a.matches('textarea') ? 'nearest' : 'center', behavior: 'instant' });
   };
   if (vv) {
-    vv.addEventListener('resize', () => { fitSoon(); if (performance.now() - focused < 1500) setTimeout(reveal, 60); });
+    vv.addEventListener('resize', () => { fitSoon(); if (performance.now() - focused < 4000) setTimeout(reveal, 60); });
     vv.addEventListener('scroll', fitSoon);
     fit();
   }
