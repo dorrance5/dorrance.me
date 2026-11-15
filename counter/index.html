@@ -65,7 +65,7 @@
   <button class="round" id="setBtn" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
 </header>
 
-<main id="list"></main>
+<main id="list" class="kb-pad"></main>
 
 <script src="../shared/base.js"></script>
 <script>
@@ -173,7 +173,7 @@ function openCounterSheet(c) {
     else S.counters.push({id: uid(), name, color, n: 0});
     save(); closeSheet(); render();
   };
-  input.addEventListener('keydown', e => { if (e.key === 'Enter') doSave(); });
+  input.addEventListener('keydown', e => { if (App.isEnter(e)) doSave(); });
   el.addEventListener('click', e => {
     const sw = e.target.closest('[data-color]');
     if (sw) {

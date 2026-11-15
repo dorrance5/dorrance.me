@@ -4,6 +4,8 @@ window.App = (function () {
   const $ = s => document.querySelector(s);
   const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  // The return key. iOS predictive text can report a real return as part of a composition, with keyCode 13.
+  const isEnter = e => (e.key === 'Enter' || e.keyCode === 13) && (!e.isComposing || e.keyCode === 13);
   const buzz = p => { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} };
 
   function load(key, def) {
@@ -54,22 +56,71 @@ window.App = (function () {
     toast('Aurora');
   }
 
+  /* ---- phone keyboard (as in Recipes) ---- */
+  /* iOS keeps the layout viewport at full height under the keyboard and pans the visual one, so only that one tells.
+     html.kb is set while the keyboard is up. --vvh and --vvt (px) are the visible height and offset on :root, written
+     while a sheet is open or the keyboard is up, one frame late and only when they change. Sheets and toasts use them
+     to sit above the keyboard; a scroller with class kb-pad gets room under it (base.css) so its last field can clear
+     it. An app turns html.kb off by putting class nokb on <html> (TV Mount while its own keypad is open). */
+  const root = document.documentElement, vv = window.visualViewport;
+  let vvRaf = 0, vvH = '', vvT = '', focused = 0, locked = false;
+  function fit() {
+    vvRaf = 0;
+    if (!vv) return;
+    const kb = !root.classList.contains('nokb') && innerHeight - vv.height > 120;
+    root.classList.toggle('kb', kb);
+    if (!kb && !locked) return;
+    const h = vv.height + 'px', t = vv.offsetTop + 'px';
+    if (h !== vvH) root.style.setProperty('--vvh', vvH = h);
+    if (t !== vvT) root.style.setProperty('--vvt', vvT = t);
+  }
+  const fitSoon = () => { if (!vvRaf) vvRaf = requestAnimationFrame(fit); };
+  // Bring the field under the cursor into view once the keyboard has settled. A kb-pad scroller reaches under the
+  // keyboard, so the field goes to the middle of the part of it that shows, not of the whole scroller.
+  const reveal = () => {
+    const a = document.activeElement, pad = a && a.closest('.kb-pad');
+    if (!a || !a.matches('input, textarea') || !a.closest('.backdrop, .kb-pad')) return;
+    if (pad && !a.closest('.backdrop')) {
+      const r = a.getBoundingClientRect(), s = pad.getBoundingClientRect(), top = Math.max(s.top, vv ? vv.offsetTop : 0), bottom = vv ? vv.offsetTop + vv.height : innerHeight;
+      pad.scrollBy({ top: r.top + r.height / 2 - (top + bottom) / 2, behavior: 'instant' });
+    } else a.scrollIntoView({ block: a.matches('textarea') ? 'nearest' : 'center', behavior: 'instant' });
+  };
+  if (vv) {
+    vv.addEventListener('resize', () => { fitSoon(); if (performance.now() - focused < 1500) setTimeout(reveal, 60); });
+    vv.addEventListener('scroll', fitSoon);
+    fit();
+  }
+  document.addEventListener('focusin', e => {
+    if (!e.target.matches('input, textarea')) return;
+    focused = performance.now();
+    setTimeout(reveal, 350);
+  });
+
   /* ---- sheets ---- */
   function sheet(html, cls = '') {
     closeSheet();
     const b = document.createElement('div');
     b.className = 'backdrop ' + cls;
     b.innerHTML = `<div class="sheet">${html}</div>`;
+    let typing = false;   // a browser may blur the field before the click arrives, so look at the press
+    b.addEventListener('pointerdown', e => { const a = document.activeElement; typing = e.target === b && b.contains(a) && a.matches('input, textarea, select'); });
     b.addEventListener('click', e => {
-      if (e.target === b) { closeSheet(); return; }
+      if (e.target === b) {   // a tap while typing only puts the keyboard away
+        if (typing) { typing = false; document.activeElement.blur(); } else closeSheet();
+        return;
+      }
       const t = e.target.closest('[data-theme]');
       if (t) setTheme(t.dataset.theme);
       if (aurora && e.target.closest('[data-theme-label]')) secretTap();
     });
     document.body.appendChild(b);
+    locked = true; root.classList.add('locked'); fit();   // the page behind stays put (html.locked, base.css)
     return b.firstElementChild;
   }
-  function closeSheet() { document.querySelector('.backdrop')?.remove(); }
+  function closeSheet() {
+    document.querySelector('.backdrop')?.remove();
+    locked = false; root.classList.remove('locked');
+  }
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
 
   /* ---- toast ---- */
@@ -112,5 +163,5 @@ window.App = (function () {
 
   function init(o) { if (o && o.aurora === false) aurora = false; if (aurora) backdrop(); applyTheme(); sw(); }
 
-  return { $, esc, uid, buzz, load, save, applyTheme, setTheme, themeSegHTML, homeLinkHTML, sheet, closeSheet, toast, copy, init };
+  return { $, esc, uid, isEnter, buzz, load, save, applyTheme, setTheme, themeSegHTML, homeLinkHTML, sheet, closeSheet, toast, copy, init };
 })();

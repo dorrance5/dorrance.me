@@ -206,7 +206,8 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
 
   // tabs
   await page.tap('#tabs .add');
-  await page.fill('#tabName', 'Garage');
+  await page.fill('#tabName', 'Garage'); await page.waitForTimeout(150);   // the sheet focuses the name field after 60 ms
+  await page.tap('.backdrop', { position: { x: 20, y: 20 } });   // while typing, the first tap only puts the keyboard away
   await page.tap('.backdrop', { position: { x: 20, y: 20 } });
   let names = await page.$$eval('#tabs [data-tab]:not(.add)', b => b.map(x => x.textContent));
   check('new tab added and renamed', names.includes('Garage'), names);
@@ -400,6 +401,47 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
       const pads = await p.evaluate(() => [document.getElementById('main').style.paddingBottom, document.getElementById('rcol').style.paddingBottom]);
       check('folding shut with the keypad open moves its room to the page', parseInt(pads[0]) > 100 && !pads[1], pads);
     }
+    await c.close();
+  }
+
+  // The phone keyboard, on the Duo's five Safari sizes: a stand-in visualViewport that the test shrinks, the way iOS does
+  // (the layout viewport stays full height).
+  for (const [w, h] of Object.values(duo).map(d => [d.width, d.height])) {
+    const c = await browser.newContext({ viewport: { width: w, height: h }, isMobile: true, hasTouch: true, serviceWorkers: 'block' });
+    await c.addInitScript(() => {
+      const t = new EventTarget(), vv = { width: innerWidth, height: innerHeight, offsetTop: 0, offsetLeft: 0, scale: 1, addEventListener: (a, b) => t.addEventListener(a, b), removeEventListener() {} };
+      Object.defineProperty(window, 'visualViewport', { value: vv });
+      window.__kb = (kh, off) => { vv.height = innerHeight - kh; vv.offsetTop = off || 0; t.dispatchEvent(new Event('resize')); };
+    });
+    const p = await c.newPage(), kh = Math.round(h * .45), tag = `${w}×${h}`;
+    p.on('console', m => { if (m.type() === 'error') errors.push(m.text()); }); p.on('pageerror', e => errors.push(e.message));
+    await p.goto(base); await p.waitForSelector('#form [data-k]');
+    // the keypad is TV Mount's input method: html.kb stays off, and the keypad does not move
+    await p.tap('#form [data-k="center.d"]'); await p.waitForTimeout(400);
+    const kb0 = await p.$eval('#kp', el => { const r = el.getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; });
+    await p.evaluate(kb => __kb(kb, 0), kh); await p.waitForTimeout(400);
+    const kb1 = await p.$eval('#kp', el => { const r = el.getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; });
+    check(`${tag} keyboard: with the keypad open html.kb stays off and the keypad does not move`, await p.evaluate(() => !document.documentElement.classList.contains('kb') && document.documentElement.classList.contains('nokb')) && JSON.stringify(kb0) === JSON.stringify(kb1), { kb0, kb1 });
+    await p.evaluate(() => __kb(0, 0));
+    await p.tap('#kp [data-key="done"]'); await p.waitForTimeout(200);
+    check(`${tag} keyboard: closing the keypad turns nokb off`, await p.evaluate(() => !document.documentElement.classList.contains('nokb')));
+    // a sheet with a field (the keyboard shows for real)
+    await p.tap('#tabs .on'); await p.waitForSelector('#tabName');
+    await p.fill('#tabName', 'Den'); await p.focus('#tabName');
+    await p.evaluate(kb => __kb(kb, 0), kh); await p.waitForTimeout(600);
+    const k = await p.evaluate(kh => {
+      const r = document.getElementById('tabName').getBoundingClientRect(), s = document.querySelector('.sheet').getBoundingClientRect();
+      return { kb: document.documentElement.classList.contains('kb'), locked: document.documentElement.classList.contains('locked'), top: r.top, bottom: r.bottom, sTop: s.top, sBottom: s.bottom, vis: innerHeight - kh };
+    }, kh);
+    check(`${tag} keyboard: html.kb is set and the page behind the sheet is locked`, k.kb && k.locked, k);
+    check(`${tag} keyboard: the open sheet fits the visible area`, k.sTop >= -1 && k.sBottom <= k.vis + 1, k);
+    check(`${tag} keyboard: the focused field is visible`, k.top >= -1 && k.bottom <= k.vis + 1, k);
+    await p.tap('.backdrop', { position: { x: 5, y: 5 } }); await p.waitForTimeout(150);
+    check(`${tag} keyboard: a backdrop tap while typing only puts the keyboard away`, await p.evaluate(() => !!document.querySelector('.sheet') && document.activeElement !== document.getElementById('tabName') && document.getElementById('tabName').value === 'Den'));
+    await p.tap('.backdrop', { position: { x: 5, y: 5 } }); await p.waitForTimeout(150);
+    check(`${tag} keyboard: a second tap closes the sheet`, await p.evaluate(() => !document.querySelector('.backdrop')));
+    await p.evaluate(() => __kb(0, 0)); await p.waitForTimeout(200);
+    check(`${tag} keyboard: html.kb goes away with the keyboard`, await p.evaluate(() => !document.documentElement.classList.contains('kb')));
     await c.close();
   }
 

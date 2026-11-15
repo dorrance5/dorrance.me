@@ -1,5 +1,5 @@
 /* TV Mount — offline cache. Bump CACHE when files change. */
-const CACHE = 'tvmount-v38';
+const CACHE = 'tvmount-v39';
 const FILES = ['./', './index.html', './app.js', './geometry.js', './store.js', './manifest.json', './icon-180.png', './icon-512.png', '../shared/base.css', '../shared/base.js'];
 
 self.addEventListener('install', e => {
@@ -18,7 +18,7 @@ self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET' || url.origin !== location.origin || url.pathname.startsWith('/api/')) return;
   e.respondWith(caches.open(CACHE).then(async cache => {
     const hit = await cache.match(e.request);
-    const net = fetch(e.request).then(r => { if (r.ok) cache.put(e.request, r.clone()); return r; }).catch(() => hit);
+    const net = fetch(e.request, { cache: 'no-cache' }).then(r => { if (r.ok) cache.put(e.request, r.clone()); return r; }).catch(() => hit);
     return hit || net;
   }));
 });

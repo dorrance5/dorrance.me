@@ -155,6 +155,7 @@
     kp.path = path; kp.fresh = true;
     loadKp(get(tab(), path));
     $('#kp').hidden = false;
+    document.documentElement.classList.add('nokb');   // the keypad is the input method: no html.kb (base.js)
     $('#kp').classList.toggle('mm', inMm(path));   // millimeters have no fractions
     if (changed) render(); else { renderForm(); syncKeypad(); }
     if (first) padForKeypad();
@@ -165,6 +166,7 @@
     commitKp();
     kp.path = null;
     $('#kp').hidden = true;
+    document.documentElement.classList.remove('nokb');
     padForKeypad();
     const t = tab();
     if (t.studs.list.some(v => !isNum(v))) { t.studs.list = t.studs.list.filter(isNum); persist(); }
@@ -921,7 +923,7 @@
     const inp = el.querySelector('#tabName');
     const rename = () => { const v = inp.value.trim(); if (v && v !== t.name) { t.name = v; persist(); renderTabs(); } };
     inp.addEventListener('input', rename);
-    inp.addEventListener('keydown', e => { if (e.key === 'Enter') { rename(); closeSheet(); } });
+    inp.addEventListener('keydown', e => { if (App.isEnter(e)) { rename(); closeSheet(); } });
     if (isNew) setTimeout(() => { inp.focus(); inp.select(); }, 60);
     let armed = false, armedClear = false;
     el.addEventListener('click', async e => {
@@ -1042,7 +1044,7 @@
       setTimeout(() => inp.focus(), 60);
       const ok = () => { const v = inp.value.trim(); if (!v) return; setPass(v); closeSheet(); done(true); };
       el.addEventListener('click', e => { if (e.target.closest('[data-act="ok"]')) ok(); });
-      inp.addEventListener('keydown', e => { if (e.key === 'Enter') ok(); });
+      inp.addEventListener('keydown', e => { if (App.isEnter(e)) ok(); });
       new MutationObserver((_, o) => { if (!el.isConnected) { o.disconnect(); done(!!getPass()); } }).observe(document.body, { childList: true });
     });
   }
@@ -1134,7 +1136,7 @@
       update(); libSheet(back); toast('Renamed to ' + model);
     };
     el.addEventListener('click', e => { if (e.target.closest('[data-act="save"]')) save(); });
-    inp.addEventListener('keydown', e => { if (e.key === 'Enter') save(); });
+    inp.addEventListener('keydown', e => { if (App.isEnter(e)) save(); });
   }
   function libSaveSheet(kind) {
     const t = tab(), cur = kind === 'tv' ? t.tv.model : t.mount.model;
@@ -1154,7 +1156,7 @@
         .then(ok => { if (ok) toast(model + ' saved for everyone'); }, () => toast(model + ' saved on this phone. It shares when the site can be reached.'));
     };
     el.addEventListener('click', e => { if (e.target.closest('[data-act="save"]')) save(); });
-    inp.addEventListener('keydown', e => { if (e.key === 'Enter') save(); });
+    inp.addEventListener('keydown', e => { if (App.isEnter(e)) save(); });
   }
 
   async function exportBackup() {

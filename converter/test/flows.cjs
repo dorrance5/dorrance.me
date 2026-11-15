@@ -82,6 +82,36 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
     await c.close();
   }
 
+
+  // The phone keyboard, on the Duo's five Safari sizes: a stand-in visualViewport that the test shrinks, the way iOS does
+  // (the layout viewport stays full height).
+  for (const [w, h] of Object.values(duo).map(d => [d.width, d.height])) {
+    const c = await browser.newContext({ viewport: { width: w, height: h }, isMobile: true, hasTouch: true, serviceWorkers: 'block' });
+    await c.addInitScript(() => {
+      const t = new EventTarget(), vv = { width: innerWidth, height: innerHeight, offsetTop: 0, offsetLeft: 0, scale: 1, addEventListener: (a, b) => t.addEventListener(a, b), removeEventListener() {} };
+      Object.defineProperty(window, 'visualViewport', { value: vv });
+      window.__kb = (kh, off) => { vv.height = innerHeight - kh; vv.offsetTop = off || 0; t.dispatchEvent(new Event('resize')); };
+    });
+    const p = watch(await c.newPage()), kh = Math.round(h * .45), tag = `${w}×${h}`;
+    await p.goto(base); await p.waitForSelector('#val');
+    await p.focus('#val');
+    await p.evaluate(kb => __kb(kb, 0), kh); await p.waitForTimeout(600);
+    const k = await p.evaluate(([sel, kh]) => {
+      const r = document.querySelector(sel).getBoundingClientRect();
+      return { kb: document.documentElement.classList.contains('kb'), top: r.top, bottom: r.bottom, vis: innerHeight - kh };
+    }, ['#val', kh]);
+    check(`${tag} keyboard: html.kb is set`, k.kb, k);
+    check(`${tag} keyboard: the focused field is visible`, k.top >= -1 && k.bottom <= k.vis + 1, k);
+    await p.evaluate(() => document.getElementById('setBtn').click()); await p.waitForSelector('.sheet'); await p.waitForTimeout(300);
+    const s = await p.evaluate(kh => { const r = document.querySelector('.sheet').getBoundingClientRect(); return { top: r.top, bottom: r.bottom, vis: innerHeight - kh }; }, kh);
+    check(`${tag} keyboard: an open sheet fits the visible area`, s.top >= -1 && s.bottom <= s.vis + 1, s);
+    await p.tap('.backdrop', { position: { x: 5, y: 5 } }); await p.waitForTimeout(150);
+    check(`${tag} keyboard: a backdrop tap with no field in the sheet closes it`, await p.evaluate(() => !document.querySelector('.backdrop')));
+    await p.evaluate(() => __kb(0, 0)); await p.waitForTimeout(200);
+    check(`${tag} keyboard: html.kb goes away with the keyboard`, await p.evaluate(() => !document.documentElement.classList.contains('kb')));
+    await c.close();
+  }
+
   // Offline, and an update, with the service worker on
   {
     const c = await browser.newContext({ ...devices['iPhone 13'] }), p = watch(await c.newPage());

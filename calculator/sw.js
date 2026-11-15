@@ -1,7 +1,7 @@
 /* Calculator — offline cache.
    Bump CACHE below whenever you upload a changed index.html,
    otherwise phones may keep serving the old copy. */
-const CACHE = "calculator-v23";
+const CACHE = "calculator-v24";
 const FILES = ["./", "./index.html", "./manifest.json", "./icon-180.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {
@@ -21,7 +21,7 @@ self.addEventListener("fetch", e => {
   if (e.request.method !== "GET" || new URL(e.request.url).origin !== location.origin) return;
   e.respondWith(caches.open(CACHE).then(async cache => {
     const hit = await cache.match(e.request);
-    const net = fetch(e.request).then(r => { if (r.ok) cache.put(e.request, r.clone()); return r; })
+    const net = fetch(e.request, { cache: "no-cache" }).then(r => { if (r.ok) cache.put(e.request, r.clone()); return r; })
       .catch(() => hit || cache.match("./index.html"));
     return hit || net;
   }));
