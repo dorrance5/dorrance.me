@@ -61,6 +61,24 @@ const server = http.createServer(async (req,res)=>{
  await p.locator(`[data-back$=":${saved.id}"]`).click();
  await p.waitForFunction(id=>JSON.parse(localStorage.roadtrip).queue.length===0&&JSON.parse(localStorage.roadtrip).state.cars.some(c=>c.fuel.some(f=>f.id===id&&!f.gone)),saved.id);
  console.log('ok automatic decimal, fuel save, archive and restore');
+ // R2: the first field has focus at once, inside the tap, so iOS raises the keyboard. R4: Enter goes to the next field, and on the last one saves.
+ await p.keyboard.press('Escape'); await p.click('[data-tab="fuel"]');
+ await p.evaluate(()=>{document.getElementById('addBtn').click();window.__focus=document.activeElement.id;});
+ assert.equal(await p.evaluate(()=>window.__focus),'fOdo');
+ assert.equal(await p.getAttribute('#fOdo','enterkeyhint'),'next'); assert.equal(await p.getAttribute('#fTotal','enterkeyhint'),'done');
+ assert.equal(await p.getAttribute('#fGal','autocorrect'),'off');
+ await p.keyboard.type('200050'); await p.keyboard.press('Enter');
+ assert.equal(await p.evaluate(()=>document.activeElement.id),'fGal');
+ await p.keyboard.type('9412'); await p.keyboard.press('Enter'); await p.keyboard.type('3899'); await p.keyboard.press('Enter');
+ assert.equal(await p.evaluate(()=>document.activeElement.id),'fTotal');
+ assert.ok(await p.locator('.sheet').count());
+ await p.keyboard.press('Enter');
+ await p.waitForFunction(()=>!document.querySelector('.sheet')&&JSON.parse(localStorage.roadtrip).state.cars.flatMap(c=>c.fuel).some(f=>f.odo===200050));
+ await p.click('[data-tab="costs"]');
+ await p.evaluate(()=>{document.getElementById('addBtn').click();window.__focus=document.activeElement.id;});
+ assert.equal(await p.evaluate(()=>window.__focus),'cName');
+ await p.keyboard.press('Escape');
+ console.log('ok first field focused in the tap; Enter advances, then saves');
  await p.reload(); await p.evaluate(()=>navigator.serviceWorker.ready); await p.reload();
  // iPhone Duo: closed upright and sideways, open upright and sideways, and half the open screen. Only open sideways
  // moves the tab bar to a rail on the right and puts Stats and Expenses in two columns.
@@ -84,6 +102,46 @@ const server = http.createServer(async (req,res)=>{
   assert.ok(wide?list.l>=rem.r:list.t>=rem.b,`${width}×${height}: expenses ${wide?'in two columns':'in one column'}`);
  }
  console.log('ok five Duo sizes, all tabs; a rail on the right only when open sideways');
+
+ // The phone keyboard, on the Duo's five Safari sizes: a stand-in visualViewport the test shrinks, like iOS does.
+ for(const size of Object.keys(duo)){
+  const {width:w,height:h}=duo[size], tag=`${w}×${h}`, kh=Math.round(h*.45);
+  const kc=await browser.newContext({viewport:{width:w,height:h},isMobile:true,hasTouch:true,serviceWorkers:'block'});
+  await kc.addInitScript(s=>{
+   if(!sessionStorage.seeded){localStorage.setItem('dorrance-session',JSON.stringify(s));sessionStorage.seeded='1';}
+   const t=new EventTarget(),vv={width:innerWidth,height:innerHeight,offsetTop:0,offsetLeft:0,scale:1,addEventListener:(a,b)=>t.addEventListener(a,b),removeEventListener(){}};
+   Object.defineProperty(window,'visualViewport',{value:vv});
+   window.__kb=(k,off)=>{vv.height=innerHeight-k;vv.offsetTop=off||0;t.dispatchEvent(new Event('resize'));};
+  },auth);
+  const q=await kc.newPage();
+  await q.goto(base); await q.waitForSelector('#addBtn');
+  await q.tap('#addBtn'); await q.waitForSelector('#fOdo');
+  await q.fill('#fOdo','200200'); await q.focus('#fOdo');
+  await q.evaluate(k=>__kb(k,0),kh); await q.waitForTimeout(600);
+  const k=await q.evaluate(k=>{const R=s=>document.querySelector(s).getBoundingClientRect(),d=document.documentElement,f=R('#fOdo'),s=R('.sheet'),t=R('#fTotal'),v=R('#fSave'),tb=getComputedStyle(document.getElementById('tabbar'));
+   return{kb:d.classList.contains('kb'),locked:d.classList.contains('locked'),tabHidden:tb.display==='none'||tb.visibility==='hidden',sTop:s.top,sBottom:s.bottom,fTop:f.top,fBottom:f.bottom,totTop:t.top,saveBottom:v.bottom,vis:innerHeight-k};},kh);
+  assert.ok(k.kb&&k.locked,`${tag} keyboard: html.kb set, page locked ${JSON.stringify(k)}`);
+  assert.ok(k.tabHidden,`${tag} keyboard: tab bar hidden`);
+  assert.ok(k.sTop>=-1&&k.sBottom<=k.vis+1,`${tag} keyboard: fuel sheet fits the visible area ${JSON.stringify(k)}`);
+  const reach=await q.evaluate(k=>{const o={};for(const id of ['fTotal','fSave']){const e=document.getElementById(id);e.scrollIntoView({block:'nearest'});const r=e.getBoundingClientRect();o[id]=r.top>=-1&&r.bottom<=innerHeight-k+1;}return o;},kh);
+  assert.ok(reach.fTotal&&reach.fSave,`${tag} keyboard: Total and Save can be scrolled into the visible area ${JSON.stringify(reach)}`);
+  await q.evaluate(()=>document.getElementById('fOdo').scrollIntoView({block:'nearest'}));
+  assert.ok(k.fTop>=-1&&k.fBottom<=k.vis+1,`${tag} keyboard: focused field visible ${JSON.stringify(k)}`);
+  await q.tap('.backdrop',{position:{x:5,y:5}}); await q.waitForTimeout(150);
+  assert.ok(await q.evaluate(()=>!!document.querySelector('.sheet')&&document.activeElement!==document.getElementById('fOdo')&&document.getElementById('fOdo').value==='200200'),`${tag} keyboard: backdrop tap only blurs`);
+  await q.tap('.backdrop',{position:{x:5,y:5}}); await q.waitForTimeout(150);
+  assert.ok(await q.evaluate(()=>!document.querySelector('.sheet')),`${tag} keyboard: second tap closes`);
+  await q.evaluate(()=>__kb(0,0)); await q.waitForTimeout(200);
+  // More tab: the tank field scrolls above the keyboard
+  await q.evaluate(()=>{const b=document.querySelector('[data-tab="more"]');b.click();});
+  await q.waitForSelector('#mTank'); await q.focus('#mTank');
+  await q.evaluate(k=>__kb(k,0),kh); await q.waitForTimeout(600);
+  await q.evaluate(()=>document.getElementById('mTank').scrollIntoView({block:'end'})); await q.waitForTimeout(200);
+  const m=await q.evaluate(k=>{const r=document.getElementById('mTank').getBoundingClientRect(),mn=document.getElementById('main');return{top:r.top,bottom:r.bottom,vis:innerHeight-k,pad:getComputedStyle(mn,'::after').height};},kh);
+  assert.ok(m.top>=-1&&m.bottom<=m.vis+1,`${tag} keyboard: More tank field scrolls above the keyboard ${JSON.stringify(m)}`);
+  await q.evaluate(()=>__kb(0,0)); await kc.close();
+ }
+ console.log('ok keyboard at the five Duo sizes: html.kb, tab bar hidden, fuel sheet fits, backdrop tap, More tank');
  await p.click('[data-tab="stats"]');
  api.gh.offline=true; await ctx.setOffline(true); await p.reload(); await p.waitForSelector('#v-stats:not([hidden])');
  await p.click('#addBtn'); await p.fill('#fOdo','200100'); await p.locator('#fGal').pressSequentially('5000'); await p.locator('#fPrice').pressSequentially('3000'); await p.click('#fSave');

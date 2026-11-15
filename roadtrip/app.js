@@ -150,9 +150,9 @@
       const out = await tripApi().get();
       const now = session();
       if (n !== pulls || !now || now.name !== s.name || lastPost > at) return;
+      const same = mine() && JSON.stringify(store.state) === JSON.stringify(out);   // nothing new: no redraw
       if (mine()) store.state = out; else store = { name: s.name, state: out, queue: [] };
-      save();
-      render();
+      if (!same) { save(); render(); }
       later();
     } catch (e) {
       if (n !== pulls) return;
@@ -273,7 +273,7 @@
     const W = Math.round(svg.getBoundingClientRect().width) || 360, H = 180, L = 14, R = W - 50, top = 12, bot = H - 12;
     if (points.length < 2) {
       chart = null;
-      svg.outerHTML = `<div class="ch-none" id="ch">${kind === 'miles' ? 'Two fill-ups show the miles.' : 'A few filled tanks in a row show this chart.'}</div>`;
+      svg.outerHTML = `<div class="empty" id="ch">${kind === 'miles' ? 'Two fill-ups show the miles.' : 'A few filled tanks in a row show this chart.'}</div>`;
       byId('chRead').innerHTML = byId('chX').innerHTML = '';
       return;
     }
@@ -320,6 +320,7 @@
     svg.setAttribute('aria-label', `${T.CHARTS.find(x => x[0] === kind)[1]} chart: ${c.show(avg)} ${c.avg}`);
     svg.innerHTML = `<line class="base" x1="${L}" x2="${R}" y1="${bot}" y2="${bot}"/>${marks}<line class="avg" x1="${L}" x2="${R}" y1="${f1(ya)}" y2="${f1(ya)}"/>${labels}<g id="chHover"></g>`;
     chart = { points, xs, ys, kind, avg, bot };
+    rect = null; shown = -2;
     readout(-1);
     const first = points[0], last = points[points.length - 1];
     byId('chX').innerHTML = bars
@@ -343,16 +344,18 @@
   }
   // Touch or point at the chart to read one fill-up or week. A sideways drag reads along it; up and down scrolls.
   let readT = 0;
+  let rect = null, rectW = 1, shown = -2;   // the chart's box and width, read at pointerdown, and the point on show
   function nearest(e) {
-    const svg = byId('ch'), box = svg.getBoundingClientRect(), W = Number(svg.getAttribute('viewBox').split(' ')[2]);
-    const x = (e.clientX - box.left) * W / box.width;
+    if (!rect) { const svg = byId('ch'); rect = svg.getBoundingClientRect(); rectW = Number(svg.getAttribute('viewBox').split(' ')[2]); }
+    const x = (e.clientX - rect.left) * rectW / rect.width;
     let best = 0;
     chart.xs.forEach((v, i) => { if (Math.abs(v - x) < Math.abs(chart.xs[best] - x)) best = i; });
     return best;
   }
-  byId('v-stats').addEventListener('pointermove', e => { if (chart && e.target.closest('#ch')) { clearTimeout(readT); readout(nearest(e)); } });
-  byId('v-stats').addEventListener('pointerdown', e => { if (chart && e.target.closest('#ch')) { clearTimeout(readT); readout(nearest(e)); } });
-  const unread = () => { clearTimeout(readT); readT = setTimeout(() => readout(-1), 1600); };
+  const touch = e => { clearTimeout(readT); const i = nearest(e); if (i !== shown) readout(shown = i); };
+  byId('v-stats').addEventListener('pointermove', e => { if (chart && e.target.closest('#ch')) touch(e); });
+  byId('v-stats').addEventListener('pointerdown', e => { if (chart && e.target.closest('#ch')) { rect = null; touch(e); } });
+  const unread = () => { clearTimeout(readT); readT = setTimeout(() => { shown = -2; readout(-1); }, 1600); };
   byId('v-stats').addEventListener('pointerup', unread);
   byId('v-stats').addEventListener('pointerleave', unread);
   byId('v-stats').addEventListener('pointercancel', unread);
@@ -491,17 +494,18 @@
 
   /* ---- More ---- */
   let people = null, sharing = false, armed = null;   // people who can be asked; an ask, a yes or a stop on its way
+  let peopleAt = 0;
   async function loadPeople() {
-    if (!session()) return;
-    try { people = (await tripApi().people()).people; if (ui.tab === 'more') render(); } catch (e) {}
+    if (!session() || people && Date.now() - peopleAt < 60e3) return;
+    try { people = (await tripApi().people()).people; peopleAt = Date.now(); if (ui.tab === 'more') render(); } catch (e) {}
   }
   function drawMore(car) {
     const d = data(), s = session();
     let html = '';
     if (car) {
       html += `<section class="card sec hue-blue"><div class="sec-h"><span class="ic blue">${ICON.car}</span>Car${car.archived ? ' <span class="tag">Archived</span>' : ''}</div><div class="sec-b">
-        <div class="grid2"><label class="fld"><span class="fk">Name</span><input class="fv" id="mName" value="${esc(car.name)}" maxlength="40" autocapitalize="words"></label>
-        <label class="fld"><span class="fk">Tank size, gal</span><input class="fv" id="mTank" value="${car.tank != null ? car.tank : ''}" inputmode="decimal" placeholder="14.8"></label></div>
+        <div class="grid2"><label class="fld"><span class="fk">Name</span><input class="fv" id="mName" value="${esc(car.name)}" maxlength="40" autocapitalize="words" enterkeyhint="next"></label>
+        <label class="fld"><span class="fk">Tank size, gal</span><input class="fv" id="mTank" value="${car.tank != null ? car.tank : ''}" inputmode="decimal" enterkeyhint="done" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="14.8"></label></div>
         <div class="label">Info</div>${infoHTML(car)}
         <label class="fld wide"><span class="fk">Other notes</span><textarea id="mNotes" rows="3" placeholder="Anything that is not a box">${esc(car.notes)}</textarea></label>
         <div class="actions"><button class="btn" type="button" data-act="archive">${car.archived ? 'Put the car back' : 'Archive the car'}</button></div>
@@ -635,8 +639,14 @@
       if (!change({ op: 'car', ...carFields(car), info: [...info, { label, value }] })) return toast('That is too long to keep.');
       closeSheet();
     });
-    setTimeout(() => $i('iLabel').focus(), 250);
+    wireEnter(box, '#iLabel,#iValue', () => $i('iSave').click());
+    $i('iLabel').focus({ preventScroll: true });
   }
+  byId('v-more').addEventListener('keydown', e => {
+    if (!isEnter(e) || e.target.id !== 'mName' && e.target.id !== 'mTank') return;
+    e.preventDefault();
+    if (e.target.id === 'mName') byId('mTank').focus(); else e.target.blur();   // leaving the field saves it
+  });
   byId('v-more').addEventListener('input', e => { if (e.target.classList.contains('iv')) grow(e.target); });
   byId('v-more').addEventListener('change', e => {
     const car = current();
@@ -660,6 +670,7 @@
     byId('aSwap').textContent = making ? 'I have an account' : 'New here? Ask for an account';
   }
   function result(msg, ok) { const r = byId('aResult'); r.hidden = !msg; r.textContent = msg || ''; r.classList.toggle('ok', !!ok); }
+  byId('aName').addEventListener('keydown', e => { if (isEnter(e)) { e.preventDefault(); byId('aPass').focus(); } });
   byId('aSwap').addEventListener('click', () => { making = !making; result(''); drawSignIn(); });
   byId('aForm').addEventListener('submit', async e => {
     e.preventDefault();
@@ -719,6 +730,21 @@
       typedIn();
     });
     el.addEventListener('input', typedIn);
+  }
+  // Enter on a text field of a sheet goes to the next field, and on the last one saves. The keyboard's key says which.
+  const isEnter = e => (App.isEnter || (x => (x.key === 'Enter' || x.keyCode === 13) && !x.isComposing))(e);
+  function wireEnter(box, sel, save) {
+    const list = [...box.querySelectorAll(sel)], inputs = list.filter(el => el.tagName === 'INPUT');
+    list.forEach((el, i) => {
+      if (el.tagName === 'INPUT') el.enterKeyHint = i < list.length - 1 ? 'next' : 'done';
+      if (el.inputMode) { el.setAttribute('autocorrect', 'off'); el.setAttribute('autocapitalize', 'off'); el.spellcheck = false; }
+    });
+    box.addEventListener('keydown', e => {
+      if (!inputs.includes(e.target) || !isEnter(e)) return;
+      e.preventDefault();
+      const next = list[list.indexOf(e.target) + 1];
+      if (next) next.focus(); else save();
+    });
   }
   const fld = (id, label, attrs = '', cls = '') => `<label class="fld ${cls}"><span class="fk">${label}</span><input class="fv" id="${id}" ${attrs}></label>`;
   const switchHTML = (id, on, title, sub) => `<button class="switch" type="button" role="switch" id="${id}" aria-checked="${on}"><span class="t"><b>${title}</b><small>${sub}</small></span><span class="k"></span></button>`;
@@ -798,7 +824,8 @@
       closeSheet();
       if (!f) toast('Fuel added.');
     });
-    if (!f) setTimeout(() => $f('fOdo').focus(), 250);
+    wireEnter(box, 'input.fv:not([type=date])', () => $f('fSave').click());
+    if (!f) $f('fOdo').focus({ preventScroll: true });
   }
 
   // The names used before, newest first, to tap instead of typing.
@@ -851,7 +878,8 @@
       closeSheet();
       if (!c) toast('Expense added.');
     });
-    if (!c && !p.name) setTimeout(() => $c('cName').focus(), 250);
+    wireEnter(box, 'input.fv:not([type=date])', () => $c('cSave').click());
+    if (!c && !p.name) $c('cName').focus({ preventScroll: true });
   }
 
   function remSheet(car, r) {
@@ -881,7 +909,8 @@
       if (!change({ op: 'remind', car: car.id, id: r ? r.id : uid(), name, miles, months })) return toast('Check the numbers.');
       closeSheet();
     });
-    if (!r) setTimeout(() => $r('rName').focus(), 250);
+    wireEnter(box, 'input.fv', () => $r('rSave').click());
+    if (!r) $r('rName').focus({ preventScroll: true });
   }
 
   // The list of cars, from the header.
@@ -919,7 +948,8 @@
       closeSheet();
       render();
     });
-    setTimeout(() => $n('nName').focus(), 250);
+    wireEnter(box, 'input.fv', () => $n('nSave').click());
+    $n('nName').focus({ preventScroll: true });
   }
 
   // Archived: the archived cars, and what was deleted from each car, to put back or delete for good.
@@ -1055,7 +1085,7 @@
     else if (a.dataset.act === 'addrem' && car) remSheet(car);
     else if (a.dataset.act === 'import') byId('importFile').click();
     else if (a.dataset.act === 'archived' && !a.closest('.sheet')) archivedSheet();
-    else if (a.dataset.act === 'signout') { A.signOut(); dropStore(); people = null; render(); toast('Signed out.'); }
+    else if (a.dataset.act === 'signout') { A.signOut(); dropStore(); people = null; peopleAt = 0; render(); toast('Signed out.'); }
   });
   addEventListener('keydown', e => { if (e.key === 'Escape' && openFill && !document.querySelector('.backdrop')) closeFill(); });
 

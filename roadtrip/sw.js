@@ -1,6 +1,6 @@
 // Road Trip — offline cache. Bump CACHE when a file below changes. The cars come from /api/roadtrip, which goes to
 // the network as before: the page keeps its own copy of them.
-const CACHE = 'roadtrip-v7';
+const CACHE = 'roadtrip-v8';
 const FILES = ['./', './index.html', './app.js', './data.js', './import.js', './manifest.json', './icon-180.png', './icon-512.png',
   '../shared/base.css', '../shared/base.js', '../shared/account.js'];
 
@@ -20,7 +20,10 @@ self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET' || url.origin !== location.origin || url.pathname.startsWith('/api/')) return;
   e.respondWith(caches.open(CACHE).then(async cache => {
     const hit = await cache.match(e.request);
-    const net = fetch(e.request).then(r => { if (r.ok) cache.put(e.request, r.clone()); return r; }).catch(() => hit);
+    // Only pages, scripts and styles check for a newer copy on every visit; the icons and the manifest rarely change.
+    const live = e.request.mode === 'navigate' || ['script', 'style'].includes(e.request.destination);
+    if (hit && !live) return hit;
+    const net = fetch(e.request, { cache: 'no-cache' }).then(r => { if (r.ok) cache.put(e.request, r.clone()); return r; }).catch(() => hit);
     return hit || net;
   }));
 });

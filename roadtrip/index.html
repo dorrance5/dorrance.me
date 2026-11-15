@@ -20,17 +20,18 @@
 /* header: the car's name opens the list of cars */
 header{padding-bottom:10px}
 .who{display:flex;align-items:center;gap:6px;min-width:0;height:46px;padding:0 4px;border-radius:14px}
-.who h1{font-size:22px}
 .who svg{flex:none;width:18px;height:18px;opacity:.55}
 .who:active{opacity:.7}
 main{padding-bottom:20px}
 .view{max-width:560px;margin:0 auto}
 
 /* the tab bar */
-.tabbar{flex:none;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:6px 12px calc(env(safe-area-inset-bottom,0px) + 6px);background:var(--bg);border-top:.5px solid var(--line);position:relative;z-index:3}
+.tabbar{flex:none;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:6px max(12px,calc((100% - 560px)/2)) calc(env(safe-area-inset-bottom,0px) + 6px);background:var(--bg);border-top:.5px solid var(--line);position:relative;z-index:3}
 .tabbar button{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;height:54px;border-radius:15px;font-size:12px;font-weight:650;color:var(--muted)}
 .tabbar svg{width:24px;height:24px}
 .tabbar button.on{color:var(--sel-text);background:var(--sel)}
+/* the keyboard is up: the tab bar goes away. At 951 the rail only hides, so the column stays and nothing jumps */
+html.kb .tabbar{display:none}
 .badge{position:absolute;top:3px;left:calc(50% + 6px);min-width:19px;height:19px;border-radius:10px;background:var(--red);color:var(--tile);font-size:11.5px;font-weight:800;display:grid;place-items:center;padding:0 5px}
 /* sideways on a wide screen (the open iPhone Duo sideways, see test/devices.cjs): the tab bar is a rail on the right, so the short screen
    keeps its height, and Stats, Expenses and More use two columns */
@@ -38,15 +39,15 @@ main{padding-bottom:20px}
   body{display:grid;grid-template-columns:minmax(0,1fr) 92px;grid-template-rows:auto minmax(0,1fr)}
   header{grid-column:1/-1}
   main{grid-column:1;grid-row:2;padding-left:calc(env(safe-area-inset-left,0px) + 14px)}
-  .tabbar:not([hidden]){grid-column:2;grid-row:2;grid-template-columns:none;grid-auto-rows:64px;align-content:start;border-top:0;padding:4px calc(env(safe-area-inset-right,0px) + 10px) calc(env(safe-area-inset-bottom,0px) + 8px) 10px}
+  .tabbar:not([hidden]){grid-column:2;grid-row:2;grid-template-columns:none;grid-auto-rows:64px;align-content:start;border-top:0;padding:4px calc(env(safe-area-inset-right,0px) + 14px) calc(env(safe-area-inset-bottom,0px) + 8px) 6px}
   .tabbar button{height:64px}
+  html.kb .tabbar:not([hidden]){display:grid;visibility:hidden}
   .view{max-width:none}
   #v-stats:not([hidden]){display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);grid-auto-rows:max-content;column-gap:14px;align-items:start;align-content:start}
   #v-stats>.range{grid-column:1;grid-row:1}
   #v-stats>.chart{grid-column:1;grid-row:2/span 6;position:sticky;top:0}
   #v-stats>:not(.range):not(.chart){grid-column:2}
   #v-stats>.hero{grid-row:1/span 2}
-  #v-fuel{max-width:640px}
   #v-costs:not([hidden]){display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);grid-auto-rows:max-content;column-gap:14px;align-items:start;align-content:start}
   #v-costs>.sec{grid-column:1;grid-row:1/span 40;position:sticky;top:0}
   #v-costs>:not(.sec){grid-column:2}
@@ -59,7 +60,6 @@ main{padding-bottom:20px}
 .range{margin-bottom:10px}
 .chart{padding:12px 0 10px}
 .chart .seg{margin:0 12px}
-.chart .seg button{height:34px;font-size:14px}
 .ch-read{display:flex;align-items:baseline;gap:8px;padding:12px 16px 2px;min-height:38px;font-variant-numeric:tabular-nums}
 .ch-read b{font-size:19px;font-weight:650}
 .ch-read span{font-size:13px;color:var(--muted)}
@@ -76,7 +76,7 @@ main{padding-bottom:20px}
 .ch .dot{fill:var(--c);stroke:var(--tile);stroke-width:2}
 .ch-x{display:flex;justify-content:space-between;padding:4px 16px 0;font-size:12px;color:var(--muted);line-height:1.35;font-variant-numeric:tabular-nums}
 .ch-x span:last-child{text-align:right}
-.ch-none{padding:46px 16px 40px;text-align:center;color:var(--muted);font-size:15px}
+.chart .empty{padding:46px 16px 40px;font-size:15px}
 .c-blue{--c:var(--blue)}.c-yellow{--c:var(--yellow)}.c-green{--c:var(--green)}.c-purple{--c:var(--purple)}
 .hero .v small{font-size:20px;font-weight:650;margin-left:6px;letter-spacing:0}
 .hero .v{font-variant-numeric:normal}
@@ -90,18 +90,19 @@ main{padding-bottom:20px}
 .k-fuel{color:var(--blue)}.k-service{color:var(--orange)}.k-expense{color:var(--purple)}.k-other{color:var(--teal)}
 
 /* lists: fill-ups and costs */
-.yr{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:16px 4px 8px}
+.yr{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:10px 4px 8px}
 .yr:first-child{margin-top:4px}
 .rows{padding:0 16px}
 .row{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:center;width:100%;padding:11px 0;border-bottom:1px solid var(--line);text-align:left;font-variant-numeric:tabular-nums}
 .row:last-child{border-bottom:0}
-.row b{display:block;font-size:17px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row b,.arow b{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;overflow-wrap:anywhere}
+.row b{font-size:17px;font-weight:650}
 .row span{display:block;font-size:15px;white-space:nowrap}
 .row small{display:block;font-size:13px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .row .r{text-align:right}
 .row .mpg{color:var(--blue)}
 .row.two{grid-template-columns:minmax(0,1fr) auto}
-.tag{display:inline-block;font-size:12.5px;font-weight:650;padding:2px 8px;border-radius:8px;background:var(--chip);color:var(--muted);white-space:nowrap}
+.row .tag,.tag{display:inline-block;font-size:12.5px;font-weight:650;padding:2px 8px;border-radius:8px;background:var(--chip);color:var(--muted);white-space:nowrap}
 .tag.reset{background:var(--yellow-bg);color:var(--yellow)}
 .tag.service{background:var(--orange-bg);color:var(--orange)}.tag.expense{background:var(--purple-bg);color:var(--purple)}.tag.other{background:var(--teal-bg);color:var(--teal)}
 .filter{margin:14px 0 2px}
@@ -140,6 +141,7 @@ main{padding-bottom:20px}
 .sheet .fld:focus-within{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-bg)}
 .fld input[type=date]{min-height:28px;font-size:18px}
 .fld .fv.auto{color:var(--blue)}
+.fld textarea::placeholder{color:var(--muted);font-weight:450;opacity:.7}
 .fld textarea{width:100%;min-height:96px;border:0;background:none;padding:2px 0;margin:0;outline:none;resize:none;color:var(--text);font-size:17px;line-height:1.4;font-family:inherit;-webkit-user-select:text;user-select:text}
 .sheet .seg{margin:4px 0 10px}
 .sheet .chips{gap:6px;margin:0 0 10px}
@@ -169,8 +171,8 @@ main{padding-bottom:20px}
 .car .tick{flex:none;width:22px;height:22px;color:var(--blue)}
 .car.off{opacity:.45}.car.off .tick{visibility:hidden}
 .car small + small{margin-top:0}
-.cars{padding:2px 16px;margin-bottom:12px}
-.menu{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:10px 16px;margin-bottom:12px;text-align:left;color:var(--text)}
+.cars{padding:2px 16px;margin-bottom:10px}
+.menu{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:10px 16px;margin-bottom:10px;text-align:left;color:var(--text)}
 .menu .ic{flex:none;width:32px;height:32px;border-radius:10px;display:grid;place-items:center}
 .menu .ic svg{width:19px;height:19px}
 .menu .t{flex:1;min-width:0;font-size:17px;font-weight:600}
@@ -179,9 +181,10 @@ main{padding-bottom:20px}
 .arow{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
 .arow:last-child{border-bottom:0}
 .arow .t{flex:1;min-width:0}
-.arow b{display:block;font-size:16px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.arow b{font-size:16px;font-weight:600}
 .arow small{display:block;font-size:13px;color:var(--muted);margin-top:1px;line-height:1.35;font-variant-numeric:tabular-nums}
 .arow .two{display:flex;gap:6px;flex:none}
+.arow .danger{background:var(--red-bg);border-color:var(--danger-line);color:var(--red)}
 .arow .two button{height:36px;padding:0 12px;font-size:14px;border-radius:11px}
 
 /* More */
@@ -209,11 +212,11 @@ main{padding-bottom:20px}
 .ibox .iv::placeholder{color:var(--muted);opacity:.5;font-weight:400}
 .ibox .cp{flex:none;width:40px;height:44px;align-self:flex-start;display:grid;place-items:center;color:var(--muted)}
 .ibox .cp svg{width:19px;height:19px}
-.infoadd{width:100%;display:flex;align-items:center;justify-content:center;gap:6px;margin:0 0 12px}
+.infoadd{width:100%;display:flex;align-items:center;justify-content:center;gap:6px;margin:0 0 10px}
 .infoadd svg{width:16px;height:16px}
 .say{font-size:14px;color:var(--muted);line-height:1.45;margin:0 0 10px}
 .say b{color:var(--text)}
-.steps{margin:0 0 12px;padding-left:20px;font-size:14px;line-height:1.5;color:var(--muted)}
+.steps{margin:0 0 10px;padding-left:20px;font-size:14px;line-height:1.5;color:var(--muted)}
 .ver{text-align:center;color:var(--muted);font-size:12px;margin:14px 0 4px}
 
 /* signed out */
@@ -241,7 +244,7 @@ main{padding-bottom:20px}
   <span class="sp"></span>
   <button class="round" id="addBtn" type="button" aria-label="Add" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
 </header>
-<main id="main">
+<main id="main" class="kb-pad">
   <p class="note" id="syncNote" hidden></p>
   <section class="view" id="v-stats" hidden></section>
   <section class="view" id="v-fuel" hidden></section>

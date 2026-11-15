@@ -41,7 +41,8 @@ const server = http.createServer((req, res) => {
 });
 
 const ready = p => p.waitForSelector('#tabbar:not([hidden])');
-const tab = t => async p => { await ready(p); await p.click(`#tabbar [data-tab="${t}"]`); };
+// More draws again when the list of people arrives, so wait for it before a scene reaches for an element there.
+const tab = t => async p => { await ready(p); await p.click(`#tabbar [data-tab="${t}"]`); if (t === 'more') await p.waitForFunction(() => !/Getting the (list|household)/.test(document.getElementById('v-more').textContent)); };
 const chart = c => async p => { await ready(p); await p.waitForSelector('#v-stats .chart'); await p.click(`#v-stats [data-chart="${c}"]`); };
 const end = async p => { await p.evaluate(() => { const m = document.getElementById('main'); m.scrollTop = m.scrollHeight; }); };
 const fillOn = date => async p => { await tab('fuel')(p); await p.click(`#v-fuel .row:has-text("${date}") >> nth=0`); await p.waitForSelector('#fillLayer'); };
@@ -89,7 +90,7 @@ const scenes = [
   { name: '39-info-night', theme: 'dark', act: tab('more') },
   { name: '40-info-typing-day', act: async p => { await tab('more')(p); const t = p.locator('.iv[data-label="Tires"]'); await t.scrollIntoViewIfNeeded(); await t.click(); await p.keyboard.type('225/50R17'); } },
   { name: '41-info-add-day', act: async p => { await tab('more')(p); await p.click('[data-act="info-add"]'); await p.fill('#iLabel', 'Spark plugs'); await p.fill('#iValue', 'NGK 97506'); } },
-  { name: '42-info-added-day', act: async p => { await tab('more')(p); await p.click('[data-act="info-add"]'); await p.fill('#iLabel', 'Spark plugs'); await p.fill('#iValue', 'NGK 97506'); await p.click('#iSave'); await p.locator('.iv[data-label="Spark plugs"]').scrollIntoViewIfNeeded(); } },
+  { name: '42-info-added-day', act: async p => { await tab('more')(p); await p.click('[data-act="info-add"]'); await p.fill('#iLabel', 'Spark plugs'); await p.fill('#iValue', 'NGK 97506'); await p.click('#iSave'); await p.waitForFunction(() => JSON.parse(localStorage.roadtrip).queue.length === 0); await p.locator('.iv[data-label="Spark plugs"]').scrollIntoViewIfNeeded(); } },
   { name: '43-info-duo-951', viewport: duo.openSideways, act: tab('more') }
 ];
 
