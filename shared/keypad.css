@@ -34,7 +34,9 @@
 /* keys that don't apply to the field stay in place, dimmed and disabled, so nothing moves */
 .kp.nofrac .kp-frac{opacity:.3;pointer-events:none}
 .kp-bar button:disabled{opacity:.3;pointer-events:none}
-.kp-bar .ft{font-size:30px;font-weight:400;padding-top:4px}
+.kp-bar .ft{font-size:17px;font-weight:600}
+/* dark: a disabled arrow keeps its dimmed fill, and its chevron is drawn in a dark label grey so it still shows */
+:root[data-mode="dark"] .kp-bar .nav:disabled{opacity:1;background:color-mix(in srgb,var(--blue-bg) 30%,var(--bg));border-color:color-mix(in srgb,var(--chip-line) 30%,transparent);color:color-mix(in srgb,var(--muted) 60%,var(--bg))}
 /* The closed phone (382, 385): tighter gaps and side padding so every key is 44 px wide. */
 @media (max-width:400px){
   .kp{padding-left:4px;padding-right:4px}

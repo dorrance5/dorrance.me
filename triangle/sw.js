@@ -1,5 +1,5 @@
 /* Triangle — offline cache. Bump CACHE when files change. */
-const CACHE = 'triangle-v20';
+const CACHE = 'triangle-v21';
 const FILES = ['./', './index.html', './manifest.json', './icon-180.png', './icon-512.png', '../shared/base.css', '../shared/base.js', '../shared/keypad.css', '../shared/keypad.js'];
 
 self.addEventListener('install', e => {

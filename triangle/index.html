@@ -47,6 +47,7 @@
 @media (orientation:landscape) and (min-width:560px){
   main{display:grid;grid-template-columns:minmax(0,1fr) minmax(360px,1.2fr);grid-auto-rows:max-content;column-gap:12px;align-items:start;align-content:start}
   main>.draw{grid-column:1;grid-row:1/span 6;position:sticky;top:0}
+  main{--nofade:calc((100% - 36px) / 2.2 + 18px)}   /* the drawing stays crisp; only the right pane fades (base.css) */
   main>:not(.draw){grid-column:2}
 }
 /* the keypad (shared/keypad.css): the fields open it. Its keys are at most 480 px wide; open sideways it sits under
@@ -78,7 +79,7 @@
   </section>
   <div class="note" id="note"></div>
   <div class="seg alt" id="alt" hidden><button class="on" data-sol="0">Solution 1</button><button data-sol="1">Solution 2</button></div>
-  <div class="btns"><button class="btn" id="right">C = 90°</button><button class="btn" id="clear">Clear</button></div>
+  <div class="btns"><button class="btn" id="right">C = 90°</button><button class="btn danger" id="clear">Clear</button></div>
 
   <div id="facts"></div>
 </main>
@@ -222,6 +223,15 @@ function draw(t) {
   }
   if (ex) h += `<text class="msg" x="10" y="20">Example</text>`;
   svg.innerHTML = h;
+  // A long label at a vertex near the edge (B 34.263° on a wide triangle) would run off the drawing: move each label
+  // back inside, 2 units (with the card's padding, 12 px) from the edge.
+  for (const l of svg.querySelectorAll('.lbl')) {
+    const b = l.getBBox(), m = 2;
+    const dx = b.x < m ? m - b.x : b.x + b.width > W - m ? W - m - b.x - b.width : 0;
+    const dy = b.y < m ? m - b.y : b.y + b.height > H - m ? H - m - b.y - b.height : 0;
+    if (dx) l.setAttribute('x', +l.getAttribute('x') + dx);
+    if (dy) l.setAttribute('y', +l.getAttribute('y') + dy);
+  }
 }
 
 /* ---- ui ---- */

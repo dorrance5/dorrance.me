@@ -69,6 +69,8 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
   check('the keypad covers the category bar', await page.evaluate(() => document.getElementById('kp').getBoundingClientRect().top < document.getElementById('cats').getBoundingClientRect().top));
   check('in: fractions, the feet key, no arrows', await state() === 'frac slot feet nonav', await state());
   check('the feet key is called "Feet"', await page.getAttribute('#kp [data-slot]', 'aria-label') === 'Feet');
+  const ft = await page.$eval('#kp [data-slot]', b => { const s = getComputedStyle(b), sign = getComputedStyle(document.querySelector('#kp [data-key="clear"]')); return { t: b.textContent, fs: s.fontSize, fw: s.fontWeight, c: s.color }; });
+  check('the feet key reads ft, 17 px semibold', ft.t === 'ft' && ft.fs === '17px' && ft.fw === '600', ft);
   await keys('3', 'n1', 'd2');
   check('3, numerator 1, denominator 2 types 3 1/2 = 88.9 mm', await val() === '3 1/2' && await page.textContent('#out') === '88.9', [await val(), await page.textContent('#out')]);
   check('the result line in the keypad says = 88.9 mm', (await page.textContent('#kpName .live')) === '= 88.9 mm', await page.textContent('#kpName'));
@@ -135,6 +137,17 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
   await page.tap('[data-cat="Weight"]');
   check('1 lb is 0.453592 kg', await conv('lb', 'kg', '1') === '0.453592');
 
+  // Dark: a disabled arrow keeps its dim fill, and its chevron is drawn in a grey that shows (about 3:1, not 1.5:1)
+  {
+    const c = await browser.newContext({ ...devices['iPhone 13'], colorScheme: 'dark', serviceWorkers: 'block' }), p = watch(await c.newPage());
+    await p.goto(base); await p.waitForSelector('#val'); await p.tap('#val'); await p.waitForTimeout(300);
+    const nav = await p.$eval('#kp [data-key="prev"]', b => { const s = getComputedStyle(b); return { dis: b.disabled, op: s.opacity, c: s.color, bg: s.backgroundColor }; });
+    const lum = c => { const k = /^color\(/.test(c) ? 1 : 255, m = c.replace(/^color\(srgb/, '').match(/[\d.]+/g).slice(0, 3).map(Number).map(v => { v /= k; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }); return .2126 * m[0] + .7152 * m[1] + .0722 * m[2]; };
+    const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + .05) / (y + .05); };
+    check('dark: a disabled arrow is drawn at full opacity with a chevron of at least 2.5:1 on its fill', nav.dis && nav.op === '1' && ratio(nav.c, nav.bg) >= 2.5, { ...nav, r: ratio(nav.c, nav.bg) });
+    await c.close();
+  }
+
   // A dark phone starts dark: the theme is set before base.js loads (held back here for 1.5 s)
   {
     const c = await browser.newContext({ ...devices['iPhone 13'], colorScheme: 'dark', serviceWorkers: 'block' });
@@ -152,14 +165,24 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
   const box = (p, sel) => p.$eval(sel, e => { const r = e.getBoundingClientRect(); return { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) }; });
   const sideways = p => p.evaluate(() => document.documentElement.scrollWidth - innerWidth);
   for (const [size, wide] of [['closed', false], ['open', true], ['openSideways', true]]) {
+    const side = size === 'openSideways';
     const { width: w, height: h } = duo[size];
     const { c, p } = await sized(w, h);
     await p.goto(base); await p.waitForSelector('#val');
     const card = await box(p, '#card'), out = await box(p, '#outCard'), table = await box(p, '#table');
-    check(`${w}×${h}: ${wide ? 'every unit beside the amount and the answer' : 'one column'}`, wide ? table.x > card.x + card.w && out.y >= card.y + card.h && out.x === card.x : out.y >= card.y + card.h && table.y >= out.y + out.h, { card, out, table });
+    check(`${w}×${h}: ${wide ? 'every unit beside the amount and the answer' : 'one column'}`, wide ? (side ? table.x + table.w < card.x : table.x > card.x + card.w) && out.y >= card.y + card.h && out.x === card.x : out.y >= card.y + card.h && table.y >= out.y + out.h, { card, out, table });
+    if (side) check(`${w}×${h}: sideways the units are on the left, the amount and the answer on the right`, table.x < w / 2 && card.x >= w / 2 - 6, { table, card });
+    const hero = await p.$eval('#outCard', e => { const s = getComputedStyle(e); return { img: s.backgroundImage, bw: s.borderTopWidth, bc: s.borderTopColor, sel: getComputedStyle(document.querySelector('#cats .on')).borderTopColor }; });
+    check(`${w}×${h}: the answer card is a flat fill with a 1 px border in the selected tab's blue`, hero.img === 'none' && hero.bw === '1px' && hero.bc === hero.sel, hero);
     check(`${w}×${h}: no sideways scrolling`, (await sideways(p)) <= 0);
     const cats = await box(p, '#cats'), main = await box(p, 'main');
     check(`${w}×${h}: the categories are a bar at the bottom`, cats.y >= main.y + main.h - 1 && Math.abs(cats.y + cats.h - h) <= 1, { cats, main });
+    const fade = await p.evaluate(() => { const b = document.getElementById('cats'); return { over: b.scrollWidth > b.clientWidth, more: b.classList.contains('more'), mask: getComputedStyle(b).webkitMaskImage || getComputedStyle(b).maskImage }; });
+    check(`${w}×${h}: the category bar fades on the right only when more categories are off the edge`, fade.more === fade.over && (!fade.over || /gradient/.test(fade.mask)), fade);
+    if (fade.over) {
+      const end = await p.evaluate(async () => { const b = document.getElementById('cats'); b.scrollLeft = b.scrollWidth; await new Promise(r => setTimeout(r, 100)); const m = b.classList.contains('more'); b.scrollLeft = 0; await new Promise(r => setTimeout(r, 100)); return m; });
+      check(`${w}×${h}: scrolled to the end, the fade goes`, !end);
+    }
     // The keypad: the amount sits above it; closed every key is 44 px wide; open upright it spans the width with its keys
     // at most 480 px wide, centred; open sideways it sits under the left pane only, and the units on the right update live.
     await p.tap('#val'); await p.waitForTimeout(450);
@@ -171,9 +194,29 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
     }
     if (size !== 'closed') check(`${w}×${h}: the keys are at most 480 px wide, centred`, kin.w <= 480 && Math.abs((kin.x - kp.x) - (kp.x + kp.w - kin.x - kin.w)) <= 1, { kin, kp });
     if (size === 'open' || size === 'closedSideways') check(`${w}×${h}: the keypad spans the width`, kp.x === 0 && kp.w === w, kp);
+    if (size === 'closed') {
+      const cd = await box(p, '#card');
+      check(`${w}×${h}: 12 px of page shows between the amount's card and the keypad`, kp.y - (cd.y + cd.h) >= 11, { cd, kp });
+    }
     if (size === 'openSideways') {
       const t = await box(p, '#table');
-      check(`${w}×${h}: the keypad sits under the left pane only, the units stay uncovered`, kp.x === 0 && kp.x + kp.w <= t.x && kp.w >= card.w, { kp, t, card });
+      check(`${w}×${h}: the keypad sits under the right pane only, the units on the left stay uncovered`, Math.abs(kp.x + kp.w - w) <= 1 && t.x + t.w <= kp.x && kp.w >= card.w, { kp, t, card });
+      // every category stays reachable left of the keypad, and the selected one shows
+      const reach = await p.evaluate(() => {
+        const kpx = document.getElementById('kp').getBoundingClientRect().left, b = document.getElementById('cats'), out = [];
+        for (const btn of b.querySelectorAll('button')) {
+          btn.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+          const r = btn.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
+          if (!(r.right <= kpx && document.elementFromPoint(x, y) === btn)) out.push(btn.dataset.cat);
+        }
+        b.querySelector('.on').scrollIntoView({ inline: 'nearest', block: 'nearest' });
+        return out;
+      });
+      check(`${w}×${h}: with the keypad open every category can be scrolled to and tapped left of it`, reach.length === 0, reach);
+      await p.tap('[data-cat="Speed"]'); await p.waitForTimeout(200);
+      const sp = await p.evaluate(() => { const r = document.querySelector('#cats .on').getBoundingClientRect(); return { cat: document.querySelector('#cats .on').dataset.cat, right: r.right, left: r.left, kp: document.getElementById('kp').getBoundingClientRect().left }; });
+      check(`${w}×${h}: tapping a category with the keypad open selects it, in view left of the keypad`, sp.cat === 'Speed' && sp.left >= 0 && sp.right <= sp.kp, sp);
+      await p.tap('[data-cat="Length"]'); await p.waitForTimeout(200);
       const before = await p.textContent('#table');
       await p.tap('#kp [data-key="2"]');
       check(`${w}×${h}: the units update live as keys are tapped`, (await p.textContent('#table')) !== before && await p.isVisible('#table'));

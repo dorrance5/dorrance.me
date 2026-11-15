@@ -74,6 +74,12 @@ header h1{font-size:20px;font-weight:700;margin:0;letter-spacing:-.01em;white-sp
 .sp{flex:1}
 
 main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:4px 12px calc(env(safe-area-inset-bottom,0px) + 16px);position:relative;z-index:2}
+/* A scroller that is not at its top (base.js sets .scrolled on main, and on main>.col in TV Mount's two panes): its
+   content fades out over the top 16 px instead of being cut hard under the header. A page with a sticky pane on the
+   left sets --nofade to that pane's width, and the fade skips it. */
+.scrolled{
+  -webkit-mask:linear-gradient(#000,#000) 0 0/var(--nofade,0px) 100% no-repeat,linear-gradient(transparent,#000 16px) 100% 0/calc(100% - var(--nofade,0px)) 100% no-repeat;
+  mask:linear-gradient(#000,#000) 0 0/var(--nofade,0px) 100% no-repeat,linear-gradient(transparent,#000 16px) 100% 0/calc(100% - var(--nofade,0px)) 100% no-repeat}
 
 /* generic surface */
 .card{background:var(--tile);border:.5px solid var(--tile-line);box-shadow:var(--tile-shadow);border-radius:20px;padding:14px 16px;margin-bottom:10px}

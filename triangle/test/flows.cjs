@@ -111,6 +111,8 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
   await set(page, { a: '3/0' });
   check('3/0 is marked as bad', await page.evaluate(() => document.getElementById('a').parentElement.classList.contains('bad')));
   check('light and dark theme-color metas', await page.$$eval('meta[name=theme-color][media]', m => m.length) === 2);
+  const cl = await page.evaluate(() => { const st = e => { const s = getComputedStyle(e); return [s.backgroundColor, s.color]; }; const d = document.createElement('button'); d.className = 'danger'; document.body.appendChild(d); const r = { clear: st(document.getElementById('clear')), danger: st(d), right: st(document.getElementById('right')) }; d.remove(); return r; });
+  check('Clear has the red tint of every other Clear; C = 90° stays grey', cl.clear.join() === cl.danger.join() && cl.right.join() !== cl.danger.join(), cl);
 
   // A dark phone starts dark: the theme is set before base.js loads (held back here for 1.5 s)
   {
@@ -137,6 +139,15 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
     check(`${w}×${h}: ${side ? 'drawing on the left, sides beside it' : 'drawing on top, sides below'}`, side ? s.x > d.x + d.w && Math.abs(s.y - d.y) < 4 : s.y >= d.y + d.h, { d, s });
     check(`${w}×${h}: the cards do not overlap`, t.y >= s.y + s.h, { s, t });
     check(`${w}×${h}: no sideways scrolling`, (await sideways(p)) <= 0);
+    // Labels stay inside the drawing's card, 12 px from its edges, even a long one at a vertex on the edge (B 34.263°)
+    await set(p, { a: '6', b: '5', c: '', A: '42.5', B: '', C: '' });
+    const lb = await p.evaluate(() => { const card = document.querySelector('.draw').getBoundingClientRect(); return [...document.querySelectorAll('#svg .lbl')].map(l => { const r = l.getBoundingClientRect(); return { t: l.textContent, l: Math.round(r.left - card.left), r: Math.round(card.right - r.right), u: Math.round(r.top - card.top), d: Math.round(card.bottom - r.bottom) }; }); });
+    const out = lb.filter(x => Math.min(x.l, x.r, x.u, x.d) < 11);
+    check(`${w}×${h}: every label of a wide triangle is whole inside the card`, lb.some(x => /^B 34\.263/.test(x.t)) && out.length === 0, out.length ? out : lb);
+    await set(p, { a: '3', b: '4', c: '5', A: '', B: '', C: '' });
+    // The page scrolled: content fades out over 16 px under the header instead of being cut hard
+    const fd = await p.evaluate(async () => { const m = document.querySelector('main'), a = m.classList.contains('scrolled'); m.scrollTop = 40; await new Promise(r => setTimeout(r, 80)); const b = m.classList.contains('scrolled'), mk = getComputedStyle(m).webkitMaskImage || getComputedStyle(m).maskImage; m.scrollTop = 0; await new Promise(r => setTimeout(r, 80)); return { a, b, c: m.classList.contains('scrolled'), mk, can: m.scrollHeight > m.clientHeight }; });
+    if (fd.can) check(`${w}×${h}: scrolled, the top of the page fades (and not at the top)`, !fd.a && fd.b && !fd.c && /gradient/.test(fd.mk), fd);
     // The keypad: the field sits above it; closed every key is 44 px wide; open upright it spans the width with its keys
     // at most 480 px wide, centred; open sideways it sits under the right pane only, and the drawing stays uncovered.
     await p.tap('#b'); await p.waitForTimeout(450);

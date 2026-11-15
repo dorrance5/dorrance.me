@@ -56,6 +56,12 @@ window.App = (function () {
     toast('Aurora');
   }
 
+  /* ---- the top fade (base.css .scrolled): one listener for every scroller, scroll events reach it in the capture phase ---- */
+  document.addEventListener('scroll', e => {
+    const t = e.target;
+    if (t.nodeType === 1 && t.matches('main, main > .col')) t.classList.toggle('scrolled', t.scrollTop > 0);
+  }, { capture: true, passive: true });
+
   /* ---- phone keyboard (as in Recipes) ---- */
   /* iOS keeps the layout viewport at full height under the keyboard and pans the visual one, so only that one tells.
      html.kb is set while the keyboard is up. --vvh and --vvt (px) are the visible height and offset on :root, written

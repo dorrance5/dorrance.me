@@ -1,6 +1,6 @@
 /* The on-screen number keypad of TV Mount, Converter and Triangle (with shared/keypad.css; the other apps do not load
    it). Like Calculator: whole numbers on the left, numerator over denominator on the right, and a bar under them with
-   slot 1 (± or the feet key ′), Clear, previous and next field, and Done. It replaces the phone keyboard: the app's
+   slot 1 (± or the feet key, labelled ft), Clear, previous and next field, and Done. It replaces the phone keyboard: the app's
    fields are read-only and open it. Built on the first open; one click listener on the keypad and one keydown
    listener on the page, for a hardware keyboard.
 
@@ -170,7 +170,7 @@ window.Keypad = (function () {
     const slot = el.querySelector('[data-slot]'), feet = o.slot === 'feet';
     if (slot.dataset.key !== o.slot) {
       slot.dataset.key = feet ? 'feet' : 'sign';
-      slot.textContent = feet ? '′' : '±';
+      slot.textContent = feet ? 'ft' : '±';
       slot.setAttribute('aria-label', feet ? 'Feet' : 'Plus or minus');
       slot.classList.toggle('ft', feet);
     }
@@ -194,12 +194,14 @@ window.Keypad = (function () {
     document.documentElement.classList.remove('nokb');
   }
   function sync(n, l) { name = n; live = l || ''; paint(); }
-  // Scroll a field to sit 12 px above the keypad, or under the top of its scroller.
-  function reveal(field, scroller) {
+  // Scroll a field to sit 12 px above the keypad, or under the top of its scroller. With box (the field's card), the
+  // card's bottom clears the keypad by 12 px too, as far as the field can still be seen.
+  function reveal(field, scroller, box) {
     if (!field || !el) return;
     const rc = field.getBoundingClientRect(), mr = scroller.getBoundingClientRect();
     const bottom = innerHeight - el.offsetHeight - 12;
-    if (rc.bottom > bottom) scroller.scrollBy({ top: rc.bottom - bottom, behavior: 'smooth' });
+    const need = Math.max(rc.bottom - bottom, box ? Math.min(box.getBoundingClientRect().bottom - bottom, rc.top - mr.top - 8) : 0);
+    if (need > 0) scroller.scrollBy({ top: need, behavior: 'smooth' });
     else if (rc.top < mr.top + 8) scroller.scrollBy({ top: rc.top - mr.top - 8, behavior: 'smooth' });
   }
 
