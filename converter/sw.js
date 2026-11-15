@@ -1,5 +1,5 @@
 /* Converter — offline cache. Bump CACHE when files change. */
-const CACHE = 'converter-v17';
+const CACHE = 'converter-v19';
 const FILES = ['./', './index.html', './manifest.json', './icon-180.png', './icon-512.png', '../shared/base.css', '../shared/base.js'];
 
 self.addEventListener('install', e => {
@@ -12,12 +12,18 @@ self.addEventListener('activate', e => {
     .then(() => self.clients.claim()));
 });
 
-// Serve from cache, refresh the cache in the background
+// Serve from cache, refresh the cache in the background. Only the page itself is refreshed (scripts, styles, icons and the
+// manifest change with a CACHE bump). waitUntil keeps the worker alive until the new copy is stored.
 self.addEventListener('fetch', e => {
-  if (e.request.method !== 'GET' || new URL(e.request.url).origin !== location.origin) return;
+  const url = new URL(e.request.url);
+  if (e.request.method !== 'GET' || url.origin !== location.origin || url.pathname.startsWith('/api/')) return;
+  const fresh = e.request.mode === 'navigate' || /\.(js|css)$/.test(url.pathname);
   e.respondWith(caches.open(CACHE).then(async cache => {
     const hit = await cache.match(e.request);
-    const net = fetch(e.request, { cache: 'no-cache' }).then(r => { if (r.ok) cache.put(e.request, r.clone()); return r; }).catch(() => hit);
+    if (hit && !fresh) return hit;
+    const net = fetch(e.request, { cache: 'no-cache' }).then(async r => { if (r.ok) await cache.put(e.request, r.clone()); return r; })
+      .catch(() => hit || cache.match('./index.html'));
+    if (hit) e.waitUntil(net.catch(() => {}));
     return hit || net;
   }));
 });

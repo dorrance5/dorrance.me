@@ -39,7 +39,7 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
   const reads = (s, want) => page.evaluate(s => parseFrac(s), s).then(v => check(`reads ${s} as ${want}`, v === want, v));
   // A whole number and a fraction need a space: 15/16 is fifteen sixteenths, not 1 5/16
   for (const [s, want] of [['15/16', .9375], ['11/16', .6875], ['13/32', .40625], ['3/4', .75], ['3 15/16', 3.9375], ['3 1/2', 3.5],
-    ['-1 1/2', -1.5], ['.5', .5], ['2.5', 2.5], ['1,000', 1000]]) await reads(s, want);
+    ['-1 1/2', -1.5], ['.5', .5], ['2.5', 2.5], ['1,000', 1000], ['1,5', 1.5], ['0,25', .25], ['-2,5', -2.5], ['1,234.5', 1234.5], ['12,345,678', 12345678]]) await reads(s, want);
   check('a zero denominator is not a number', await page.evaluate(() => isNaN(parseFrac('3/0')) && isNaN(parseFrac('1 3/0'))));
   for (const [s, want] of [["5' 11/16\"", 60.6875], ["5' 3 1/2\"", 63.5], ['5 ft 3.5 in', 63.5], ['5-3', 63], ['63', 63]])
     check(`feet-inches: ${s} is ${want} in`, await page.evaluate(s => parseFtIn(s), s) === want);
@@ -49,6 +49,20 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
   check('15/16 in is 23.8125 mm', await conv('in', 'mm', '15/16') === '23.8125');
   check('1000 mm is 3\' 3 3/8"', await conv('mm', 'ft in', '1000') === '3\' 3 3/8"');
   check('3/0 says Numbers only', await conv('in', 'mm', '3/0') === '–' && (await page.textContent('#sub')) === 'Numbers only');
+  check('1,5 mm shows 1.5 (a decimal comma), not 15', await conv('mm', 'cm', '1,5') === '0.15');
+  check('Return puts the keyboard away', await page.getAttribute('#val', 'enterkeyhint') === 'done' && await (async () => { await page.focus('#val'); await page.keyboard.press('Enter'); return page.evaluate(() => document.activeElement !== document.getElementById('val')); })());
+  check('light and dark theme-color metas', await page.$$eval('meta[name=theme-color][media]', m => m.length) === 2);
+  // The category bar keeps its scroll when a category is tapped (a phone width where the seven do not all fit)
+  {
+    const c = await browser.newContext({ viewport: { width: 382, height: 700 }, isMobile: true, hasTouch: true, serviceWorkers: 'block' }), p = watch(await c.newPage());
+    await p.goto(base); await p.waitForSelector('#val');
+    const before = await p.evaluate(() => { const b = document.getElementById('cats'); b.firstElementChild.__mark = 1; b.scrollLeft = b.scrollWidth; return { sl: b.scrollLeft, over: b.scrollWidth > b.clientWidth }; });
+    await p.tap('[data-cat="Data"]');
+    const after = await p.evaluate(() => { const b = document.getElementById('cats'); return { sl: b.scrollLeft, same: b.firstElementChild.__mark === 1, on: b.querySelector('.on')?.dataset.cat }; });
+    check('the category bar scrolls at 382', before.over && before.sl > 0, before);
+    check('tapping a category keeps the bar scrolled and its buttons', after.sl === before.sl && after.same && after.on === 'Data', { before, after });
+    await c.close();
+  }
   await page.tap('[data-cat="Temperature"]');
   check('212 °F is 100 °C', await conv('°F', '°C', '212') === '100');
   await page.tap('[data-cat="Weight"]');
@@ -139,6 +153,12 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
     }
     swBump = null;
     await c.close();
+  }
+
+  {
+    const src = fs.readFileSync(path.join(root, 'converter', 'sw.js'), 'utf8');
+    check('sw.js: the cache write is awaited and held open with waitUntil', /await cache\.put/.test(src) && /e\.waitUntil\(net/.test(src), src.slice(-600));
+    check('sw.js: refreshes the page, JS and CSS only, with no-cache', /no-cache/.test(src) && /navigate/.test(src) && /\(js\|css\)/.test(src));
   }
 
   check('no console errors', errors.length === 0, errors);

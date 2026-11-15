@@ -34,7 +34,8 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
   const ctx = await browser.newContext({ ...devices['iPhone 13'], serviceWorkers: 'block' });
   const page = watch(await ctx.newPage());
 
-  page.on('dialog', d => d.accept());   // Reset and Delete ask first
+  let dialogs = 0;
+  page.on('dialog', d => { dialogs++; d.accept(); });   // none expected: Reset and Delete ask in a sheet
   // An older Counter saved a time for every tap
   await page.addInitScript(() => {
     if (sessionStorage.getItem('seeded')) return;
@@ -58,6 +59,24 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
   check('−1 stops at 0', await n('b') === '0');
   await page.reload(); await page.waitForSelector('#n-a');
   check('counts are kept after a reload', await n('a') === '3');
+  check('the viewport allows pinch zoom', !/user-scalable/.test(await page.getAttribute('meta[name=viewport]', 'content')));
+  check('light and dark theme-color metas', await page.$$eval('meta[name=theme-color][media]', m => m.length) === 2);
+  // A tap writes the number into its card; the list is not rebuilt
+  await page.evaluate(() => { document.querySelector('[data-id="a"]').__mark = 1; });
+  await page.tap('[data-id="a"]');
+  check('a tap keeps the same card element (no list rebuild)', await n('a') === '4' && await page.evaluate(() => document.querySelector('[data-id="a"]').__mark === 1));
+  await page.tap('[data-id="a"] [data-action="toggle"]');
+  await page.tap('[data-id="a"] [data-action="reset"]');
+  check('Reset asks in a sheet, not a browser dialog', await page.evaluate(() => /Reset Boxes to 0\?/.test(document.querySelector('.sheet')?.textContent || '')) && dialogs === 0);
+  await page.tap('.sheet [data-act="cancel"]');
+  check('Cancel keeps the count', await n('a') === '4' && !(await page.$('.sheet')));
+  await page.tap('[data-id="a"] [data-action="reset"]');
+  await page.tap('.sheet [data-act="ok"]');
+  check('confirming resets it', await n('a') === '0' && !(await page.$('.sheet')) && dialogs === 0);
+  await page.tap('#setBtn'); await page.tap('[data-act="wipe"]');
+  check('Delete all asks in a sheet first and nothing is deleted yet', await page.evaluate(() => /Delete all 2 counters\?/.test(document.querySelector('.sheet')?.textContent || '')) && (await saved()).length === 2);
+  await page.tap('.sheet [data-act="cancel"]');
+  await page.reload(); await page.waitForSelector('#n-a');
   const order = () => page.$$eval('#list .card', cs => cs.map(c => c.dataset.id).join());
   await page.tap('#sortBtn'); await page.tap('[data-sort="name"]');
   check('sort by name', await order() === 'b,a');
@@ -65,6 +84,7 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
   check('sort by highest count', await order() === 'a,b');
   await page.tap('[data-id="a"] [data-action="toggle"]');
   await page.tap('[data-id="a"] [data-action="reset"]');
+  await page.tap('.sheet [data-act="ok"]');
   check('Reset sets it to 0', await n('a') === '0');
   await page.tap('#addBtn'); await page.fill('#fName', 'Mounts'); await page.tap('[data-act="save"]');
   const added = (await saved()).find(c => c.name === 'Mounts');
@@ -153,6 +173,12 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
     }
     swBump = null;
     await c.close();
+  }
+
+  {
+    const src = fs.readFileSync(path.join(root, 'counter', 'sw.js'), 'utf8');
+    check('sw.js: the cache write is awaited and held open with waitUntil', /await cache\.put/.test(src) && /e\.waitUntil\(net/.test(src), src.slice(-600));
+    check('sw.js: refreshes the page, JS and CSS only, with no-cache', /no-cache/.test(src) && /navigate/.test(src) && /\(js\|css\)/.test(src));
   }
 
   check('no console errors', errors.length === 0, errors);

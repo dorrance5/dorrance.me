@@ -894,7 +894,11 @@
 
   /* ---------- tabs ---------- */
   function renderTabs() {
-    const el = $('#tabs'), sl = el.scrollLeft;
+    const el = $('#tabs'), key = doc.tabs.map(t => t.id + '\n' + t.name).join('\n\n');
+    // Same tabs: only move the highlight, so the bar keeps its scroll position.
+    if (el.dataset.key === key) { el.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === doc.current)); return; }
+    const sl = el.scrollLeft;
+    el.dataset.key = key;
     el.innerHTML = doc.tabs.map(t => `<button data-tab="${t.id}" class="${t.id === doc.current ? 'on' : ''}">${esc(t.name)}</button>`).join('')
       + '<button class="add" data-tab="+" aria-label="Add a TV location">+</button>';
     el.scrollLeft = sl;
@@ -1013,7 +1017,7 @@
   const getPass = () => { try { return localStorage.getItem(PASS) || ''; } catch (e) { return ''; } };
   const setPass = v => { try { v ? localStorage.setItem(PASS, v) : localStorage.removeItem(PASS); } catch (e) {} };
   async function api(method, path = '', body) {
-    const res = await fetch(API + path, { method, cache: 'no-store', headers: Object.assign({ 'x-passcode': getPass() }, body ? { 'content-type': 'application/json' } : {}), body: body ? JSON.stringify(body) : undefined });
+    const res = await fetch(API + path, { method, cache: 'no-store', headers: Object.assign({ 'x-passcode': getPass() }, body ? { 'content-type': 'application/json' } : {}), body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout ? AbortSignal.timeout(8000) : undefined });
     if (res.status === 403) { setPass(''); throw Object.assign(new Error('passcode'), { pass: true }); }
     const j = await res.json().catch(() => null);
     if (!res.ok || !j) throw new Error('server');
@@ -1052,6 +1056,7 @@
   async function pushLocal(ask) {
     const pending = () => LISTS.flatMap(k => doc.lib[k].filter(x => x.local).map(x => [k, x]));
     if (!pending().length) return true;
+    const before = libKey();
     if (!getPass() && !(ask && await askPass())) return false;
     try {
       for (const [k, x] of pending()) {
@@ -1062,10 +1067,11 @@
     } catch (e) {
       toast(e.pass ? 'Wrong passcode' : 'Saved on this phone. It shares when the site can be reached.');
       return false;
-    } finally { render(); }
+    } finally { if (libKey() !== before) render(); }
   }
+  const libKey = () => JSON.stringify(doc.lib);
   async function syncLib() {
-    try { setLib(await api('GET')); render(); await pushLocal(false); return true; } catch (e) { return false; }
+    try { const before = libKey(); setLib(await api('GET')); if (libKey() !== before) render(); await pushLocal(false); return true; } catch (e) { return false; }
   }
 
   function libSheet(kind) {

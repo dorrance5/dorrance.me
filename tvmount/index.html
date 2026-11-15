@@ -7,7 +7,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="TV Mount">
-<meta name="theme-color" content="#F4F4F5">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#F4F4F5">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141517">
 <!-- The theme before the first paint, as App.init sets it, so a dark phone does not flash Day. -->
 <script>try{var t=localStorage.getItem('theme')||'auto';if(t==='auto')t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';if(t==='aurora')t='dark';if(t!=='light')document.documentElement.dataset.mode=t}catch(e){}</script>
 <meta name="description" content="Plan where to drill so a wall-mounted TV lands at the planned height. Dimensioned sketch, studs, viewing angle. Works offline.">
@@ -26,7 +27,7 @@
 .tag{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--chip);padding:2px 7px;border-radius:7px}
 
 /* tabs: the shared parts are in shared/base.css */
-.tabs .add{width:40px;padding:0;font-size:20px}
+.tabs .add{width:44px;padding:0;font-size:20px}
 
 /* sketch */
 .skc{padding:0;position:relative;overflow:hidden}
@@ -34,7 +35,8 @@
 .sk:active{cursor:grabbing}
 .sk-bar{display:flex;align-items:center;gap:8px;padding:8px 8px 0 14px}
 .sk-tag{flex:1;font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sk-bar button{height:30px;padding:0 10px;border-radius:10px;background:var(--chip);border:.5px solid var(--chip-line);display:flex;align-items:center;gap:5px;font-size:13px;font-weight:650}
+.sk-bar button{position:relative;height:30px;padding:0 10px;border-radius:10px;background:var(--chip);border:.5px solid var(--chip-line);display:flex;align-items:center;gap:5px;font-size:13px;font-weight:650}
+.sk-bar button::before{content:"";position:absolute;inset:-7px -4px}   /* 44 px to tap, the look stays */
 .sk-bar svg{width:15px;height:15px}
 .sk text{font-family:var(--ui);font-variant-numeric:tabular-nums;paint-order:stroke;stroke:var(--halo);stroke-linejoin:round}
 .sk .tv{fill:var(--tv);stroke:var(--tv-line);stroke-width:2}
@@ -84,14 +86,14 @@
 .res{margin-top:10px;font-size:15px;padding:10px 12px;border-radius:12px;background:var(--blue-bg);color:var(--blue)}
 .res b{font-size:18px;font-variant-numeric:tabular-nums}
 .sizes{gap:6px}
-.sizes .chip{height:38px;padding:0 0;width:calc((100% - 24px)/5);font-size:15px}
+.sizes .chip{height:44px;padding:0 0;width:calc((100% - 24px)/5);font-size:15px}
 .row{display:flex;gap:8px;margin-top:10px}
-.row>.btn{flex:1;height:42px;font-size:15px;padding:0 10px}
+.row>.btn{flex:1;height:44px;font-size:15px;padding:0 10px}
 .btn .cnt{font-size:12px;font-weight:700;background:var(--sel);color:var(--sel-text);border-radius:8px;padding:1px 6px}
 .studs{display:flex;flex-wrap:wrap;gap:6px}
-.studchip{display:inline-flex;align-items:center;height:40px;border-radius:13px;background:var(--chip);border:.5px solid var(--chip-line);font-size:16px;font-weight:600;font-variant-numeric:tabular-nums;overflow:hidden}
+.studchip{display:inline-flex;align-items:center;height:45px;border-radius:13px;background:var(--chip);border:.5px solid var(--chip-line);font-size:16px;font-weight:600;font-variant-numeric:tabular-nums;overflow:hidden}
 .studchip .sv{padding:0 4px 0 12px;height:100%;display:flex;align-items:center}
-.studchip .sx{width:34px;height:100%;color:var(--muted);font-size:18px}
+.studchip .sx{width:44px;height:100%;color:var(--muted);font-size:18px}
 .plate-fig{display:block;width:100%;max-width:360px;margin:0 auto 10px;font:600 11px/1 inherit}
 .plate-fig .pl{fill:var(--chip);stroke:var(--muted);stroke-width:1.5}
 .plate-fig .lh{fill:var(--bg);stroke:var(--text);stroke-width:1.2}
@@ -111,13 +113,13 @@
 .libi .use{flex:1;text-align:left;padding:8px 4px;min-width:0}
 .libi .use b{display:block;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .libi .use span{font-size:13px;color:var(--muted)}
-.libi .del{width:40px;height:40px;border-radius:12px;color:var(--danger-text);font-size:18px}
-.libi .ed{width:40px;height:40px;border-radius:12px;color:var(--muted);display:grid;place-items:center}
+.libi .del{width:44px;height:44px;border-radius:12px;color:var(--danger-text);font-size:18px}
+.libi .ed{width:44px;height:44px;border-radius:12px;color:var(--muted);display:grid;place-items:center}
 .sheet .input{margin-bottom:10px}
 .sheet .stack{margin-top:14px}
 
 /* keypad: whole inches on the left, numerator over denominator on the right, like Calculator */
-.kp{position:fixed;left:0;right:0;bottom:0;z-index:8;background:var(--bg);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);border-top:.5px solid var(--line);padding:8px 8px calc(env(safe-area-inset-bottom,0px) + 8px);box-shadow:0 -10px 30px rgba(0,0,0,.14);animation:up .16s ease-out}
+.kp{position:fixed;left:0;right:0;bottom:0;z-index:8;background:var(--bg);border-top:.5px solid var(--line);padding:8px 8px calc(env(safe-area-inset-bottom,0px) + 8px);box-shadow:0 -10px 30px rgba(0,0,0,.14);animation:up .16s ease-out}
 .kp-in{max-width:560px;margin:0 auto}
 .kp-top{display:flex;align-items:center;gap:10px;padding:0 4px 8px;min-height:40px}
 .kp-name{font-size:13px;font-weight:700;color:var(--muted);line-height:1.2;flex:1;min-width:0}
@@ -157,6 +159,13 @@
   .col{display:block;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 16px)}
   .kp{left:calc(18px + (100% - 36px) * .54);border-left:.5px solid var(--line);border-top-left-radius:20px}
 }
+/* The closed phone (382, 385): tighter gaps and side padding so every key is 44 px wide. */
+@media (max-width:400px){
+  .kp{padding-left:4px;padding-right:4px}
+  .kp-keys{grid-template-columns:140px 1fr;gap:2px}
+  .kp-whole{gap:4px}
+  .kp-sub{gap:2px}
+}
 /* screenshot mode */
 .shot{position:fixed;inset:0;z-index:30;background:var(--bg);display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 8px) 8px calc(env(safe-area-inset-bottom,0px) + 8px)}
 .shot .cap{padding:4px 8px 6px;flex:none}
@@ -169,10 +178,10 @@
 .shot .key span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .shot .key .sk.sw{flex:none;width:22px;height:12px;overflow:visible}
 .shot .key .zone{fill:var(--zone);fill-opacity:.12}
-.shot .x{position:absolute;top:calc(env(safe-area-inset-top,0px) + 10px);right:12px;width:40px;height:40px;border-radius:20px;background:var(--chip);border:.5px solid var(--chip-line);font-size:18px;transition:opacity .4s}
+.shot .x{position:absolute;top:calc(env(safe-area-inset-top,0px) + 10px);right:12px;width:44px;height:44px;border-radius:22px;background:var(--chip);border:.5px solid var(--chip-line);font-size:18px;transition:opacity .4s}
 .shot .x.gone,.shot .vw.gone{opacity:0;pointer-events:none}
 .shot .vw{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);transform:translateX(-50%);width:228px;padding:4px;gap:4px;border-radius:17px;background:var(--tile);box-shadow:0 2px 14px rgba(0,0,0,.14);transition:opacity .4s}
-.shot .vw button{height:34px}
+.shot .vw button{height:44px}
 .seg.fit{grid-auto-columns:auto}
 .seg.fit button{white-space:nowrap;padding:0 8px}
 </style>

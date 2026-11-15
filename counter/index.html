@@ -2,12 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Counter">
-<meta name="theme-color" content="#F4F4F5">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#F4F4F5">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141517">
 <!-- The theme before the first paint, as App.init sets it, so a dark phone does not flash Day. -->
 <script>try{var t=localStorage.getItem('theme')||'auto';if(t==='auto')t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';if(t!=='light')document.documentElement.dataset.mode=t}catch(e){}</script>
 <link rel="manifest" href="manifest.json">
@@ -23,7 +24,7 @@
 .cnt:active{filter:brightness(.96)}
 .left{padding:14px 16px 8px;display:flex;flex-direction:column;justify-content:space-between;min-width:0}
 .name{font-size:20px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.chev{width:44px;height:36px;margin-left:-10px;display:grid;place-items:center}
+.chev{width:44px;height:44px;margin-left:-10px;display:grid;place-items:center}
 .chev svg{width:22px;height:22px;transition:transform .2s}
 .open .chev svg{transform:rotate(180deg)}
 .num{margin:8px;border-radius:14px;background:var(--cbox);min-width:42vw;display:flex;align-items:center;justify-content:flex-end;padding:0 16px;font-size:56px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1;transform-origin:right center;letter-spacing:-.02em}
@@ -33,7 +34,7 @@
 .more{grid-column:1/-1;display:flex;gap:8px;align-items:center;padding:0 8px 8px}
 .more button{height:44px;padding:0 18px;border-radius:13px;font-size:17px;font-weight:650}
 .move{display:flex;gap:6px}
-.move button{width:40px;height:34px;border-radius:10px;display:grid;place-items:center}
+.move button{width:44px;height:44px;border-radius:10px;display:grid;place-items:center}
 .more button,.move button{background:var(--cbox);color:var(--c)}
 .move button:disabled{opacity:.35}
 .move svg{width:20px;height:20px}
@@ -50,7 +51,7 @@
 .c-gray{--c:var(--muted);--cbg:var(--tile);--cbox:var(--chip)}
 .cnt.c-gray{color:var(--text);border-color:var(--tile-line)}
 .swatches{display:flex;gap:10px;margin:4px 0 18px;flex-wrap:wrap}
-.sw{width:40px;height:40px;border-radius:50%;background:var(--c);border:3px solid var(--tile);box-shadow:0 0 0 2px transparent}
+.sw{width:44px;height:44px;border-radius:50%;background:var(--c);border:3px solid var(--tile);box-shadow:0 0 0 2px transparent}
 .sw.on{box-shadow:0 0 0 2px var(--text)}
 .sheet .input{margin-bottom:14px}
 .sheet .stack{margin-top:4px}
@@ -184,10 +185,21 @@ function openCounterSheet(c) {
     const act = e.target.closest('[data-act]')?.dataset.act;
     if (act === 'cancel') closeSheet();
     if (act === 'save') doSave();
-    if (act === 'del' && confirm(`Delete ${c.name}?`)) {
+    if (act === 'del') confirmSheet(`Delete ${c.name}?`, 'The counter and its count are removed.', 'Delete', () => {
       S.counters = S.counters.filter(x => x !== c);
-      save(); closeSheet(); render();
-    }
+      save(); render();
+    });
+  });
+}
+
+// Asks first, in a sheet like TV Mount's, instead of the browser's own dialog.
+function confirmSheet(title, text, label, ok) {
+  const el = sheet(`<h2>${esc(title)}</h2><p class="hint" style="font-size:16px">${esc(text)}</p>
+    <div class="actions"><span class="sp"></span><button class="btn" data-act="cancel">Cancel</button><button class="danger" data-act="ok">${esc(label)}</button></div>`);
+  el.addEventListener('click', e => {
+    const act = e.target.closest('[data-act]')?.dataset.act;
+    if (act === 'cancel') closeSheet();
+    if (act === 'ok') { closeSheet(); ok(); }
   });
 }
 
@@ -212,15 +224,23 @@ function openSettings() {
   el.addEventListener('click', e => {
     setTimeout(syncTheme);   // the shared sheet sets the theme after this handler
     const act = e.target.closest('[data-act]')?.dataset.act;
-    if (act === 'all' && confirm('Reset every counter to 0?')) {
+    if (act === 'all') confirmSheet('Reset all counts?', 'Every counter goes back to 0.', 'Reset all', () => {
       S.counters.forEach(c => c.n = 0);
-      save(); closeSheet(); render();
-    }
-    if (act === 'wipe' && S.counters.length && confirm(`Delete all ${S.counters.length} counters? This can't be undone.`)) {
+      save(); render();
+    });
+    if (act === 'wipe' && S.counters.length) confirmSheet(`Delete all ${S.counters.length} counters?`, 'This can’t be undone.', 'Delete all', () => {
       S.counters = []; expanded.clear(); editing = false;
-      save(); closeSheet(); render();
-    }
+      save(); render();
+    });
   });
+}
+
+// A tap changes one number: write it into its card. Only sorting by count can move the card, and then the list is rebuilt.
+function changed(c) {
+  save();
+  const el = document.getElementById('n-' + c.id);
+  if (S.sort === 'count' || !el) { render(); bump(c.id); return; }
+  el.textContent = count(c); bump(c.id);
 }
 
 /* Events */
@@ -233,11 +253,11 @@ $('#list').addEventListener('click', e => {
   const c = S.counters.find(x => x.id === id);
   if (!c) return;
 
-  if (a === 'inc') { c.n++; save(); render(); bump(id); buzz(12); }
-  if (a === 'dec' && count(c) > 0) { c.n--; save(); render(); bump(id); buzz([8, 30, 8]); }
+  if (a === 'inc') { c.n++; changed(c); buzz(12); }
+  if (a === 'dec' && count(c) > 0) { c.n--; changed(c); buzz([8, 30, 8]); }
   if (a === 'toggle') { expanded.has(id) ? expanded.delete(id) : expanded.add(id); render(); }
   if (a === 'edit') openCounterSheet(c);
-  if (a === 'reset' && confirm(`Reset ${c.name} to 0?`)) { c.n = 0; save(); render(); }
+  if (a === 'reset') confirmSheet(`Reset ${c.name} to 0?`, 'The count goes back to 0.', 'Reset', () => { c.n = 0; save(); render(); });
   if (a === 'up' || a === 'down') {
     const i = S.counters.indexOf(c), j = a === 'up' ? i - 1 : i + 1;
     if (j < 0 || j >= S.counters.length) return;

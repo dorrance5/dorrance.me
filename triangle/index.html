@@ -7,7 +7,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Triangle">
-<meta name="theme-color" content="#F4F4F5">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#F4F4F5">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141517">
 <!-- The theme before the first paint, as App.init sets it, so a dark phone does not flash Day. -->
 <script>try{var t=localStorage.getItem('theme')||'auto';if(t==='auto')t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';if(t!=='light')document.documentElement.dataset.mode=t}catch(e){}</script>
 <meta name="description" content="Triangle solver: enter any three values (at least one side) and get the rest, with a scale drawing, area and heights. Works offline.">
@@ -37,7 +38,7 @@
 .note.err{color:var(--red);font-weight:600}
 .alt{margin:0 0 10px}
 .btns{display:flex;gap:8px;margin-bottom:10px}
-.btns .btn{flex:1;height:42px;font-size:15px}
+.btns .btn{flex:1;height:44px;font-size:15px}
 .tri .s{white-space:nowrap}
 [data-mode="aurora"] .fact{-webkit-backdrop-filter:blur(26px) saturate(190%);backdrop-filter:blur(26px) saturate(190%)}
 /* Sideways (open or closed iPhone Duo, or any phone): the drawing on the left stays in view, the rest on the right.
@@ -61,11 +62,11 @@
 
   <section class="card sec hue-orange">
     <div class="sec-h"><span class="ic orange"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19 12 5l8 14z"/><path d="M8 12.2 6.2 11.2M16 12.2l1.8-1M12 19v2"/></svg></span><span>Sides</span></div>
-    <div class="sec-b"><div class="grid3"><label class="fld"><span class="fk">a</span><input class="fv" id="a" inputmode="decimal" autocomplete="off"></label><label class="fld"><span class="fk">b</span><input class="fv" id="b" inputmode="decimal" autocomplete="off"></label><label class="fld"><span class="fk">c</span><input class="fv" id="c" inputmode="decimal" autocomplete="off"></label></div></div>
+    <div class="sec-b"><div class="grid3"><label class="fld"><span class="fk">a</span><input class="fv" id="a" inputmode="decimal" enterkeyhint="next" autocomplete="off"></label><label class="fld"><span class="fk">b</span><input class="fv" id="b" inputmode="decimal" enterkeyhint="next" autocomplete="off"></label><label class="fld"><span class="fk">c</span><input class="fv" id="c" inputmode="decimal" enterkeyhint="next" autocomplete="off"></label></div></div>
   </section>
   <section class="card sec hue-teal">
     <div class="sec-h"><span class="ic teal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19h16M4 19 16 6"/><path d="M10 19a6 6 0 0 0-1.8-4.4"/></svg></span><span>Angles, in degrees</span></div>
-    <div class="sec-b"><div class="grid3"><label class="fld"><span class="fk">A</span><input class="fv" id="A" inputmode="decimal" autocomplete="off"></label><label class="fld"><span class="fk">B</span><input class="fv" id="B" inputmode="decimal" autocomplete="off"></label><label class="fld"><span class="fk">C</span><input class="fv" id="C" inputmode="decimal" autocomplete="off"></label></div></div>
+    <div class="sec-b"><div class="grid3"><label class="fld"><span class="fk">A</span><input class="fv" id="A" inputmode="decimal" enterkeyhint="next" autocomplete="off"></label><label class="fld"><span class="fk">B</span><input class="fv" id="B" inputmode="decimal" enterkeyhint="next" autocomplete="off"></label><label class="fld"><span class="fk">C</span><input class="fv" id="C" inputmode="decimal" enterkeyhint="done" autocomplete="off"></label></div></div>
   </section>
   <div class="note" id="note"></div>
   <div class="seg alt" id="alt" hidden><button class="on" data-sol="0">Solution 1</button><button data-sol="1">Solution 2</button></div>
@@ -249,6 +250,13 @@ KEYS.forEach(x => {
   const el = $('#' + x);
   el.addEventListener('focus', () => { if (el.parentElement.classList.contains('solved')) { el.value = ''; el.parentElement.classList.remove('solved'); } });
   el.addEventListener('input', () => { clearSolved(); which = 0; update(); });
+  // Return goes to the next field that is not an answer (focusing an answer clears it), and puts the keyboard away after the last.
+  el.addEventListener('keydown', e => {
+    if (!App.isEnter(e)) return;
+    e.preventDefault();
+    const nx = KEYS.slice(KEYS.indexOf(x) + 1).find(k => !$('#' + k).parentElement.classList.contains('solved'));
+    if (nx) $('#' + nx).focus(); else el.blur();
+  });
 });
 $('#alt').addEventListener('click', e => { const b = e.target.closest('[data-sol]'); if (b) { which = +b.dataset.sol; clearSolved(); update(); } });
 $('#clear').onclick = () => { KEYS.forEach(x => $('#' + x).value = ''); which = 0; buzz(8); update(); $('#a').focus(); };

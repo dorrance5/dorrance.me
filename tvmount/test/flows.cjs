@@ -478,6 +478,31 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
     check('saved tabs survive the update', (await tab0()).tv.w === 57.125 && names2.includes('Den'), names2);
   }
 
+  // The tab bar keeps its scroll when a tab is tapped (many tabs at the closed phone width), and the keypad keys are 44 px wide there
+  {
+    const c = await browser.newContext({ viewport: { width: 382, height: 700 }, isMobile: true, hasTouch: true, serviceWorkers: 'block' }), p = await c.newPage();
+    p.on('pageerror', e => errors.push(e.message));
+    await p.goto(base); await p.waitForSelector('#form [data-seg="tv.src"]');
+    for (let i = 0; i < 8; i++) { await p.tap('#tabs .add'); await p.waitForSelector('.sheet'); await p.keyboard.press('Escape'); await p.waitForTimeout(80); }
+    const before = await p.evaluate(() => { const b = document.getElementById('tabs'); b.firstElementChild.__mark = 1; return { sl: b.scrollLeft, over: b.scrollWidth > b.clientWidth }; });
+    await p.tap('#tabs [data-tab]:nth-last-child(3)');
+    const after = await p.evaluate(() => { const b = document.getElementById('tabs'); return { sl: b.scrollLeft, same: b.firstElementChild.__mark === 1, on: [...b.children].indexOf(b.querySelector('.on')), n: b.children.length }; });
+    check('the tab bar scrolls with many TVs', before.over && before.sl > 0, before);
+    check('tapping a tab keeps the bar scrolled and its buttons', Math.abs(after.sl - before.sl) <= 1 && after.same && after.on === after.n - 3, { before, after });
+    await p.tap('[data-seg="tv.src"] [data-v="measured"]');
+    await p.tap('[data-k="tv.w"]'); await p.waitForSelector('#kp:not([hidden])');
+    const w = await p.$$eval('#kp .kp-whole button, #kp .kp-sub button', l => l.map(b => Math.round(b.getBoundingClientRect().width * 10) / 10));
+    check('keypad keys are 44 px wide at 382', Math.min(...w) >= 43.9, Math.min(...w));
+    await c.close();
+  }
+  {
+    const sw = fs.readFileSync(path.join(root, 'tvmount', 'sw.js'), 'utf8'), app = fs.readFileSync(path.join(root, 'tvmount', 'app.js'), 'utf8');
+    check('sw.js: the cache write is awaited and held open with waitUntil', /await cache\.put/.test(sw) && /e\.waitUntil\(net/.test(sw), sw.slice(-600));
+    check('sw.js: refreshes the page, JS and CSS only, with no-cache', /no-cache/.test(sw) && /navigate/.test(sw) && /\(js\|css\)/.test(sw));
+    check('library fetch has a timeout', /AbortSignal\.timeout\(8000\)/.test(app));
+    check('light and dark theme-color metas', await page.$$eval('meta[name=theme-color][media]', m => m.length) === 2);
+  }
+
   check('no console errors', errors.length === 0, errors);
   await browser.close();
   server.close();

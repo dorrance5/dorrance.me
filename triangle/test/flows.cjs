@@ -55,6 +55,18 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
   await page.fill('#a', '3/0');
   check('3/0 is marked as bad', await page.evaluate(() => document.getElementById('a').parentElement.classList.contains('bad')));
 
+  // Return: next field, skipping answers, and the keyboard goes away after the last
+  await page.tap('#clear');
+  check('Return hints: next on five fields, done on C', await page.$$eval('main input', l => l.map(i => i.getAttribute('enterkeyhint')).join()) === 'next,next,next,next,next,done', await page.$$eval('main input', l => l.map(i => i.id + ':' + i.enterkeyhint).join()));
+  await page.focus('#a'); await page.keyboard.press('Enter');
+  check('Return in a goes to b', await page.evaluate(() => document.activeElement.id) === 'b');
+  await page.fill('#a', '3'); await page.fill('#b', '4'); await page.fill('#c', '5');   // A and B are answers now
+  await page.focus('#c'); await page.keyboard.press('Enter');
+  check('Return after c skips the answers A and B (they stay)', await page.evaluate(() => ['A', 'B'].every(x => document.getElementById(x).value !== '') && document.activeElement.id !== 'A' && document.activeElement.id !== 'B'));
+  await page.focus('#C'); await page.keyboard.press('Enter');
+  check('Return in the last field puts the keyboard away', await page.evaluate(() => !document.activeElement || document.activeElement === document.body));
+  check('light and dark theme-color metas', await page.$$eval('meta[name=theme-color][media]', m => m.length) === 2);
+
   // A dark phone starts dark: the theme is set before base.js loads (held back here for 1.5 s)
   {
     const c = await browser.newContext({ ...devices['iPhone 13'], colorScheme: 'dark', serviceWorkers: 'block' });
@@ -140,6 +152,12 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
     }
     swBump = null;
     await c.close();
+  }
+
+  {
+    const src = fs.readFileSync(path.join(root, 'triangle', 'sw.js'), 'utf8');
+    check('sw.js: the cache write is awaited and held open with waitUntil', /await cache\.put/.test(src) && /e\.waitUntil\(net/.test(src), src.slice(-600));
+    check('sw.js: refreshes the page, JS and CSS only, with no-cache', /no-cache/.test(src) && /navigate/.test(src) && /\(js\|css\)/.test(src));
   }
 
   check('no console errors', errors.length === 0, errors);
