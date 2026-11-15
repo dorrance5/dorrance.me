@@ -34,6 +34,8 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
 const decoded = body => Buffer.from(body.content, 'base64').toString('utf8');
 const recipeIn = (text, id) => JSON.parse(text).recipes.find(r => r.id === id);
 const ZUPPA = "Megan's zuppa toscana";
+// a color-mix() comes back from the browser as color(srgb r g b): turn it into rgb() to compare
+const norm = v => { const m = /^color\(srgb ([\d. ]+)\)/.exec(v); return m ? 'rgb(' + m[1].split(' ').map(x => Math.round(x * 255)).join(', ') + ')' : v; };
 const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(246, 201, 69)';
 
 (async () => {
@@ -88,7 +90,7 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
   const closed = (id, p = page) => p.waitForSelector(`#${id}`, { state: 'hidden' });
   const openRecipe = async (name, p = page) => { await p.tap(`#deck .rc:has-text("${name}")`); await opened('view', p); };
   const text = sel => page.textContent(sel);
-  const bg = sel => page.$eval(sel, el => getComputedStyle(el).backgroundColor);
+  const bg = sel => page.$eval(sel, el => getComputedStyle(el).backgroundColor).then(norm);
   const pressed = sel => page.$$eval(sel, els => els.filter(b => b.getAttribute('aria-pressed') === 'true').map(b => b.textContent.trim()));
   const depth = () => page.evaluate(() => (history.state && history.state.sheets) || 0);
   const paste = (sel, t) => page.evaluate(([sel, t]) => {
@@ -139,7 +141,7 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
   const tabs = await tabLabels();
   check('dividers: All on the left, then each category with its count', tabs.join('|') === 'All 11|Crock pot 1|Soup 1', tabs);
   check('All is open', (await pressed('#tabs button')).join() === 'All11');
-  const cardBg = async name => page.$eval(`#deck .rc:has-text("${name}")`, el => getComputedStyle(el).backgroundColor);
+  const cardBg = async name => page.$eval(`#deck .rc:has-text("${name}")`, el => getComputedStyle(el).backgroundColor).then(norm);
   check('cards take their category color: Soup tomato, Crock pot carrot, none butter',
     (await cardBg(ZUPPA)) === TOMATO && (await cardBg('Pepperoncini')) === CARROT && (await cardBg('Burgers')) === BUTTER);
   check('a card with a category shows it', (await text(`#deck .rc:has-text("${ZUPPA}") .tg`)) === 'Soup' && !(await page.$('#deck .rc:has-text("Burgers") .tg')));
@@ -282,15 +284,17 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
     if (kind === 'both') check(`${w}×${h}: ingredients and steps side by side`, shows.stepsL > shows.ingL + 200, shows);
     if (kind === 'beside') {
       check(`${w}×${h}: steps under the ingredients, beside the box`, shows.stepsT >= shows.ingB - 1 && shows.viewL >= shows.pageR - 1 && shows.viewL < w * .5 && !shows.pageInert, shows);
+      check(`${w}×${h}: the box is the left pane, 384 wide`, Math.abs(shows.pageR - 384) < 1 && Math.abs(shows.viewL - 384) < 1, shows);
       check(`${w}×${h}: the open card is marked`, await p.$eval('#deck .rc[aria-current]', el => el.textContent.includes('zuppa')));
+      const nxt = await p.evaluate(() => { const cur = document.querySelector('#deck .rc[aria-current]'), nx = cur.closest('li').nextElementSibling.querySelector('.nm'), r = nx.getBoundingClientRect(), e = document.elementFromPoint(r.left + Math.min(r.width, 60) / 2, r.top + r.height / 2); return { vis: r.bottom <= innerHeight - 70, hit: !!e && nx.closest('li').contains(e) }; });
+      check(`${w}×${h}: the card after the open one has its title unobscured`, nxt.hit, nxt);
       await p.tap('#deck .rc:has-text("Pepperoncini")'); await p.waitForTimeout(300);
-      check(`${w}×${h}: another card shows that recipe, one history entry`, (await p.textContent('#vName')) === 'Pepperoncini roast' && (await p.evaluate(() => history.state && history.state.sheets)) === 1
+      check(`${w}×${h}: another card shows that recipe, no history entry`, (await p.textContent('#vName')) === 'Pepperoncini roast' && !(await p.evaluate(() => history.state && history.state.sheets))
         && await p.$eval('#deck .rc[aria-current]', el => el.textContent.includes('Pepperoncini')));
       await p.setViewportSize({ width: h, height: w }); await p.waitForTimeout(400);   // turned upright
-      check('turned upright, the recipe covers the box again', await p.evaluate(() => document.getElementById('page').inert && !document.querySelector('#deck .rc[aria-current]')));
+      check('turned upright, the recipe covers the box again', await p.evaluate(() => !document.documentElement.classList.contains('side') && !document.querySelector('#deck .rc[aria-current]')));
       await p.setViewportSize({ width: w, height: h }); await p.waitForTimeout(400);
-      await p.tap('#view [data-close]'); await closed('view', p);
-      check('Recipe box closes it and the box fills the screen', await p.evaluate(() => !document.getElementById('page').inert && document.getElementById('page').getBoundingClientRect().width > 600 && !document.documentElement.classList.contains('side')));
+      check('turned back, the box and the last recipe sit side by side again', await p.evaluate(() => document.documentElement.classList.contains('side') && !document.getElementById('page').inert && document.getElementById('vName').textContent === 'Pepperoncini roast'));
     }
     await c.close();
   }
@@ -313,6 +317,36 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
     await p.waitForFunction(() => !document.getElementById('sMe').hidden);
     await p.goBack(); await closed('settings', p);
     await p.waitForSelector('#navPlan:not([hidden])');
+    // a card the same color as the one above is shaded (and not two in a row), and every card has a top edge
+    const run = await p.evaluate(() => {
+      const cs = [...document.querySelectorAll('#deck .rc')], col = el => el.style.getPropertyValue('--c'), bgOf = el => getComputedStyle(el).backgroundColor;
+      let same = 0, bad = [];
+      cs.forEach((el, i) => {
+        if (i && col(el) === col(cs[i - 1])) { same++; if (el.classList.contains('sh') === cs[i - 1].classList.contains('sh') || bgOf(el) === bgOf(cs[i - 1])) bad.push(i); }
+        else if (el.classList.contains('sh')) bad.push(i);
+      });
+      const last = cs[cs.length - 1];
+      return { n: cs.length, same, bad, edge: cs.every(el => /inset/.test(getComputedStyle(el).boxShadow)), lastH: last.getBoundingClientRect().height };
+    });
+    check(`${size}: same-color neighbours alternate shade, other cards are not shaded, every card has a top edge, the last card is trimmed`, run.n > 3 && run.same > 0 && run.bad.length === 0 && run.edge && run.lastH <= 80, run);
+    if (size === 'openSideways') {
+      await openRecipe('zuppa', p); await p.waitForTimeout(300);
+      check('951: the box is the left pane, 384 wide, and the right pane shows the recipe', await p.evaluate(() => Math.abs(document.getElementById('page').getBoundingClientRect().right - 384) < 1 && Math.abs(document.getElementById('view').getBoundingClientRect().left - 384) < 1 && /zuppa/i.test(document.getElementById('vName').textContent)));
+      const nv = await p.evaluate(() => { const n = document.getElementById('nav'), r = n.getBoundingClientRect(), e = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return { shown: !n.hidden && !n.inert, hit: !!e && n.contains(e), right: r.right }; });
+      check('951 with a recipe open: the tab bar is reachable, over the left pane only', nv.shown && nv.hit && nv.right <= 385, nv);
+      await p.tap('#nav [data-go="plan"]'); await opened('plan', p); await p.waitForTimeout(300);
+      check('951 with a recipe open: Meal plan opens from the tab bar, and the box comes back with the recipe after', await p.isVisible('#plan.open'));
+      await p.tap('#nav [data-go="box"]'); await p.waitForTimeout(500);
+      check('951: back on the box, the same recipe is still in the right pane', await p.evaluate(() => document.documentElement.classList.contains('side') && /zuppa/i.test(document.getElementById('vName').textContent) && document.getElementById('view').classList.contains('open') && !document.getElementById('view').inert));
+    }
+    // the grey text on paper is at 4.5:1 or more, in Day
+    const grey = await p.evaluate(() => {
+      const L = h => { const c = [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255).map(v => v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4); return .2126 * c[0] + .7152 * c[1] + .0722 * c[2]; };
+      const cr = (a, b) => { const x = L(a), y = L(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
+      const t = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+      return ['--soft', '--hint'].map(n => [n, ['--card', '--surface', '--ground'].map(b => +cr(t(n), t(b)).toFixed(2))]);
+    });
+    if (size === 'closed') check('Day: the grey text (soft, hint) is at least 4.5:1 on paper, the cards and the page', grey.every(([, v]) => v.every(x => x >= 4.5)), grey);
     for (const go of ['plan', 'grocery']) {
       await p.tap(`#nav [data-go="${go}"]`); await opened(go, p); await p.waitForTimeout(400);
       check(`${size}: no sideways scroll in ${go}`, await p.evaluate(() => document.documentElement.scrollWidth - innerWidth <= 0 && [...document.querySelectorAll('.layer.open')].every(l => l.scrollWidth <= l.clientWidth + 1)));
@@ -550,7 +584,7 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
   check('edit: the change is saved, and the field the page does not know is kept', put.message === 'Recipes: edit Salmon bowls (Madi)' && salmon.servings === '2' && salmon.tags.join() === 'Soup' && salmon.rating === 5, salmon);
   check('409: the other change (Ketchup) is kept too', recipeIn(gh.text, 'burgers-and-fries').ingredients.includes('Ketchup'));
   check('edit: back on the recipe, which shows the change', (await page.$$eval('#vBody .chip', cs => cs.map(c => c.textContent).join('|'))) === 'Soup|Serves 2' && (await depth()) === 1);
-  check('edit: the card is now tomato', (await page.$eval('#vBody .strip', s => getComputedStyle(s).backgroundColor)) === TOMATO);
+  check('edit: the card is now tomato', (await page.$eval('#vBody .strip', s => getComputedStyle(s).backgroundColor).then(norm)) === TOMATO);
 
   /* ---- errors keep the editor open ---- */
   await tap('#editBtn');
@@ -998,11 +1032,11 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
 
   // Night: the headers keep their colors, with ink text
   await page.evaluate(() => { localStorage.setItem('theme', 'dark'); dispatchEvent(new StorageEvent('storage', { key: 'theme' })); });
-  check('Night: the grocery header stays butter, with ink text, on the night ground',
-    (await bg('#grocery .grohead')) === BUTTER && (await page.$eval('#gTitle', h => getComputedStyle(h).color)) === INK && (await bg('#grocery')) === 'rgb(28, 21, 18)');
+  check('Night: the grocery header is butter one step dimmer, with ink text, on the night ground',
+    (await bg('#grocery .grohead')) === 'rgb(220, 179, 63)' && (await page.$eval('#gTitle', h => getComputedStyle(h).color)) === INK && (await bg('#grocery')) === 'rgb(28, 21, 18)');
   await tap('#nav [data-go="plan"]');
   await opened('plan');
-  check('Night: the plan header stays carrot, with ink text', (await bg('#plan .planhead')) === CARROT && (await page.$eval('#pTitle', h => getComputedStyle(h).color)) === INK);
+  check('Night: the plan header is carrot one step dimmer, with ink text', (await bg('#plan .planhead')) === 'rgb(201, 111, 43)' && (await page.$eval('#pTitle', h => getComputedStyle(h).color)) === INK);
   await page.evaluate(() => { localStorage.setItem('theme', 'auto'); dispatchEvent(new StorageEvent('storage', { key: 'theme' })); });
   await page.goBack();
   await closed('plan');

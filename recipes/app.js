@@ -98,7 +98,8 @@
     loaded = true;
     if (!fromCache) store.set(CACHE, JSON.stringify(d));
     renderBox();
-    if (viewId && isOpen(view) && !renderView(viewId) && top() === view) back(true);   // deleted on another phone
+    if (viewId && (isOpen(view) || side()) && !renderView(viewId) && top() === view) back(true);   // deleted on another phone
+    restView();
     if (isOpen(cook)) renderCook();
     drawMeals();   // the names and colors of the planned dinners
     if (session() && session().admin) drawCatList();
@@ -171,12 +172,15 @@
   function renderDeck() {
     clearTimeout(qT);
     const t = q.value.trim(), cards = [];
+    let above = '', shaded = false;   // a card the same color as the one above it, and not shaded itself, gets a shade (.sh)
     for (const r of shelf.book) {
       if (!inTab(r)) continue;
       const m = t ? D.match(r, t) : null;
       if (t && !m) continue;
-      const w = why(r, m, t), first = r.tags[0];
-      cards.push(`<li><button class="rc" type="button" data-id="${D.esc(r.id)}" style="${paint(colorOf(first))}"><span class="rc-top"><span class="nm serif">${D.hl(r.name, t)}</span>${first ? `<span class="tg">${D.esc(first)}</span>` : ''}</span>${w ? `<span class="hit">${w}</span>` : ''}</button></li>`);
+      const w = why(r, m, t), first = r.tags[0], c = colorOf(first);
+      shaded = c[0] === above && !shaded;
+      above = c[0];
+      cards.push(`<li><button class="rc${shaded ? ' sh' : ''}" type="button" data-id="${D.esc(r.id)}" style="${paint(c)}"><span class="rc-top"><span class="nm serif">${D.hl(r.name, t)}</span>${first ? `<span class="tg">${D.esc(first)}</span>` : ''}</span>${w ? `<span class="hit">${w}</span>` : ''}</button></li>`);
     }
     deck.innerHTML = cards.join('');
     markOpen();
@@ -231,8 +235,20 @@
   const stack = [];
   // Sideways on a wide screen (the open iPhone Duo), an open recipe sits beside the box instead of over it, and the
   // box stays in use: a tap on another card shows that one.
-  const wide = matchMedia('(orientation: landscape) and (min-width: 800px)');
-  const side = () => wide.matches && stack.length === 1 && top() === view;
+  // From 900 px wide, or sideways from 800, the box is always the left pane and the right one shows the last recipe
+  // (or "Pick a recipe"); the recipe is not a screen on the stack then, until something opens over both panes.
+  const wide = matchMedia('(min-width: 900px), (orientation: landscape) and (min-width: 800px)');
+  const side = () => wide.matches && stack.length === 0;
+  const last = () => { const id = store.get('lastRecipe'); return recipes.some(x => x.id === id) ? id : null; };
+  function restView() {
+    const on = side();
+    root.classList.toggle('side', on);
+    if (on) {
+      if (!viewId || !recipes.some(x => x.id === viewId)) { viewId = null; const id = last(); if (id && loaded) renderView(id); }
+      view.hidden = false; view.classList.add('open'); view.style.zIndex = ''; view.inert = false;
+      view.classList.toggle('empty', !viewId);
+    } else if (!isOpen(view)) { view.classList.remove('open', 'empty'); view.hidden = true; }
+  }
   function markOpen() {
     const on = side();
     deck.querySelectorAll('.rc').forEach(b => { if (on && b.dataset.id === viewId) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current'); });
@@ -254,6 +270,7 @@
     holdPage(stack.length > 0 && !beside);
     fit();
     root.classList.toggle('side', beside);
+    restView();
     markOpen();
     $('vBackText').textContent = stack[stack.indexOf(view) - 1] === plan ? 'Meal plan' : 'Recipe box';
     drawNav();
@@ -275,7 +292,7 @@
     setInert();
     const o = refocus && l.opener;
     if (o && o.matches && o.matches('button, a, input') && document.contains(o) && !o.closest('[inert]')) o.focus({ preventScroll: true });
-    const done = () => { if (!l.classList.contains('open')) l.hidden = true; };
+    const done = () => { if (!l.classList.contains('open')) l.hidden = true; };   // the recipe pane stays: restView puts 'open' back
     if (reduceMotion.matches) done(); else setTimeout(done, 340);
     if (l === cook) stopTimers();
     if (l === editor) disarm();
@@ -320,7 +337,7 @@
     }
   });
   if (history.state && history.state.sheets) history.replaceState(null, '');
-  wide.addEventListener('change', setInert);   // turned or folded with a recipe open
+  wide.addEventListener('change', () => { if (wide.matches && stack.length === 1 && top() === view) closeAll(); else setInert(); });   // turned or folded with a recipe open
   layers.forEach(l => l.addEventListener('click', e => { if (e.target.closest('[data-close]')) back(); }));
   cookIng.addEventListener('click', e => { if (e.target === cookIng) back(); });   // a tap on the dim part
   pick.addEventListener('click', e => { if (e.target === pick) back(); });
@@ -421,7 +438,7 @@
 
   /* ---- keep the screen on while a recipe or cooking mode is open ---- */
   let lock = null;
-  const wanted = () => isOpen(view) || isOpen(cook);
+  const wanted = () => isOpen(view) || side() && !!viewId || isOpen(cook);
   async function wakeCheck() {
     if (!wanted()) { const l = lock; lock = null; if (l) l.release().catch(() => {}); return; }
     if (lock || !navigator.wakeLock) return;
@@ -445,6 +462,7 @@
     if (!r) return false;
     if (id !== viewId) half = 'ing';
     viewId = id;
+    store.set('lastRecipe', id);
     const me = viewer(), mine = !!me && D.canEdit(r, me);
     const chips = r.tags.map(t => `<span class="chip" style="${paint(colorOf(t))}">${D.esc(t)}</span>`);
     if (r.servings) chips.push(`<span class="chip plain">${D.esc(/^\d/.test(r.servings) ? 'Serves ' + r.servings : r.servings)}</span>`);
@@ -498,12 +516,12 @@
     } finally {
       busyBook = false;
       renderBox();
-      if (viewId && isOpen(view)) renderView(viewId);
+      if (viewId && (isOpen(view) || side())) renderView(viewId);
     }
   }
   function openView(id, card) {
     if (!renderView(id)) return;
-    if (side()) { view.opener = card; view.scrollTop = 0; markOpen(); return; }   // beside the box: show this one instead
+    if (side()) { view.opener = card; view.scrollTop = 0; restView(); markOpen(); wakeCheck(); return; }   // beside the box: show this one instead
     open(view, card);
     wakeCheck();
   }
@@ -827,6 +845,7 @@
       if (top() !== editor) return;
       renderView(out.recipe.id);
       if (editId || copyOf) back(true);   // the recipe under the editor now shows the change, or the copy
+      else if (wide.matches) back(true);   // the right pane shows the new recipe
       else { swap(view); wakeCheck(); }   // show the new recipe
     } catch (e) {
       error(failText(e, 'The change is not saved.'), needsSignIn(e));
@@ -1386,7 +1405,7 @@
     const v = shown(), h = viewer(), now = h ? `${h.key}|${h.partner || ''}` : '';
     if (now !== house) {   // a new household: the book is someone else's too, or no longer
       house = now;
-      if (loaded) { renderBox(); if (viewId && isOpen(view)) renderView(viewId); }
+      if (loaded) { renderBox(); if (viewId && (isOpen(view) || side())) renderView(viewId); }
     }
     refocus(() => {
       if (v) { drawPlan(v); drawGrocery(v); }

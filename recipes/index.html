@@ -35,6 +35,7 @@ if(navigator.standalone)document.documentElement.classList.add('app');
    and the grocery list for the two planners. Themes: Day and Night.
    The design is the "Recipes v2" canvas; docs/recipes-handoff.md has the rules. */
 :root {
+  --night: #1C1512; --dimc: 0%; --topedge: rgba(255, 251, 242, .3);
   --tomato: #C63A24; --tomato-deep: #A82F1C; --shadow: #8E2817;
   --butter: #F6C945; --carrot: #E07B2E; --cream: #FFF6E6; --kicker: #FFF1CC; --on-butter: #2A1D17;
   --ground: #FBF3E4;
@@ -66,14 +67,14 @@ if(navigator.standalone)document.documentElement.classList.add('app');
   :root:not([data-theme="light"]) {
     --ground: #1C1512; --surface: #2A201B; --ink: #F6EBDA; --soft: #C8B6A3; --line: #3D3029; --tint: #33271F; --track: #33271F;
     --edge: #93806E; --hint: #A8968A; --card: #2A201B; --red-rule: #B85544; --blue-rule: #3D3029; --link: #F2836B; --link-hover: #FFA48F;
-    --note: #3F321C; --kick: #F6C945; --solid: #F6EBDA; --on-solid: #2A1D17; --focus: #F6C945; --idle: #2A201B; --lift: rgba(0, 0, 0, .6); --lift-edge: rgba(0, 0, 0, .3);
+    --note: #3F321C; --kick: #F6C945; --solid: #F6EBDA; --on-solid: #2A1D17; --focus: #F6C945; --idle: #2A201B; --tomato: #B23622; --butter: #DCB33F; --carrot: #C96F2B; --dimc: 12%; --topedge: rgba(246, 235, 218, .14); --lift: rgba(0, 0, 0, .6); --lift-edge: rgba(0, 0, 0, .3);
     --dim: rgba(10, 6, 4, .6); color-scheme: dark;
   }
 }
 :root[data-theme="dark"], :root[data-theme="aurora"] {
   --ground: #1C1512; --surface: #2A201B; --ink: #F6EBDA; --soft: #C8B6A3; --line: #3D3029; --tint: #33271F; --track: #33271F;
   --edge: #93806E; --hint: #A8968A; --card: #2A201B; --red-rule: #B85544; --blue-rule: #3D3029; --link: #F2836B; --link-hover: #FFA48F;
-  --note: #3F321C; --kick: #F6C945; --solid: #F6EBDA; --on-solid: #2A1D17; --focus: #F6C945; --idle: #2A201B; --lift: rgba(0, 0, 0, .6); --lift-edge: rgba(0, 0, 0, .3);
+  --note: #3F321C; --kick: #F6C945; --solid: #F6EBDA; --on-solid: #2A1D17; --focus: #F6C945; --idle: #2A201B; --tomato: #B23622; --butter: #DCB33F; --carrot: #C96F2B; --dimc: 12%; --topedge: rgba(246, 235, 218, .14); --lift: rgba(0, 0, 0, .6); --lift-edge: rgba(0, 0, 0, .3);
   --dim: rgba(10, 6, 4, .6); color-scheme: dark;
 }
 
@@ -125,7 +126,7 @@ h1, h2, h3 { margin: 0; }
 
 /* ---- the recipe box ---- */
 .hero {
-  display: flex; flex-direction: column; gap: 18px; padding: calc(30px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 22px calc(16px + env(safe-area-inset-left));
+  display: flex; flex-direction: column; gap: 18px; padding: calc(30px + env(safe-area-inset-top)) max(calc(16px + env(safe-area-inset-right)), calc((100% - 640px) / 2 + 16px)) 22px max(calc(16px + env(safe-area-inset-left)), calc((100% - 640px) / 2 + 16px));
   background: var(--tomato); color: var(--cream); border-radius: 0 0 28px 28px;
 }
 .hero-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
@@ -133,9 +134,13 @@ h1, h2, h3 { margin: 0; }
 .kicker { font-size: 13px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--kicker); }
 .hero h1 { font-weight: 800; font-size: 46px; line-height: .98; letter-spacing: -.01em; }
 .addbtn, .signin {
-  flex: none; display: flex; align-items: center; justify-content: center; width: 52px; height: 52px; border: 0; border-radius: 999px;
-  background: var(--butter); color: var(--on-butter); box-shadow: 0 3px 0 var(--shadow);
+  flex: none; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border: 0; border-radius: 999px;
+  background: none; color: var(--on-butter);
 }
+/* the + is a 40 px circle in a 44 px tap target */
+.addbtn, .signin { position: relative; }
+.addbtn::before, .signin::before { content: ''; position: absolute; inset: 2px; border-radius: 999px; background: var(--butter); box-shadow: 0 3px 0 var(--shadow); }
+.addbtn svg, .signin svg { position: relative; }
 .signin { padding: 0; }
 .search {
   display: flex; align-items: center; gap: 10px; height: 50px; padding: 0 8px 0 16px; border-radius: 999px; background: var(--cream); color: var(--on-butter);
@@ -153,9 +158,10 @@ h1, h2, h3 { margin: 0; }
 .search input::-webkit-search-cancel-button { display: none; }
 .search .clear { width: 44px; height: 44px; border: 0; border-radius: 999px; background: none; color: #6B5348; display: flex; align-items: center; justify-content: center; }
 
-.dividers { position: sticky; top: 0; z-index: 5; padding: 18px calc(16px + env(safe-area-inset-right)) 0 calc(16px + env(safe-area-inset-left)); background: var(--ground); }
+.dividers { position: sticky; top: 0; z-index: 5; padding: 18px max(calc(16px + env(safe-area-inset-right)), calc((100% - 640px) / 2 + 16px)) 0 max(calc(16px + env(safe-area-inset-left)), calc((100% - 640px) / 2 + 16px)); background: var(--ground); }
 .tabs { display: flex; align-items: flex-end; gap: 6px; overflow-x: auto; scrollbar-width: none; }   /* as wide as the band, so the open tab never hangs past it */
 .tabs::-webkit-scrollbar { display: none; }
+.tabs::after { content: ''; flex: none; width: 10px; }   /* room after the last tab, so the open one never touches the screen's edge */
 .tabs button {
   flex: none; display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 10px 14px; border: 0; border-radius: 14px 14px 0 0;
   background: var(--idle); color: var(--ink); font-size: 15px; font-weight: 700;
@@ -166,30 +172,35 @@ h1, h2, h3 { margin: 0; }
 }
 .tabs button[aria-pressed="true"] .n { background: var(--on-solid); color: var(--solid); }
 .band { height: 8px; border-radius: 0 8px 0 0; background: var(--c, var(--solid)); }
-.notice { margin: 16px calc(16px + env(safe-area-inset-right)) 0 calc(16px + env(safe-area-inset-left)); padding: 12px 16px; border-radius: 16px; background: var(--note); font-size: 15px; font-weight: 600; line-height: 1.45; }
+.notice { margin: 16px max(calc(16px + env(safe-area-inset-right)), calc((100% - 640px) / 2 + 16px)) 0 max(calc(16px + env(safe-area-inset-left)), calc((100% - 640px) / 2 + 16px)); padding: 12px 16px; border-radius: 16px; background: var(--note); font-size: 15px; font-weight: 600; line-height: 1.45; }
 
 .deck {
   list-style: none; margin: 0; display: flex; flex-direction: column;
-  padding: 24px calc(16px + env(safe-area-inset-right)) 28px calc(16px + env(safe-area-inset-left));
+  padding: 24px max(calc(16px + env(safe-area-inset-right)), calc((100% - 640px) / 2 + 16px)) 28px max(calc(16px + env(safe-area-inset-left)), calc((100% - 640px) / 2 + 16px));
 }
 .deck li { position: relative; }
 .deck li:focus-within { z-index: 2; }
 .deck li + li { margin-top: -46px; }
 .rc {
   display: flex; flex-direction: column; gap: 4px; width: 100%; min-height: 104px; padding: 15px 18px 58px; border: 0; border-radius: 18px;
-  background: var(--c); color: var(--cf); text-align: left; -webkit-user-select: auto; user-select: auto;
-  box-shadow: 0 -1px 0 var(--lift-edge), 0 -10px 20px -10px var(--lift);
+  --bg: color-mix(in srgb, var(--c), var(--night) var(--dimc));
+  background: var(--bg); color: var(--cf); text-align: left; -webkit-user-select: auto; user-select: auto;
+  box-shadow: inset 0 1px 0 var(--topedge), 0 -1px 0 var(--lift-edge), 0 -10px 20px -10px var(--lift);
   transition: transform .16s ease;
 }
 .rc:active { transform: translateY(-4px); }
+/* the card above is the same color (app.js sets .sh): a shade of it, so the two read as two cards */
+.rc.sh { background: color-mix(in srgb, var(--bg), var(--ink) 10%); }
+/* the last card ends the deck: its strip and a little more */
+.deck li:last-child .rc { min-height: 78px; padding-bottom: 20px; }
 .rc-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; }
 .rc .nm { min-width: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; font-size: 21px; font-weight: 700; line-height: 1.25; }
-.rc .tg { flex: none; padding: 3px 10px; border: 1.5px solid currentColor; border-radius: 999px; font-size: 13px; font-weight: 700; }
+.rc .tg { flex: none; display: inline-flex; align-items: center; height: 28px; padding: 0 10px; border: 1.5px solid currentColor; border-radius: 999px; font-size: 13px; font-weight: 700; }
 .rc .hit { font-size: 15px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 mark { background: rgba(255, 246, 230, .9); color: var(--on-butter); border-radius: 3px; padding: 0 1px; }
-.none { margin: 8px calc(16px + env(safe-area-inset-right)) 0 calc(16px + env(safe-area-inset-left)); font-size: 16px; line-height: 1.45; color: var(--soft); }
+.none { margin: 8px max(calc(16px + env(safe-area-inset-right)), calc((100% - 640px) / 2 + 16px)) 0 max(calc(16px + env(safe-area-inset-left)), calc((100% - 640px) / 2 + 16px)); font-size: 16px; line-height: 1.45; color: var(--soft); }
 /* Shared with you: the family's shared recipes that are not in the book */
-.others { display: flex; flex-direction: column; gap: 10px; padding: 20px calc(16px + env(safe-area-inset-right)) 28px calc(16px + env(safe-area-inset-left)); }
+.others { display: flex; flex-direction: column; gap: 10px; padding: 20px max(calc(16px + env(safe-area-inset-right)), calc((100% - 640px) / 2 + 16px)) 28px max(calc(16px + env(safe-area-inset-left)), calc((100% - 640px) / 2 + 16px)); }
 .others h2 { margin: 0; font-size: 13px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--soft); }
 .others > p { margin: 0; font-size: 15px; line-height: 1.45; color: var(--soft); }
 .others ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
@@ -202,10 +213,21 @@ mark { background: rgba(255, 246, 230, .9); color: var(--on-butter); border-radi
 .others .sw-open .nm { font-size: 18px; font-weight: 700; line-height: 1.2; overflow-wrap: anywhere; }
 .others .sw-open small { font-size: 13px; color: var(--soft); }
 .others .pill { flex: none; border-color: var(--edge); padding: 0 18px; }
-#page { max-width: 640px; margin: 0 auto; }
+#page { max-width: none; }
 /* sideways on the open iPhone Duo: the box on the left, the open recipe on the right (app.js sets .side) */
-html.side #page { max-width: none; width: 42%; margin: 0; }
-html.side #view { left: 42%; box-shadow: -1px 0 0 var(--line); }
+html.side { --pane: 42%; }
+html.side #page { width: var(--pane); }
+html.side #view { left: var(--pane); box-shadow: -1px 0 0 var(--line); }
+html.side .nav { right: auto; width: var(--pane); }
+html.side #view [data-close] { display: none; }
+html.side #view .topbar { justify-content: flex-end; }
+/* nothing picked yet: a paper card where the recipe goes */
+.vempty { display: none; }
+#view.empty .vempty { display: flex; align-items: center; justify-content: center; min-height: 240px; }
+#view.empty .topbar, #view.empty #vBody { display: none; }
+.vempty p { margin: 0; font-size: 24px; font-weight: 800; color: var(--soft); }
+@media (min-width: 900px) { html.side { --pane: 384px; } }
+html.side .deck li:has(> .rc[aria-current]) { z-index: auto; }   /* the open card stays at strip height: the next card's title is never under it */
 html.side .rc[aria-current] { transform: translateY(-10px); box-shadow: inset 0 0 0 3px var(--cf), 0 -10px 20px -10px var(--lift); }
 body.has-nav #page { padding-bottom: calc(72px + max(16px, env(safe-area-inset-bottom))); }
 
@@ -244,11 +266,11 @@ html.kb .layer:not(.over)::after { content: ''; display: block; height: calc(var
 
 /* the recipe: an index card with a red rule and blue lines */
 .index { display: flex; flex-direction: column; border-radius: 8px; background: var(--card); box-shadow: 0 1px 0 var(--lift-edge), 0 22px 40px -20px var(--lift); overflow: hidden; }
-.index .strip { height: 12px; background: var(--c); }
+.index .strip { height: 12px; background: color-mix(in srgb, var(--c), var(--night) var(--dimc)); }
 .index .head { display: flex; flex-direction: column; gap: 12px; padding: 18px 20px 0; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.chip { padding: 4px 12px; border-radius: 999px; background: var(--c); color: var(--cf); font-size: 13px; font-weight: 700; }
-.chip.plain { padding: 3px 11px; border: 1.5px solid var(--ink); background: none; color: var(--ink); }
+.chip { display: inline-flex; align-items: center; height: 28px; padding: 0 12px; border-radius: 999px; background: color-mix(in srgb, var(--c), var(--night) var(--dimc)); color: var(--cf); font-size: 13px; font-weight: 700; }
+.chip.plain { padding: 0 11px; border: 1.5px solid var(--ink); background: none; color: var(--ink); }
 .index .topline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 .index .by { margin: 0 0 0 auto; color: var(--soft); font-size: 14px; font-weight: 700; }
 .index h1 { font-weight: 800; font-size: 34px; line-height: 1.08; letter-spacing: -.01em; text-wrap: balance; overflow-wrap: anywhere; }
@@ -270,9 +292,10 @@ html.kb .layer:not(.over)::after { content: ''; display: block; height: calc(var
 }
 @media (min-width: 640px) and (orientation: portrait), (min-width: 640px) and (max-width: 799px) {
   .index .body.both { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); column-gap: 28px; align-items: start; }
+  html.side .index .body.both { display: flex; }
 }
 .lines { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; }
-.lines li { display: flex; align-items: baseline; gap: 8px; min-height: 44px; padding: 11px 0 9px; border-bottom: 1px solid var(--blue-rule); font-size: 17px; line-height: 1.4; overflow-wrap: anywhere; }
+.lines li { display: flex; align-items: baseline; gap: 8px; min-height: 44px; padding: 11px 0 9px; border-bottom: 1px solid var(--line); font-size: 17px; line-height: 1.4; overflow-wrap: anywhere; }
 .lines strong { flex: none; font-weight: 800; }
 .lines.steps li { align-items: flex-start; gap: 12px; padding: 12px 0; line-height: 1.5; }
 .lines .num {
@@ -518,7 +541,7 @@ body.has-nav #plan .planbody, body.has-nav #grocery .grobody { padding-bottom: c
 .date .dn { display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 999px; font-size: 19px; font-weight: 800; }
 .date.today .dw { color: var(--link); }
 .date.today .dn { background: var(--tomato); color: var(--cream); }
-.dinner { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; min-height: 60px; padding: 0 4px 0 16px; border-radius: 16px; background: var(--c); color: var(--cf); }
+.dinner { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; min-height: 60px; padding: 0 4px 0 16px; border-radius: 16px; background: color-mix(in srgb, var(--c), var(--night) var(--dimc)); color: var(--cf); }
 .dinner.note { border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); }
 .dinner .what {
   flex: 1; min-width: 0; align-self: stretch; display: flex; align-items: center; padding: 8px 0; border: 0; background: none; color: inherit;
@@ -544,7 +567,9 @@ body.has-nav #plan .planbody, body.has-nav #grocery .grobody { padding-bottom: c
   flex: 1; min-width: 0; height: 50px; padding: 0 16px; border: 1.5px solid var(--edge); border-radius: 999px; background: var(--surface); font-size: 17px;
   -webkit-appearance: none; appearance: none;
 }
-.gform .round { flex: none; display: flex; align-items: center; justify-content: center; width: 50px; height: 50px; border: 0; border-radius: 999px; background: var(--solid); color: var(--on-solid); }
+.gform .round { flex: none; display: flex; align-items: center; justify-content: center; position: relative; width: 44px; height: 44px; border: 0; border-radius: 999px; background: none; color: var(--on-solid); }
+.gform .round::before { content: ''; position: absolute; inset: 2px; border-radius: 999px; background: var(--solid); }
+.gform .round svg { position: relative; }
 .gsec > h2, .ghead h2 { margin: 10px 0 0; font-size: 13px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--soft); }
 .ghead { display: flex; align-items: center; justify-content: space-between; margin: 14px 0 0; }
 .ghead h2 { margin: 0; }
@@ -636,7 +661,8 @@ html.kb .over.pick .row { justify-content: flex-end; }
   .hero h1 { font-size: 24px; line-height: 1.1; white-space: nowrap; }
   .search { flex: 1 1 240px; min-width: 240px; height: 36px; }
   .search .clear { width: 36px; height: 36px; }
-  .addbtn, .signin { width: 40px; height: 40px; }
+  .addbtn, .signin { width: 44px; height: 44px; }
+  .addbtn, .signin { margin: -2px; }
   .addbtn svg, .signin svg { width: 22px; height: 22px; }
   .dividers { padding-top: 12px; }
   .tabs button, .tabs button[aria-pressed="true"] { min-height: 44px; }
@@ -752,6 +778,7 @@ html.kb .over.pick .row { justify-content: flex-end; }
       </button>
     </div>
     <div id="vBody" style="display: contents"></div>
+    <div class="index vempty"><p class="serif">Pick a recipe</p></div>
   </div>
 </section>
 
