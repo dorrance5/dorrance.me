@@ -436,6 +436,18 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
       return { top: fr.top, bottom: fr.bottom, rowBottom: Math.max(sv.bottom, cn.bottom), hi: visualViewport.offsetTop + visualViewport.height, hit: hit && (hit.id || hit.tagName) };
     });
     check(`${tag} keyboard: the focused Dish field is not covered by the row`, dish.top >= dish.rowBottom - 1 && dish.bottom <= dish.hi + 1 && dish.hit === 'fDish', dish);
+    // Ingredients and Steps: the label and hint stay below the pinned row when the field is focused
+    for (const [fid, lab] of [['fIngredients', 'fIngredients'], ['fSteps', 'fSteps']]) {
+      const lb = await p.evaluate(async ([fid, lab]) => {
+        const ed = document.getElementById('editor'); ed.scrollTop = 0;
+        document.getElementById('fDish').focus(); await new Promise(r => setTimeout(r, 300));
+        document.getElementById(fid).focus(); await new Promise(r => setTimeout(r, 600));
+        const l = document.querySelector(`label[for="${lab}"]`).getBoundingClientRect(), h = document.getElementById(fid).previousElementSibling.getBoundingClientRect();
+        const sv = document.getElementById('eSave').getBoundingClientRect(), cn = document.getElementById('eCancel').getBoundingClientRect();
+        return { labelTop: l.top, blockTop: h.top, rowBottom: Math.max(sv.bottom, cn.bottom) };
+      }, [fid, lab]);
+      check(`${tag} keyboard: focusing ${fid} leaves its label and hint below the top row`, lb.labelTop >= lb.rowBottom - 1 && lb.blockTop >= lb.rowBottom - 1, lb);
+    }
     // the glass keyboard shows what is under the layout viewport edge: 20 px under the visible area must still be the layer
     const under = await p.evaluate(() => {
       const vv = visualViewport, y = Math.min(vv.offsetTop + vv.height + 20, innerHeight - 1), l = document.getElementById('editor'), r = l.getBoundingClientRect();

@@ -381,7 +381,7 @@ p.source { margin: 0; color: var(--soft); }
 .formbar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; }
 /* the editor: a pinned top row, Cancel pill left, title centred, Save pill right, nothing behind it but a fade of the page colour.
    It is sticky inside the layer, which already follows the visible area, so it stays at the top with or without the keyboard. */
-#editor { display: flex; flex-direction: column; scroll-padding-top: 80px; scroll-padding-bottom: 60px; }
+#editor { display: flex; flex-direction: column; scroll-padding-top: 132px; scroll-padding-bottom: 60px; }
 #editor .screen { flex: none; width: 100%; padding-top: 16px; }
 .ebar {
   position: sticky; top: 0; z-index: 3; flex: none; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; height: calc(64px + env(safe-area-inset-top)); box-sizing: border-box;
@@ -404,7 +404,10 @@ p.source { margin: 0; color: var(--soft); }
 @media (max-height: 500px) { .ebar { height: calc(52px + env(safe-area-inset-top)); padding-top: calc(8px + env(safe-area-inset-top)); } .ebar::before { height: calc(68px + env(safe-area-inset-top)); } .ebar button::before { inset: 4px 0; } }
 html.kb #editor { scroll-padding-bottom: calc(var(--hid, 0px) + 60px); }
 html.kb #editor::after { flex: none; height: calc(var(--hid, 0px) + 24px); }
-#editor .field input, #editor .field textarea, #editor .cats button { scroll-margin-top: 0; }
+#editor .field input, #editor .cats button { scroll-margin-top: 0; }
+/* iOS scrolls a focused field so its whole box clears the keyboard bar, and ignores scroll-margin once the keyboard is up. So with the keyboard the
+   textarea is capped to what fits under the row (64) with its label block (up to ~62) and the bar pill (60): the label and hint stay in view above it. */
+html.kb #editor .field textarea { max-height: max(72px, calc(var(--vvh, 100%) - 192px)); }
 .formbar h1 { font-size: 22px; font-weight: 800; white-space: nowrap; }
 .formbar .backlink { justify-self: start; padding: 0 4px; }
 .formbar .pill { justify-self: end; padding: 0 20px; font-size: 16px; font-weight: 800; }
