@@ -252,7 +252,7 @@ body.has-nav #page { padding-bottom: calc(72px + max(16px, env(safe-area-inset-b
 html.kb .nav { display: none; }
 html.kb .layer:not(.over)::after { content: ''; display: block; height: calc(var(--vvh, 100%) * .4 + var(--hid)); }
 /* iOS 26: the keyboard is glass over the layout viewport below the visible area. Each layer is fitted to the visible area plus
-   that hidden part (--hid, set by app.js fit() from innerHeight, since 100lvh is taller than innerHeight while Safari's toolbar shows), so its own content scrolls on under the keyboard; scroll-padding keeps the focused field above it */
+   that hidden part down to the bottom of the screen (--hid, set by app.js fit()), so its own content scrolls on under the keyboard; scroll-padding keeps the focused field above it */
 html.kb .layer { height: calc(var(--vvh, 100%) + var(--hid, 0px)); scroll-padding-bottom: var(--hid, 0px); }
 
 /* ---- full screens over the box ---- */
@@ -632,10 +632,11 @@ body.has-nav #plan .planbody, body.has-nav #grocery .grobody { padding-bottom: c
   padding: 20px calc(16px + env(safe-area-inset-right)) calc(28px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
 }
 /* with the keyboard up the sheet takes the whole visible height, so the list keeps room */
-html.kb .over.pick .panel { top: calc(12px + env(safe-area-inset-top)); padding-top: 14px; padding-bottom: 14px; }
+/* the panel runs on under the glass keyboard with the layer (--hid); its padding keeps the note field above the keyboard */
+html.kb .over.pick .panel { top: calc(12px + env(safe-area-inset-top)); padding-top: 14px; padding-bottom: calc(var(--hid, 0px) + 14px); }
 html.kb .over.pick h2 { display: none; }
 html.kb .over.pick .row { justify-content: flex-end; }
-@media (max-height: 480px) { html.kb .over.pick .panel { gap: 8px; padding-top: 8px; padding-bottom: 8px; } html.kb .over.pick .row { display: none; } }
+@media (max-height: 480px) { html.kb .over.pick .panel { gap: 8px; padding-top: 8px; padding-bottom: calc(var(--hid, 0px) + 8px); } html.kb .over.pick .row { display: none; } }
 .over.pick h2 { font-size: 22px; font-weight: 800; line-height: 1.15; text-wrap: balance; }
 .find { flex: none; display: flex; align-items: center; gap: 10px; height: 50px; padding: 0 16px; border: 1.5px solid var(--edge); border-radius: 999px; background: var(--surface); color: var(--soft); }
 .find:focus-within { outline: 3px solid var(--focus); outline-offset: 2px; }

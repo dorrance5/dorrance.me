@@ -391,10 +391,12 @@
   function fit() {
     vvRaf = 0;
     if (!vv) return;
-    root.classList.toggle('kb', innerHeight - vv.height > 120);
+    // iOS sometimes shrinks innerHeight to the visible height while the page is held (html.locked); clientHeight keeps the full one
+    root.classList.toggle('kb', Math.max(innerHeight, root.clientHeight) - vv.height > 120);
     if (!stack.length) return;
-    // the part of the layout viewport the glass keyboard covers; from innerHeight, because 100lvh is taller than it while Safari's toolbar shows
-    const hid = Math.max(0, innerHeight - vv.offsetTop - vv.height) + 'px';
+    // what the glass keyboard covers below the visible area, down to the bottom of the screen (outerHeight), so the layer's
+    // own content shows under it; scroll-padding uses the same value, so a field still stops at the visible area's bottom
+    const hid = Math.max(0, innerHeight - vv.offsetTop - vv.height, outerHeight - vv.height) + 'px';
     if (hid !== vvHid) root.style.setProperty('--hid', vvHid = hid);
     const h = vv.height + 'px', t = vv.offsetTop + 'px';
     if (h !== vvH) root.style.setProperty('--vvh', vvH = h);

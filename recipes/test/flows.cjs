@@ -382,7 +382,7 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
     await p.evaluate(([kb, o]) => __kb(kb, o), [kh, off]); await p.waitForTimeout(500);
     const k = await p.evaluate(() => {
       const r = document.getElementById('aPass').getBoundingClientRect(), l = document.getElementById('settings').getBoundingClientRect();
-      return { kb: document.documentElement.classList.contains('kb'), layerH: document.getElementById('settings').clientHeight - Math.max(0, innerHeight - visualViewport.offsetTop - visualViewport.height), top: r.top, bottom: r.bottom, layerTop: l.top };
+      return { kb: document.documentElement.classList.contains('kb'), layerH: document.getElementById('settings').clientHeight - parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hid')), top: r.top, bottom: r.bottom, layerTop: l.top };
     });
     check(`${tag} keyboard: html.kb is set and the screen fits the visible height`, k.kb && Math.abs(k.layerH - kbd.visibleHeight) < 2, k);
     check(`${tag} keyboard: the focused field is in the visible part`, k.top >= k.layerTop - 1 && k.bottom <= k.layerTop + k.layerH + 1 && Math.abs(k.layerTop - off) < 2, k);
@@ -405,13 +405,27 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
       const sv = document.getElementById('eSave').getBoundingClientRect(), cn = document.getElementById('eCancel').getBoundingClientRect();   // no scrolling: the row is pinned
       const inside = r => r.top >= vv.offsetTop - 1 && r.bottom <= vv.offsetTop + vv.height + 1 && r.left >= 0 && r.right <= innerWidth;
       const bar = ['#eSave', '#eCancel'].some(q => { const b = document.querySelector(q).parentElement, cs = getComputedStyle(b); return cs.backgroundColor !== 'rgba(0, 0, 0, 0)' || cs.borderTopWidth !== '0px'; });
-      return { lo: vv.offsetTop, hi: vv.offsetTop + vv.height, layerTop: l.top, layerBottom: l.bottom, innerH: innerHeight, field, fieldBottom: fr.bottom, saveTop: sv.top, saveBottom: sv.bottom, saveL: sv.left, cancelL: cn.left, rowBottom: Math.max(sv.bottom, cn.bottom), pillsIn: inside(sv) && inside(cn), bar, scrolled: document.getElementById('editor').scrollTop,
+      return { lo: vv.offsetTop, hi: vv.offsetTop + vv.height, vh: vv.height, layerTop: l.top, layerBottom: l.bottom, innerH: innerHeight, outerH: outerHeight, field, fieldBottom: fr.bottom, saveTop: sv.top, saveBottom: sv.bottom, saveL: sv.left, cancelL: cn.left, rowBottom: Math.max(sv.bottom, cn.bottom), pillsIn: inside(sv) && inside(cn), bar, scrolled: document.getElementById('editor').scrollTop,
         hid: getComputedStyle(document.documentElement).getPropertyValue('--hid') };
     });
-    check(`${tag} keyboard: the recipe form starts at the visible top and goes on under the keyboard to the bottom of the page`, Math.abs(e.layerTop - e.lo) < 2 && e.layerBottom >= e.hi - 1 && Math.abs(e.layerBottom - e.innerH) < 2, e);
+    check(`${tag} keyboard: the recipe form starts at the visible top and goes on under the keyboard to the bottom of the screen`, Math.abs(e.layerTop - e.lo) < 2 && e.layerBottom >= e.innerH - 1 && Math.abs(e.layerBottom - e.hi - parseFloat(e.hid)) < 2, e);
     check(`${tag} keyboard: the last field can be scrolled into the visible area, below the pinned row`, e.field && e.fieldBottom > e.rowBottom, e);
     check(`${tag} keyboard: Cancel and Save are fully in the visible area, at its top, Cancel left of Save, with no bar behind them`, e.pillsIn && e.saveTop - e.lo <= 20 && e.saveL > e.cancelL && !e.bar, e);
-    check(`${tag} keyboard: --hid is the innerHeight minus the visible bottom`, Math.abs(parseFloat(e.hid) - Math.max(0, e.innerH - e.hi)) < 1, e);
+    // iOS may shrink innerHeight to the visible height while the page is held, so --hid reaches down to outerHeight (the screen) too
+    check(`${tag} keyboard: --hid is what lies under the visible bottom, down to the page bottom or the screen bottom`, Math.abs(parseFloat(e.hid) - Math.max(0, e.innerH - e.hi, e.outerH - e.vh)) < 1, e);
+    // iOS 26 sometimes reports innerHeight as the visible height while the page is held: still html.kb, still down to the screen bottom
+    const shrunk = await p.evaluate(async () => {
+      const kh = innerHeight - visualViewport.height, off = visualViewport.offsetTop, h = visualViewport.height;
+      const d = Object.getOwnPropertyDescriptor(window, 'innerHeight');
+      Object.defineProperty(window, 'innerHeight', { configurable: true, get: () => h });
+      __kb(0, off);   // a resize: the visible height stays h, innerHeight now says h too
+      await new Promise(r => setTimeout(r, 200));
+      const out = { kb: document.documentElement.classList.contains('kb'), hid: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hid')), want: outerHeight - h };
+      if (d) Object.defineProperty(window, 'innerHeight', d); else delete window.innerHeight;
+      __kb(kh, off); await new Promise(r => setTimeout(r, 200));
+      return out;
+    });
+    check(`${tag} keyboard: with innerHeight shrunk to the visible height, html.kb stays and --hid still reaches the screen bottom`, shrunk.kb && Math.abs(shrunk.hid - shrunk.want) < 1, shrunk);
     // scrolled down, then the Dish field focused: it lands under the row, not behind it
     const dish = await p.evaluate(async () => {
       const ed = document.getElementById('editor'); ed.scrollTop = 400;

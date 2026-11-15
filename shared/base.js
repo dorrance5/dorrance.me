@@ -67,7 +67,8 @@ window.App = (function () {
   function fit() {
     vvRaf = 0;
     if (!vv) return;
-    const kb = !root.classList.contains('nokb') && innerHeight - vv.height > 120;
+    // iOS sometimes shrinks innerHeight to the visible height while the page is held (html.locked); clientHeight keeps the full one
+    const kb = !root.classList.contains('nokb') && Math.max(innerHeight, root.clientHeight) - vv.height > 120;
     root.classList.toggle('kb', kb);
     if (!kb && !locked) return;
     const h = vv.height + 'px', t = vv.offsetTop + 'px';
