@@ -20,14 +20,17 @@
 <style>
 /* Each counter is a card in its color, like the colored result cards in TV Mount:
    a pale tint of the hue, the name in the hue, the count on a tile. */
-.cnt{display:grid;grid-template-columns:1fr auto;min-height:96px;padding:0;background:var(--cbg);border-color:transparent;color:var(--c);cursor:pointer;transition:filter .1s}
+/* the top row is the same height closed and open, so the number and chevron stay put when a card opens */
+.cnt{display:grid;grid-template-columns:1fr auto;grid-template-rows:minmax(95px,auto);min-height:96px;padding:0;background:var(--cbg);border-color:transparent;color:var(--c);cursor:pointer;transition:filter .1s}
 .cnt:active{filter:brightness(.96)}
 .left{padding:14px 16px 8px;display:flex;flex-direction:column;justify-content:space-between;min-width:0}
 .name{font-size:20px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.chev{width:44px;height:44px;margin-left:-10px;display:grid;place-items:center}
+/* a name too long for one line: two lines at 17 px, then the ellipsis (fitNames) */
+.name.two{font-size:17px;line-height:1.2;white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow-wrap:anywhere}
+.chev{flex:none;width:44px;height:44px;margin-left:-10px;display:grid;place-items:center}
 .chev svg{width:22px;height:22px;transition:transform .2s}
 .open .chev svg{transform:rotate(180deg)}
-.num{margin:8px;border-radius:14px;background:var(--cbox);min-width:42vw;display:flex;align-items:center;justify-content:flex-end;padding:0 16px;font-size:56px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1;transform-origin:right center;letter-spacing:-.02em}
+.num{margin:8px;border-radius:14px;background:var(--cbox);min-width:170px;display:flex;align-items:center;justify-content:flex-end;padding:0 16px;font-size:56px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1;transform-origin:right center;letter-spacing:-.02em}
 .num svg{width:28px;height:28px;opacity:.9}
 .bump{animation:bump .18s ease-out}
 @keyframes bump{40%{transform:scale(1.1)}}
@@ -43,7 +46,6 @@
 @media (min-width:560px){
   #list{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:10px;align-content:start;align-items:start}
   #list .cnt{margin:0}
-  #list .num{min-width:140px}
   #list .empty{grid-column:1/-1}
 }
 .c-blue{--c:var(--blue);--cbg:var(--blue-bg)}.c-red{--c:var(--red);--cbg:var(--red-bg)}.c-yellow{--c:var(--yellow);--cbg:var(--yellow-bg)}
@@ -55,18 +57,28 @@
 .sw.on{box-shadow:0 0 0 2px var(--text)}
 .sheet .input{margin-bottom:14px}
 .sheet .stack{margin-top:4px}
+/* +, Edit and sort: a bar at the bottom, built like Converter's category bar. Hidden while the phone keyboard is up. */
+main{padding-bottom:16px}
+#bar{padding:8px 12px calc(env(safe-area-inset-bottom,0px) + 8px);border-top:.5px solid var(--line);background:var(--bg)}
+#bar button{display:grid;place-items:center;min-width:44px}
+#bar svg{width:22px;height:22px}
+html.kb #bar{display:none}
 </style>
 </head>
 <body>
 <header>
-  <button class="round" id="addBtn" aria-label="Add counter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
-  <button class="round pill" id="editBtn">Edit</button>
-  <button class="round" id="sortBtn" aria-label="Sort"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4v16M2.5 6.5 5 4l2.5 2.5M2.5 17.5 5 20l2.5-2.5M11 6h10M11 12h10M11 18h7"/></svg></button>
+  <h1>Counter</h1>
   <span class="sp"></span>
   <button class="round" id="setBtn" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
 </header>
 
 <main id="list" class="kb-pad"></main>
+
+<nav class="tabs" id="bar" aria-label="Counters">
+  <button id="addBtn" aria-label="Add counter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+  <button id="editBtn">Edit</button>
+  <button id="sortBtn" aria-label="Sort"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4v16M2.5 6.5 5 4l2.5 2.5M2.5 17.5 5 20l2.5-2.5M11 6h10M11 12h10M11 18h7"/></svg></button>
+</nav>
 
 <script src="../shared/base.js"></script>
 <script>
@@ -143,10 +155,19 @@ function cardHTML(c, i, n) {
 
 function render() {
   $('#editBtn').textContent = editing ? 'Done' : 'Edit';
+  $('#editBtn').classList.toggle('on', editing);
   const arr = sorted();
   $('#list').innerHTML = arr.length
     ? arr.map((c, i) => cardHTML(c, i, arr.length)).join('')
     : `<div class="empty"><p>No counters yet.</p><button class="primary" data-action="add">Add a counter</button></div>`;
+  fitNames();
+}
+
+// A name that does not fit on one line gets two lines at 17 px before the ellipsis.
+function fitNames() {
+  const names = [...document.querySelectorAll('#list .name')];
+  names.forEach(n => n.classList.remove('two'));
+  names.filter(n => n.scrollWidth > n.clientWidth + 1).forEach(n => n.classList.add('two'));
 }
 
 function bump(id) {
@@ -270,6 +291,8 @@ $('#addBtn').onclick = () => openCounterSheet();
 $('#editBtn').onclick = () => { editing = !editing; render(); };
 $('#sortBtn').onclick = openSortSheet;
 $('#setBtn').onclick = openSettings;
+let fitW = innerWidth;
+window.addEventListener('resize', () => { if (innerWidth !== fitW) { fitW = innerWidth; fitNames(); } });
 window.addEventListener('storage', e => { if (e.key === 'theme' && e.newValue) S.theme = e.newValue; });
 
 App.init();

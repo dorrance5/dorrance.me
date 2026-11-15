@@ -114,6 +114,30 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
     const xs = new Set((await p.$$eval('#list .card', cs => cs.map(c => Math.round(c.getBoundingClientRect().left)))));
     check(`${w}×${h}: ${cols} ${cols === 1 ? 'column' : 'columns'} of counters`, xs.size === cols, [...xs]);
     check(`${w}×${h}: no sideways scrolling`, (await sideways(p)) <= 0);
+    const head = await box(p, 'header h1'), bar = await box(p, '#bar'), list = await box(p, '#list');
+    check(`${w}×${h}: "Counter" at the top left, +, Edit and sort in a bar at the bottom`, await p.textContent('header h1') === 'Counter' && head.x < 30 && head.y < 40
+      && Math.abs(bar.y + bar.h - h) <= 1 && bar.y >= list.y + list.h - 1 && await p.$$eval('#bar button', l => l.map(b => b.id).join()) === 'addBtn,editBtn,sortBtn', { head, bar, list });
+    await c.close();
+  }
+
+  // The cards (review 4): one number box width, a top row that holds still when a card opens, two-line long names, 44 px buttons
+  {
+    const { c, p } = await sized(duo.closed.width, duo.closed.height);
+    await p.addInitScript(() => localStorage.setItem('counter-v1', JSON.stringify({ sort: 'manual', counters: [
+      { id: 'a', name: 'Boxes', color: '#0A57D0', n: 7 }, { id: 'b', name: 'Cats', color: '#D02A2A', n: 12 },
+      { id: 'c', name: 'A very long counter name that overflows', color: '#7C3AED', n: 1234 }] })));
+    await p.goto(base); await p.waitForSelector('#n-a');
+    const nums = await p.$$eval('.num', l => l.map(e => { const r = e.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.width)]; }));
+    check('every number box has the same width and left edge (1, 2 and 4 digits)', new Set(nums.map(n => n.join())).size === 1 && nums[0][1] >= 170, nums);
+    const top0 = await box(p, '#n-a');
+    await p.tap('[data-id="a"] [data-action="toggle"]');
+    const top1 = await box(p, '#n-a');
+    check('opening a card keeps its number box where it was', JSON.stringify(top0) === JSON.stringify(top1), { top0, top1 });
+    const btns = await p.$$eval('.more button, #bar button, [data-action="toggle"]', l => l.map(b => { const r = b.getBoundingClientRect(); return [b.textContent.trim() || b.getAttribute('aria-label'), r.width, r.height]; }).filter(x => x[1] < 44 || x[2] < 44));
+    check('−1, Reset, the chevrons and the bottom bar buttons are at least 44 px', btns.length === 0, btns);
+    const nm = await p.$eval('[data-id="c"] .name', e => ({ two: e.classList.contains('two'), fs: getComputedStyle(e).fontSize, lines: Math.round(e.getBoundingClientRect().height / parseFloat(getComputedStyle(e).lineHeight)), cut: e.scrollHeight > e.clientHeight + 1 }));
+    check('a long name gets two lines at 17 px before the ellipsis', nm.two && nm.fs === '17px' && nm.lines === 2, nm);
+    check('a short name stays on one line at 20 px', await p.$eval('[data-id="a"] .name', e => !e.classList.contains('two') && getComputedStyle(e).fontSize === '20px'));
     await c.close();
   }
 
@@ -138,6 +162,7 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
       return { kb: document.documentElement.classList.contains('kb'), locked: document.documentElement.classList.contains('locked'), top: r.top, bottom: r.bottom, sTop: s.top, sBottom: s.bottom, lo: visualViewport.offsetTop, vis: visualViewport.offsetTop + visualViewport.height };
     }, kh);
     check(`${tag} keyboard: html.kb is set and the page behind the sheet is locked`, k.kb && k.locked, k);
+    check(`${tag} keyboard: the bottom bar is hidden while typing`, await p.evaluate(() => getComputedStyle(document.getElementById('bar')).display === 'none'));
     check(`${tag} keyboard: the open sheet fits the visible area`, k.sTop >= k.lo - 1 && k.sBottom <= k.vis + 1, k);
     check(`${tag} keyboard: the focused field is visible`, k.top >= k.lo - 1 && k.bottom <= k.vis + 1, k);
     await p.tap('.backdrop', { position: { x: 5, y: 5 } }); await p.waitForTimeout(150);
@@ -145,7 +170,7 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
     await p.tap('.backdrop', { position: { x: 5, y: 5 } }); await p.waitForTimeout(150);
     check(`${tag} keyboard: a second tap closes the sheet`, await p.evaluate(() => !document.querySelector('.backdrop') && !document.documentElement.classList.contains('locked')));
     await p.evaluate(() => __kb(0, 0)); await p.waitForTimeout(200);
-    check(`${tag} keyboard: html.kb goes away with the keyboard`, await p.evaluate(() => !document.documentElement.classList.contains('kb')));
+    check(`${tag} keyboard: html.kb goes away with the keyboard and the bottom bar is back`, await p.evaluate(() => !document.documentElement.classList.contains('kb') && getComputedStyle(document.getElementById('bar')).display !== 'none'));
     await c.close();
   }
 
