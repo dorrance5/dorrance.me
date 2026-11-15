@@ -691,7 +691,7 @@
   });
 
   /* ---- add and edit ---- */
-  const F = { name: $('fName'), servings: $('fServings'), ingredients: $('fIngredients'), steps: $('fSteps'), notes: $('fNotes'), source: $('fSource') };
+  const F = { name: $('fDish'), servings: $('fServings'), ingredients: $('fIngredients'), steps: $('fSteps'), notes: $('fNotes'), source: $('fSource') };
   const eSave = $('eSave'), eCancel = $('eCancel'), eDelete = $('eDelete'), eError = $('eError'), cats = $('fCats'), newRow = $('fNewRow'), fNew = $('fNew');
   let editId = null, copyOf = null, start = '', busy = false, armT = 0;
   let shareOn = true;   // the "Share with the family" switch
@@ -1052,7 +1052,7 @@
       const nm = D.esc(c.name), count = `${c.n} recipe${c.n === 1 ? '' : 's'}`;
       if (c.name !== catOpen) return `<div class="row"><span class="dot" style="${paint(colorOf(c.name))}"></span><span class="who"><b>${nm}</b><small>${count}</small></span><button class="pill" type="button" data-cat="${nm}" aria-label="Edit ${nm}">Edit</button></div>`;
       const swatches = D.COLORS.map(k => `<button type="button" role="radio" data-color="${k}" aria-checked="${k === catColor}" aria-label="${k[0].toUpperCase() + k.slice(1)}" style="${paint(PALETTE[k])}"></button>`).join('');
-      return `<div class="row catedit"><div class="field"><label for="catName">Name</label><input id="catName" type="text" maxlength="40" autocomplete="off" enterkeyhint="done" value="${nm}"></div>`
+      return `<div class="row catedit"><div class="field"><label for="catLabel">Name</label><input id="catLabel" type="text" maxlength="40" autocomplete="off" enterkeyhint="done" value="${nm}"></div>`
         + `<div class="swatches" role="radiogroup" aria-label="Color">${swatches}</div>`
         + `<div class="catacts"><button class="pill solid" type="button" data-catsave>Save</button><button class="pill" type="button" data-catcancel>Cancel</button>`
         + `<button class="pill del" type="button" data-catdel data-label="Delete" aria-label="Delete ${nm} from ${count}">Delete</button></div></div>`;
@@ -1079,7 +1079,7 @@
   catList.addEventListener('click', e => {
     const b = e.target.closest('button');
     if (!b || b.disabled) return;
-    if (b.dataset.cat != null) { catOpen = b.dataset.cat; catColor = colorName(catOpen); catSaid(''); drawCatList(); $('catName').focus(); return; }
+    if (b.dataset.cat != null) { catOpen = b.dataset.cat; catColor = colorName(catOpen); catSaid(''); drawCatList(); $('catLabel').focus(); return; }
     if (b.dataset.color) {
       catColor = b.dataset.color;
       catList.querySelectorAll('[data-color]').forEach(x => x.setAttribute('aria-checked', x === b));
@@ -1088,7 +1088,7 @@
     if (b.dataset.catcancel != null) { catOpen = null; drawCatList(); return; }
     const name = catOpen;
     if (b.dataset.catsave != null) {
-      const to = $('catName').value.trim();
+      const to = $('catLabel').value.trim();
       if (!to) return catSaid('Type a name, or use Delete.');
       const recolor = catColor !== colorName(name);
       saveCat({ type: 'category', name, to, color: recolor ? catColor : undefined }, to === name ? `${name} is ${catColor} now.` : `${name} is called ${to} now.`);
@@ -1100,7 +1100,7 @@
     }
   });
   catList.addEventListener('keydown', e => {
-    if (isEnter(e) && e.target.id === 'catName') { e.preventDefault(); catList.querySelector('[data-catsave]').click(); }
+    if (isEnter(e) && e.target.id === 'catLabel') { e.preventDefault(); catList.querySelector('[data-catsave]').click(); }
   });
 
   // `tabbed`: from the tab bar, where Settings is a tab; else it opens over the screen that is open.

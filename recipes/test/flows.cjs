@@ -528,12 +528,13 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
   /* ---- add ---- */
   await tap('#addBtn');
   await opened('editor');
-  check('+ opens a new recipe, with the keyboard on the name', (await text('#eTitle')) === 'New recipe' && await page.evaluate(() => document.activeElement.id === 'fName') && await page.isHidden('#eDelete'));
+  check('+ opens a new recipe, with the keyboard on the name', (await text('#eTitle')) === 'New recipe' && await page.evaluate(() => document.activeElement.id === 'fDish') && await page.isHidden('#eDelete'));
+  check('Name field: id and name carry no "name", label still reads Name', await page.$eval('#fDish', i => !/name/i.test(i.id) && !/name/i.test(i.name) && i.getAttribute('aria-label') === 'Name' && i.labels[0].textContent === 'Name' && i.autocomplete === 'off'));
   check('Category: None on the left and picked', (await page.$$eval('#fCats button', bs => bs.map(b => b.textContent.trim()).join())) === 'None,Crock pot,Soup,New' && (await pressed('#fCats button')).join() === 'None');
   await phoneRules('editor');
   await tap('#eSave');
-  check('Save with no name asks for one', (await text('#eError')) === 'Give the recipe a name.' && await page.$eval('#fName', i => i.classList.contains('bad')) && gh.puts.length === 0);
-  await page.fill('#fName', 'Grandma’s crème brûlée');
+  check('Save with no name asks for one', (await text('#eError')) === 'Give the recipe a name.' && await page.$eval('#fDish', i => i.classList.contains('bad')) && gh.puts.length === 0);
+  await page.fill('#fDish', 'Grandma’s crème brûlée');
   await tap('#fCats [data-cat="Soup"]');
   check('picking Soup unpicks None', (await pressed('#fCats button')).join() === 'Soup');
   await tap('#fCats [data-cat="Soup"]');
@@ -726,10 +727,10 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
   const catNames = () => page.$$eval('#sCatList .who b', bs => bs.map(b => b.textContent));
   check('Categories: each one, A to Z, with its count', (await catNames()).join() === 'Crock pot,Soup' && (await text('#sCatList .who small')) === '1 recipe', await catNames());
   await tap('#sCatList [data-cat="Crock pot"]');
-  check('Edit: the name, four colors with carrot picked, Save, Cancel and Delete', (await page.inputValue('#catName')) === 'Crock pot'
+  check('Edit: the name, four colors with carrot picked, Save, Cancel and Delete', (await page.inputValue('#catLabel')) === 'Crock pot'
     && (await page.$$eval('#sCatList [data-color]', bs => bs.map(b => b.dataset.color + ':' + b.getAttribute('aria-checked')))).join() === 'tomato:false,carrot:true,butter:false,rust:false');
   await phoneRules('settings, a category');
-  await page.fill('#catName', 'Slow cooker');
+  await page.fill('#catLabel', 'Slow cooker');
   await tap('#sCatList [data-color="rust"]');
   await tap('#sCatList [data-catsave]');
   await page.waitForFunction(() => !document.getElementById('sCatSay').hidden);
@@ -1140,7 +1141,7 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
   await ep.tap('#editBtn');
   await opened('editor', ep);
   check('Edit on Hayden’s recipe: Your copy, named for Ellie, shared, no Delete',
-    (await ep.textContent('#eTitle')) === 'Your copy' && (await ep.inputValue('#fName')) === "Pepperoncini roast (Ellie's version)" && (await ep.getAttribute('#fShare', 'aria-checked')) === 'true' && await ep.isHidden('#eDelete'));
+    (await ep.textContent('#eTitle')) === 'Your copy' && (await ep.inputValue('#fDish')) === "Pepperoncini roast (Ellie's version)" && (await ep.getAttribute('#fShare', 'aria-checked')) === 'true' && await ep.isHidden('#eDelete'));
   await phoneRules('the editor with the share switch', ep);
   await ep.tap('#eSave');
   await closed('editor', ep);

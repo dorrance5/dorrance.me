@@ -103,7 +103,7 @@ const scenes = [
   { name: '13-cooking-timer-night', theme: 'dark', act: async p => { await cook(ZUPPA)(p); await p.click('#cGo'); await p.waitForTimeout(2100); await p.click('#cNext'); await p.click('#cNext'); } },
   { name: '14-cooking-ingredients-night', theme: 'dark', act: async p => { await cook(ZUPPA)(p); await p.click('#cIngBtn'); await p.waitForSelector('#cookIng.open'); } },
   { name: '15-cooking-day', act: async p => { await cook('Pepperoncini roast')(p); for (let i = 0; i < 3; i++) await p.click('#cNext'); } },
-  { name: '16-new-day', as: 'Madi', act: async p => { await p.click('#addBtn'); await p.waitForSelector('#editor.open'); await p.fill('#fName', 'Grandma’s crème brûlée'); await p.click('#fCats [data-new]'); await p.fill('#fNew', 'Dessert'); } },
+  { name: '16-new-day', as: 'Madi', act: async p => { await p.click('#addBtn'); await p.waitForSelector('#editor.open'); await p.fill('#fDish', 'Grandma’s crème brûlée'); await p.click('#fCats [data-new]'); await p.fill('#fNew', 'Dessert'); } },
   { name: '16b-new-night', theme: 'dark', as: 'Madi', act: async p => { await p.click('#addBtn'); await p.waitForSelector('#editor.open'); } },
   { name: '17-edit-day', as: 'Mitchell', act: async p => { await openRecipe(ZUPPA)(p); await p.click('#editBtn'); await p.waitForSelector('#editor.open'); } },
   { name: '18-edit-end-night', theme: 'dark', as: 'Mitchell', act: async p => { await openRecipe(ZUPPA)(p); await p.click('#editBtn'); await p.waitForSelector('#editor.open'); await layerEnd('editor')(p); await p.click('#eDelete'); } },

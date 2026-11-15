@@ -147,14 +147,15 @@ h1, h2, h3 { margin: 0; }
   display: flex; align-items: center; gap: 10px; height: 50px; padding: 0 8px 0 16px; border-radius: 999px; background: var(--cream); color: var(--on-butter);
 }
 .search:focus-within { outline: 3px solid var(--focus); outline-offset: 2px; }
-/* Inside the tomato, carrot and butter headers the blue ring vanishes: ink with a cream halo shows on all three, day and night. */
-.hero :focus-visible, .planhead :focus-visible, .grohead :focus-visible, .search:focus-within {
+/* Inside the tomato, carrot and butter headers the ring vanishes (the search pill keeps the palette ring on the whole pill): ink with a cream halo shows on all three, day and night. */
+.hero :focus-visible:not(.search input), .planhead :focus-visible, .grohead :focus-visible {
   outline: 3px solid #2A1D17; outline-offset: 2px; box-shadow: 0 0 0 2px #FFF6E6, 0 0 0 7px #FFF6E6;
 }
 .search input {
   flex: 1; min-width: 0; height: 100%; border: 0; padding: 0; background: transparent; outline: none; font-size: 17px; color: var(--on-butter);
   -webkit-appearance: none; appearance: none;
 }
+.search input:focus, .search input:focus-visible { outline: none; box-shadow: none; }
 .search input::placeholder { color: #7A6355; }
 .search input::-webkit-search-cancel-button { display: none; }
 .search .clear { width: 44px; height: 44px; border: 0; border-radius: 999px; background: none; color: #6B5348; display: flex; align-items: center; justify-content: center; }
@@ -850,8 +851,8 @@ html.kb .over.pick .row { justify-content: flex-end; }
       <svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
     </button>
     <div class="field">
-      <label for="fName">Name</label>
-      <input id="fName" name="rcp_title" type="text" autocomplete="off" autocapitalize="sentences" enterkeyhint="next">
+      <label for="fDish">Na<span>me</span></label>
+      <input id="fDish" name="rcp_dish" aria-label="Name" type="text" autocomplete="off" autocapitalize="sentences" enterkeyhint="next">
     </div>
     <div class="field">
       <span class="label" id="fCatLabel">Category</span>
