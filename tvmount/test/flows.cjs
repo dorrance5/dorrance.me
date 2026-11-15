@@ -6,7 +6,7 @@ const http = require('node:http');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { duo } = require('../../test/devices.cjs');
+const { duo, keyboard } = require('../../test/devices.cjs');
 
 const root = path.join(__dirname, '..', '..');
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png' };
@@ -381,9 +381,9 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
   check('backup adds its tab', names.includes('Den') && names.length === 2, names);
   fs.unlinkSync(tmp);
 
-  // iPhone Duo sizes (CSS px): closed upright keeps the phone layout; closed sideways and open, the sketch and results sit
+  // iPhone Duo sizes (CSS px): closed upright and closed sideways (594, under the 640 breakpoint) keep the phone layout; open, the sketch and results sit
   // on the left, the form on the right, and the keypad covers only the form
-  for (const [size, two] of [['closed', false], ['closedSideways', true], ['open', true], ['openSideways', true]]) {
+  for (const [size, two] of [['closed', false], ['closedSideways', false], ['open', true], ['openSideways', true]]) {
     const { width: w, height: h } = duo[size];
     const c = await browser.newContext({ viewport: { width: w, height: h }, isMobile: true, hasTouch: true, serviceWorkers: 'block' }), p = await c.newPage();
     p.on('console', m => { if (m.type() === 'error') errors.push(m.text()); }); p.on('pageerror', e => errors.push(e.message));
@@ -404,22 +404,23 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
     await c.close();
   }
 
-  // The phone keyboard, on the Duo's five Safari sizes: a stand-in visualViewport that the test shrinks, the way iOS does
+  // The phone keyboard, on the Duo's measured Safari keyboard poses (test/devices.cjs): a stand-in visualViewport that the test shrinks, the way iOS does
   // (the layout viewport stays full height).
-  for (const [w, h] of Object.values(duo).map(d => [d.width, d.height])) {
+  for (const [pose, kbd] of Object.entries(keyboard)) {
+    const w = kbd.width, h = kbd.pageHeight;
     const c = await browser.newContext({ viewport: { width: w, height: h }, isMobile: true, hasTouch: true, serviceWorkers: 'block' });
     await c.addInitScript(() => {
       const t = new EventTarget(), vv = { width: innerWidth, height: innerHeight, offsetTop: 0, offsetLeft: 0, scale: 1, addEventListener: (a, b) => t.addEventListener(a, b), removeEventListener() {} };
       Object.defineProperty(window, 'visualViewport', { value: vv });
       window.__kb = (kh, off) => { vv.height = innerHeight - kh; vv.offsetTop = off || 0; t.dispatchEvent(new Event('resize')); };
     });
-    const p = await c.newPage(), kh = Math.round(h * .45), tag = `${w}×${h}`;
+    const p = await c.newPage(), kh = h - kbd.visibleHeight, tag = `${pose} ${w}×${h}`;
     p.on('console', m => { if (m.type() === 'error') errors.push(m.text()); }); p.on('pageerror', e => errors.push(e.message));
     await p.goto(base); await p.waitForSelector('#form [data-k]');
     // the keypad is TV Mount's input method: html.kb stays off, and the keypad does not move
     await p.tap('#form [data-k="center.d"]'); await p.waitForTimeout(400);
     const kb0 = await p.$eval('#kp', el => { const r = el.getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; });
-    await p.evaluate(kb => __kb(kb, 0), kh); await p.waitForTimeout(400);
+    await p.evaluate(([kb, o]) => __kb(kb, o), [kh, kbd.offsetTop]); await p.waitForTimeout(400);
     const kb1 = await p.$eval('#kp', el => { const r = el.getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; });
     check(`${tag} keyboard: with the keypad open html.kb stays off and the keypad does not move`, await p.evaluate(() => !document.documentElement.classList.contains('kb') && document.documentElement.classList.contains('nokb')) && JSON.stringify(kb0) === JSON.stringify(kb1), { kb0, kb1 });
     await p.evaluate(() => __kb(0, 0));
@@ -428,14 +429,14 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
     // a sheet with a field (the keyboard shows for real)
     await p.tap('#tabs .on'); await p.waitForSelector('#tabName');
     await p.fill('#tabName', 'Den'); await p.focus('#tabName');
-    await p.evaluate(kb => __kb(kb, 0), kh); await p.waitForTimeout(600);
+    await p.evaluate(([kb, o]) => __kb(kb, o), [kh, kbd.offsetTop]); await p.waitForTimeout(600);
     const k = await p.evaluate(kh => {
       const r = document.getElementById('tabName').getBoundingClientRect(), s = document.querySelector('.sheet').getBoundingClientRect();
-      return { kb: document.documentElement.classList.contains('kb'), locked: document.documentElement.classList.contains('locked'), top: r.top, bottom: r.bottom, sTop: s.top, sBottom: s.bottom, vis: innerHeight - kh };
+      return { kb: document.documentElement.classList.contains('kb'), locked: document.documentElement.classList.contains('locked'), top: r.top, bottom: r.bottom, sTop: s.top, sBottom: s.bottom, lo: visualViewport.offsetTop, vis: visualViewport.offsetTop + visualViewport.height };
     }, kh);
     check(`${tag} keyboard: html.kb is set and the page behind the sheet is locked`, k.kb && k.locked, k);
-    check(`${tag} keyboard: the open sheet fits the visible area`, k.sTop >= -1 && k.sBottom <= k.vis + 1, k);
-    check(`${tag} keyboard: the focused field is visible`, k.top >= -1 && k.bottom <= k.vis + 1, k);
+    check(`${tag} keyboard: the open sheet fits the visible area`, k.sTop >= k.lo - 1 && k.sBottom <= k.vis + 1, k);
+    check(`${tag} keyboard: the focused field is visible`, k.top >= k.lo - 1 && k.bottom <= k.vis + 1, k);
     await p.tap('.backdrop', { position: { x: 5, y: 5 } }); await p.waitForTimeout(150);
     check(`${tag} keyboard: a backdrop tap while typing only puts the keyboard away`, await p.evaluate(() => !!document.querySelector('.sheet') && document.activeElement !== document.getElementById('tabName') && document.getElementById('tabName').value === 'Den'));
     await p.tap('.backdrop', { position: { x: 5, y: 5 } }); await p.waitForTimeout(150);

@@ -8,7 +8,7 @@ const { webkit, devices } = require('playwright');
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
-const { duo } = require('../../test/devices.cjs');
+const { duo, keyboard } = require('../../test/devices.cjs');
 
 const root = path.join(__dirname, '..', '..');
 // A frozen copy of the recipe book, so that the family's edits to recipes.json do not change what the checks expect.
@@ -263,9 +263,9 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
   await page.goBack();
   await closed('view');
 
-  // iPhone Duo sizes (CSS px). Closed upright: the tab bar picks ingredients or steps. Closed sideways and open upright: both side by side, no tab
+  // iPhone Duo sizes (CSS px). Closed upright and closed sideways (594, under the 640 breakpoint): the tab bar picks ingredients or steps. Open upright: both side by side, no tab
   // bar. Open sideways: the box stays on the left and the recipe opens beside it.
-  for (const [size, kind] of [['closed', 'phone'], ['closedSideways', 'both'], ['open', 'both'], ['openSideways', 'beside']]) {
+  for (const [size, kind] of [['closed', 'phone'], ['closedSideways', 'phone'], ['open', 'both'], ['openSideways', 'beside']]) {
     const { width: w, height: h } = duo[size];
     const c = await newContext({ viewport: { width: w, height: h } }), p = await c.newPage();
     watch(p);
@@ -297,30 +297,51 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
 
   // The phone keyboard, on the Duo's Safari sizes: a stand-in visualViewport that the test shrinks and pans, the way iOS does
   // (the layout viewport stays full height). The sign-in screen is a layer with fields, so it needs no account.
-  for (const [w, h] of [[466, 594], [678, 382], [669, 867], [951, 585], [469, 585]]) {
+  for (const [pose, kbd] of Object.entries(keyboard)) {
+    const w = kbd.width, h = kbd.pageHeight, off = kbd.offsetTop;
     const c = await newContext({ viewport: { width: w, height: h } });
     await c.addInitScript(() => {
       const t = new EventTarget(), vv = { width: innerWidth, height: innerHeight, offsetTop: 0, offsetLeft: 0, scale: 1, addEventListener: (a, b) => t.addEventListener(a, b), removeEventListener() {} };
       Object.defineProperty(window, 'visualViewport', { value: vv });
       window.__kb = (kh, off) => { vv.height = innerHeight - kh; vv.offsetTop = off || 0; t.dispatchEvent(new Event('resize')); };
     });
-    const p = await c.newPage(), kh = Math.round(h * .45), tag = `${w}×${h}`;
+    const p = await c.newPage(), kh = h - kbd.visibleHeight, tag = `${pose} ${w}×${h}`;
     watch(p);
     await p.goto(base); await p.waitForSelector('#deck .rc');
     await p.tap('#signInBtn'); await opened('settings', p);
     check(`${tag} keyboard: the page behind the sign-in screen is held still`, await p.evaluate(() => getComputedStyle(document.body).position === 'fixed' && document.documentElement.classList.contains('locked')));
     await p.focus('#aPass');
-    await p.evaluate(kb => __kb(kb, 0), kh); await p.waitForTimeout(500);
+    await p.evaluate(([kb, o]) => __kb(kb, o), [kh, off]); await p.waitForTimeout(500);
     const k = await p.evaluate(() => {
       const r = document.getElementById('aPass').getBoundingClientRect(), l = document.getElementById('settings').getBoundingClientRect();
       return { kb: document.documentElement.classList.contains('kb'), layerH: l.height, top: r.top, bottom: r.bottom, layerTop: l.top };
     });
-    check(`${tag} keyboard: html.kb is set and the screen fits the visible height`, k.kb && Math.abs(k.layerH - (h - kh)) < 2, k);
-    check(`${tag} keyboard: the focused field is in the visible part`, k.top >= k.layerTop - 1 && k.bottom <= k.layerTop + k.layerH + 1, k);
-    await p.evaluate(kb => __kb(kb, 80), kh); await p.waitForTimeout(200);
-    check(`${tag} keyboard: the screen follows the panned viewport`, await p.evaluate(() => Math.abs(document.getElementById('settings').getBoundingClientRect().top - 80) < 2));
+    check(`${tag} keyboard: html.kb is set and the screen fits the visible height`, k.kb && Math.abs(k.layerH - kbd.visibleHeight) < 2, k);
+    check(`${tag} keyboard: the focused field is in the visible part`, k.top >= k.layerTop - 1 && k.bottom <= k.layerTop + k.layerH + 1 && Math.abs(k.layerTop - off) < 2, k);
+    await p.evaluate(([kb, o]) => __kb(kb, o + 80), [kh, off]); await p.waitForTimeout(200);
+    check(`${tag} keyboard: the screen follows the panned viewport`, await p.evaluate(off => Math.abs(document.getElementById('settings').getBoundingClientRect().top - (off + 80)) < 2, off));
     await p.evaluate(() => __kb(0, 0)); await p.waitForTimeout(200);
     check(`${tag} keyboard: html.kb goes away with the keyboard`, await p.evaluate(() => !document.documentElement.classList.contains('kb')));
+    // the recipe form, signed in: its Save button must be reachable by scrolling, and the screen must fit the visible part
+    await p.fill('#aName', 'Madi'); await p.fill('#aPass', 'madi-password'); await p.tap('#aGo');
+    await p.waitForFunction(() => !document.getElementById('sMe').hidden);
+    await p.goBack(); await closed('settings', p);
+    await p.tap('#addBtn'); await opened('editor', p);
+    await p.focus('#fSource');
+    await p.evaluate(([kb, o]) => __kb(kb, o), [kh, off]); await p.waitForTimeout(500);
+    const e = await p.evaluate(() => {
+      const l = document.getElementById('editor').getBoundingClientRect(), vv = visualViewport;
+      const f = document.getElementById('fSource'); f.scrollIntoView({ block: 'nearest' });
+      const fr = f.getBoundingClientRect();
+      const field = fr.top >= vv.offsetTop - 1 && fr.bottom <= vv.offsetTop + vv.height + 1;
+      const sv = document.getElementById('eSave'); sv.scrollIntoView({ block: 'nearest' });
+      const r = sv.getBoundingClientRect();
+      return { lo: vv.offsetTop, hi: vv.offsetTop + vv.height, layerTop: l.top, layerBottom: l.bottom, field, saveTop: r.top, saveBottom: r.bottom };
+    });
+    check(`${tag} keyboard: the recipe form fits the visible area`, e.layerTop >= e.lo - 1 && e.layerBottom <= e.hi + 1, e);
+    check(`${tag} keyboard: the last field can be scrolled into the visible area`, e.field, e);
+    check(`${tag} keyboard: Save can be scrolled into the visible area`, e.saveTop >= e.lo - 1 && e.saveBottom <= e.hi + 1, e);
+    await p.evaluate(() => __kb(0, 0));
     await c.close();
   }
 

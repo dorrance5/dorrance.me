@@ -5,7 +5,7 @@ const { webkit, devices } = require('playwright');
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
-const { duo } = require('../../test/devices.cjs');
+const { duo, keyboard } = require('../../test/devices.cjs');
 
 const root = path.join(__dirname, '..', '..');
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.ico': 'image/x-icon' };
@@ -82,11 +82,11 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
     await c.close();
   }
 
-  // iPhone Duo sizes: closed upright and sideways, open upright and sideways (CSS px)
+  // iPhone Duo sizes (594 is one column: two 290 px columns need 590 plus the 24 px margins): closed upright and sideways, open upright and sideways (CSS px)
   const sized = async (w, h) => { const c = await browser.newContext({ viewport: { width: w, height: h }, isMobile: true, hasTouch: true, serviceWorkers: 'block' }); return { c, p: watch(await c.newPage()) }; };
   const box = (p, sel) => p.$eval(sel, e => { const r = e.getBoundingClientRect(); return { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) }; });
   const sideways = p => p.evaluate(() => document.documentElement.scrollWidth - innerWidth);
-  for (const [size, cols] of [['closed', 1], ['closedSideways', 2], ['open', 2], ['openSideways', 3]]) {
+  for (const [size, cols] of [['closed', 1], ['closedSideways', 1], ['open', 2], ['openSideways', 3]]) {
     const { width: w, height: h } = duo[size];
     const { c, p } = await sized(w, h);
     await p.addInitScript(() => localStorage.setItem('counter-v1', JSON.stringify({ sort: 'manual', counters: ['a', 'b', 'c', 'd'].map(id => ({ id, name: 'Counter ' + id, color: '#0A57D0', n: 7 })) })));
@@ -98,27 +98,28 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
   }
 
 
-  // The phone keyboard, on the Duo's five Safari sizes: a stand-in visualViewport that the test shrinks, the way iOS does
+  // The phone keyboard, on the Duo's measured Safari keyboard poses (test/devices.cjs): a stand-in visualViewport that the test shrinks, the way iOS does
   // (the layout viewport stays full height).
-  for (const [w, h] of Object.values(duo).map(d => [d.width, d.height])) {
+  for (const [pose, kbd] of Object.entries(keyboard)) {
+    const w = kbd.width, h = kbd.pageHeight;
     const c = await browser.newContext({ viewport: { width: w, height: h }, isMobile: true, hasTouch: true, serviceWorkers: 'block' });
     await c.addInitScript(() => {
       const t = new EventTarget(), vv = { width: innerWidth, height: innerHeight, offsetTop: 0, offsetLeft: 0, scale: 1, addEventListener: (a, b) => t.addEventListener(a, b), removeEventListener() {} };
       Object.defineProperty(window, 'visualViewport', { value: vv });
       window.__kb = (kh, off) => { vv.height = innerHeight - kh; vv.offsetTop = off || 0; t.dispatchEvent(new Event('resize')); };
     });
-    const p = watch(await c.newPage()), kh = Math.round(h * .45), tag = `${w}×${h}`;
+    const p = watch(await c.newPage()), kh = h - kbd.visibleHeight, tag = `${pose} ${w}×${h}`;
     await p.goto(base); await p.waitForSelector('#addBtn');
     await p.tap('#addBtn'); await p.waitForSelector('#fName');
     await p.fill('#fName', 'Pallets'); await p.focus('#fName');
-    await p.evaluate(kb => __kb(kb, 0), kh); await p.waitForTimeout(600);
+    await p.evaluate(([kb, o]) => __kb(kb, o), [kh, kbd.offsetTop]); await p.waitForTimeout(600);
     const k = await p.evaluate(kh => {
       const r = document.getElementById('fName').getBoundingClientRect(), s = document.querySelector('.sheet').getBoundingClientRect();
-      return { kb: document.documentElement.classList.contains('kb'), locked: document.documentElement.classList.contains('locked'), top: r.top, bottom: r.bottom, sTop: s.top, sBottom: s.bottom, vis: innerHeight - kh };
+      return { kb: document.documentElement.classList.contains('kb'), locked: document.documentElement.classList.contains('locked'), top: r.top, bottom: r.bottom, sTop: s.top, sBottom: s.bottom, lo: visualViewport.offsetTop, vis: visualViewport.offsetTop + visualViewport.height };
     }, kh);
     check(`${tag} keyboard: html.kb is set and the page behind the sheet is locked`, k.kb && k.locked, k);
-    check(`${tag} keyboard: the open sheet fits the visible area`, k.sTop >= -1 && k.sBottom <= k.vis + 1, k);
-    check(`${tag} keyboard: the focused field is visible`, k.top >= -1 && k.bottom <= k.vis + 1, k);
+    check(`${tag} keyboard: the open sheet fits the visible area`, k.sTop >= k.lo - 1 && k.sBottom <= k.vis + 1, k);
+    check(`${tag} keyboard: the focused field is visible`, k.top >= k.lo - 1 && k.bottom <= k.vis + 1, k);
     await p.tap('.backdrop', { position: { x: 5, y: 5 } }); await p.waitForTimeout(150);
     check(`${tag} keyboard: a backdrop tap while typing only puts the keyboard away`, await p.evaluate(() => !!document.querySelector('.sheet') && document.activeElement !== document.getElementById('fName') && document.getElementById('fName').value === 'Pallets'));
     await p.tap('.backdrop', { position: { x: 5, y: 5 } }); await p.waitForTimeout(150);

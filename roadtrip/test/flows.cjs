@@ -3,7 +3,7 @@ const { webkit, devices } = require('playwright');
 const assert = require('node:assert/strict');
 const http = require('node:http'), fs = require('node:fs'), path = require('node:path');
 const X = require('./rtexport.cjs'), fixture = require('./fixture.json');
-const { duo } = require('../../test/devices.cjs');
+const { duo, keyboard } = require('../../test/devices.cjs');
 const root = path.resolve(__dirname, '../..');
 const types = {'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.png':'image/png','.svg':'image/svg+xml'};
 let bump = false, api;
@@ -103,9 +103,9 @@ const server = http.createServer(async (req,res)=>{
  }
  console.log('ok five Duo sizes, all tabs; a rail on the right only when open sideways');
 
- // The phone keyboard, on the Duo's five Safari sizes: a stand-in visualViewport the test shrinks, like iOS does.
- for(const size of Object.keys(duo)){
-  const {width:w,height:h}=duo[size], tag=`${w}×${h}`, kh=Math.round(h*.45);
+ // The phone keyboard, on the Duo's measured Safari keyboard poses: a stand-in visualViewport the test shrinks, like iOS does.
+ for(const [pose,kbd] of Object.entries(keyboard)){
+  const w=kbd.width, h=kbd.pageHeight, tag=`${pose} ${w}×${h}`, kh=h-kbd.visibleHeight, off=kbd.offsetTop;
   const kc=await browser.newContext({viewport:{width:w,height:h},isMobile:true,hasTouch:true,serviceWorkers:'block'});
   await kc.addInitScript(s=>{
    if(!sessionStorage.seeded){localStorage.setItem('dorrance-session',JSON.stringify(s));sessionStorage.seeded='1';}
@@ -117,16 +117,16 @@ const server = http.createServer(async (req,res)=>{
   await q.goto(base); await q.waitForSelector('#addBtn');
   await q.tap('#addBtn'); await q.waitForSelector('#fOdo');
   await q.fill('#fOdo','200200'); await q.focus('#fOdo');
-  await q.evaluate(k=>__kb(k,0),kh); await q.waitForTimeout(600);
+  await q.evaluate(([k,o])=>__kb(k,o),[kh,off]); await q.waitForTimeout(600);
   const k=await q.evaluate(k=>{const R=s=>document.querySelector(s).getBoundingClientRect(),d=document.documentElement,f=R('#fOdo'),s=R('.sheet'),t=R('#fTotal'),v=R('#fSave'),tb=getComputedStyle(document.getElementById('tabbar'));
-   return{kb:d.classList.contains('kb'),locked:d.classList.contains('locked'),tabHidden:tb.display==='none'||tb.visibility==='hidden',sTop:s.top,sBottom:s.bottom,fTop:f.top,fBottom:f.bottom,totTop:t.top,saveBottom:v.bottom,vis:innerHeight-k};},kh);
+   return{kb:d.classList.contains('kb'),locked:d.classList.contains('locked'),tabHidden:tb.display==='none'||tb.visibility==='hidden',sTop:s.top,sBottom:s.bottom,fTop:f.top,fBottom:f.bottom,totTop:t.top,saveBottom:v.bottom,lo:visualViewport.offsetTop,vis:visualViewport.offsetTop+visualViewport.height};},kh);
   assert.ok(k.kb&&k.locked,`${tag} keyboard: html.kb set, page locked ${JSON.stringify(k)}`);
   assert.ok(k.tabHidden,`${tag} keyboard: tab bar hidden`);
-  assert.ok(k.sTop>=-1&&k.sBottom<=k.vis+1,`${tag} keyboard: fuel sheet fits the visible area ${JSON.stringify(k)}`);
-  const reach=await q.evaluate(k=>{const o={};for(const id of ['fTotal','fSave']){const e=document.getElementById(id);e.scrollIntoView({block:'nearest'});const r=e.getBoundingClientRect();o[id]=r.top>=-1&&r.bottom<=innerHeight-k+1;}return o;},kh);
+  assert.ok(k.sTop>=k.lo-1&&k.sBottom<=k.vis+1,`${tag} keyboard: fuel sheet fits the visible area ${JSON.stringify(k)}`);
+  const reach=await q.evaluate(k=>{const o={};for(const id of ['fTotal','fSave']){const e=document.getElementById(id);e.scrollIntoView({block:'nearest'});const r=e.getBoundingClientRect();o[id]=r.top>=visualViewport.offsetTop-1&&r.bottom<=visualViewport.offsetTop+visualViewport.height+1;}return o;},kh);
   assert.ok(reach.fTotal&&reach.fSave,`${tag} keyboard: Total and Save can be scrolled into the visible area ${JSON.stringify(reach)}`);
   await q.evaluate(()=>document.getElementById('fOdo').scrollIntoView({block:'nearest'}));
-  assert.ok(k.fTop>=-1&&k.fBottom<=k.vis+1,`${tag} keyboard: focused field visible ${JSON.stringify(k)}`);
+  assert.ok(k.fTop>=k.lo-1&&k.fBottom<=k.vis+1,`${tag} keyboard: focused field visible ${JSON.stringify(k)}`);
   await q.tap('.backdrop',{position:{x:5,y:5}}); await q.waitForTimeout(150);
   assert.ok(await q.evaluate(()=>!!document.querySelector('.sheet')&&document.activeElement!==document.getElementById('fOdo')&&document.getElementById('fOdo').value==='200200'),`${tag} keyboard: backdrop tap only blurs`);
   await q.tap('.backdrop',{position:{x:5,y:5}}); await q.waitForTimeout(150);
@@ -135,10 +135,10 @@ const server = http.createServer(async (req,res)=>{
   // More tab: the tank field scrolls above the keyboard
   await q.evaluate(()=>{const b=document.querySelector('[data-tab="more"]');b.click();});
   await q.waitForSelector('#mTank'); await q.focus('#mTank');
-  await q.evaluate(k=>__kb(k,0),kh); await q.waitForTimeout(600);
+  await q.evaluate(k=>__kb(k,0),kh); await q.waitForTimeout(600);   // a field on the page itself: iOS pans the page to put it in view
   await q.evaluate(()=>document.getElementById('mTank').scrollIntoView({block:'end'})); await q.waitForTimeout(200);
-  const m=await q.evaluate(k=>{const r=document.getElementById('mTank').getBoundingClientRect(),mn=document.getElementById('main');return{top:r.top,bottom:r.bottom,vis:innerHeight-k,pad:getComputedStyle(mn,'::after').height};},kh);
-  assert.ok(m.top>=-1&&m.bottom<=m.vis+1,`${tag} keyboard: More tank field scrolls above the keyboard ${JSON.stringify(m)}`);
+  const m=await q.evaluate(k=>{const r=document.getElementById('mTank').getBoundingClientRect(),mn=document.getElementById('main');return{top:r.top,bottom:r.bottom,lo:visualViewport.offsetTop,vis:visualViewport.offsetTop+visualViewport.height,pad:getComputedStyle(mn,'::after').height};},kh);
+  assert.ok(m.top>=m.lo-1&&m.bottom<=m.vis+1,`${tag} keyboard: More tank field scrolls above the keyboard ${JSON.stringify(m)}`);
   await q.evaluate(()=>__kb(0,0)); await kc.close();
  }
  console.log('ok keyboard at the five Duo sizes: html.kb, tab bar hidden, fuel sheet fits, backdrop tap, More tank');
