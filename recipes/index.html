@@ -55,7 +55,8 @@ if(navigator.standalone)document.documentElement.classList.add('app');
   --kick: #C63A24;
   --solid: #2A1D17;
   --on-solid: #FFF6E6;
-  --focus: #2F6FD0;
+  --focus: #C63A24;
+  --idle: #F1E2C7;
   --lift: rgba(42, 29, 23, .35);
   --lift-edge: rgba(42, 29, 23, .10);
   --dim: rgba(42, 29, 23, .45);
@@ -65,14 +66,14 @@ if(navigator.standalone)document.documentElement.classList.add('app');
   :root:not([data-theme="light"]) {
     --ground: #1C1512; --surface: #2A201B; --ink: #F6EBDA; --soft: #C8B6A3; --line: #3D3029; --tint: #33271F; --track: #33271F;
     --edge: #93806E; --hint: #A8968A; --card: #2A201B; --red-rule: #B85544; --blue-rule: #3D3029; --link: #F2836B; --link-hover: #FFA48F;
-    --note: #3F321C; --kick: #F6C945; --solid: #F6EBDA; --on-solid: #2A1D17; --focus: #8FB8FF; --lift: rgba(0, 0, 0, .6); --lift-edge: rgba(0, 0, 0, .3);
+    --note: #3F321C; --kick: #F6C945; --solid: #F6EBDA; --on-solid: #2A1D17; --focus: #F6C945; --idle: #2A201B; --lift: rgba(0, 0, 0, .6); --lift-edge: rgba(0, 0, 0, .3);
     --dim: rgba(10, 6, 4, .6); color-scheme: dark;
   }
 }
 :root[data-theme="dark"], :root[data-theme="aurora"] {
   --ground: #1C1512; --surface: #2A201B; --ink: #F6EBDA; --soft: #C8B6A3; --line: #3D3029; --tint: #33271F; --track: #33271F;
   --edge: #93806E; --hint: #A8968A; --card: #2A201B; --red-rule: #B85544; --blue-rule: #3D3029; --link: #F2836B; --link-hover: #FFA48F;
-  --note: #3F321C; --kick: #F6C945; --solid: #F6EBDA; --on-solid: #2A1D17; --focus: #8FB8FF; --lift: rgba(0, 0, 0, .6); --lift-edge: rgba(0, 0, 0, .3);
+  --note: #3F321C; --kick: #F6C945; --solid: #F6EBDA; --on-solid: #2A1D17; --focus: #F6C945; --idle: #2A201B; --lift: rgba(0, 0, 0, .6); --lift-edge: rgba(0, 0, 0, .3);
   --dim: rgba(10, 6, 4, .6); color-scheme: dark;
 }
 
@@ -157,13 +158,13 @@ h1, h2, h3 { margin: 0; }
 .tabs::-webkit-scrollbar { display: none; }
 .tabs button {
   flex: none; display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 10px 14px; border: 0; border-radius: 14px 14px 0 0;
-  background: var(--tint); color: var(--ink); font-size: 15px; font-weight: 700;
+  background: var(--idle); color: var(--ink); font-size: 15px; font-weight: 700;
 }
-.tabs button[aria-pressed="true"] { min-height: 52px; background: var(--c); color: var(--cf); }
+.tabs button[aria-pressed="true"] { min-height: 52px; background: var(--solid); color: var(--on-solid); }
 .tabs .n {
   min-width: 22px; padding: 2px 7px; border-radius: 999px; background: var(--cream); color: var(--on-butter); font-size: 12px; font-weight: 800; text-align: center;
 }
-.tabs button[aria-pressed="true"] .n { background: var(--cf); color: var(--c); }
+.tabs button[aria-pressed="true"] .n { background: var(--on-solid); color: var(--solid); }
 .band { height: 8px; border-radius: 0 8px 0 0; background: var(--c, var(--solid)); }
 .notice { margin: 16px calc(16px + env(safe-area-inset-right)) 0 calc(16px + env(safe-area-inset-left)); padding: 12px 16px; border-radius: 16px; background: var(--note); font-size: 15px; font-weight: 600; line-height: 1.45; }
 
@@ -253,7 +254,7 @@ html.kb .layer:not(.over)::after { content: ''; display: block; height: calc(var
 .index h1 { font-weight: 800; font-size: 34px; line-height: 1.08; letter-spacing: -.01em; text-wrap: balance; overflow-wrap: anywhere; }
 .index .rule { margin-top: 16px; border-top: 2px solid var(--red-rule); }
 .index .body { display: flex; flex-direction: column; gap: 6px; padding: 14px 20px 18px; }
-.seg { display: grid; grid-template-columns: repeat(var(--n, 2), minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 999px; background: var(--track); }
+.seg { display: grid; grid-template-columns: repeat(var(--n, 2), minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 999px; background: var(--idle); }
 .seg button { min-height: 44px; border: 0; border-radius: 999px; background: transparent; color: var(--ink); font-size: 15px; font-weight: 700; }
 .seg button[aria-pressed="true"] { background: var(--solid); color: var(--on-solid); }
 /* ingredients and steps: the tab bar shows one on the phone; from 640 px wide both show, side by side when upright */
@@ -346,6 +347,20 @@ p.source { margin: 0; color: var(--soft); }
 
 /* add and edit */
 .formbar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; }
+/* the editor: the title alone on top; Cancel and Save are in the bar at the bottom of the visible screen */
+#editor { display: flex; flex-direction: column; }
+#editor .screen { flex: none; width: 100%; }
+#editor .formbar { display: flex; justify-content: center; min-height: 48px; }
+.savebar {
+  position: sticky; bottom: 0; z-index: 3; flex: none; margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px;
+  padding: 8px max(calc(16px + env(safe-area-inset-right)), calc((100% - 640px) / 2 + 16px)) max(8px, env(safe-area-inset-bottom)) max(calc(16px + env(safe-area-inset-left)), calc((100% - 640px) / 2 + 16px));
+  background: var(--surface); border-top: 1px solid var(--line);
+}
+.savebar .backlink { padding: 0 8px 0 4px; }
+.savebar .pill { min-height: 44px; padding: 0 22px; font-size: 16px; font-weight: 800; }
+html.kb .savebar { padding-bottom: 8px; }
+html.kb #editor::after { display: none; }
+#editor .field input, #editor .field textarea, #editor .cats button { scroll-margin-top: 40px; scroll-margin-bottom: 72px; }
 .formbar h1 { font-size: 22px; font-weight: 800; white-space: nowrap; }
 .formbar .backlink { justify-self: start; padding: 0 4px; }
 .formbar .pill { justify-self: end; padding: 0 20px; font-size: 16px; font-weight: 800; }
@@ -362,13 +377,13 @@ p.source { margin: 0; color: var(--soft); }
 .field .bad { border-color: var(--link); box-shadow: 0 0 0 1.5px var(--link); }
 .cats { display: flex; flex-wrap: wrap; gap: 8px; }
 .cats button {
-  display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border: 1.5px solid var(--edge); border-radius: 999px;
-  background: var(--surface); color: var(--ink); font-size: 15px; font-weight: 700;
+  display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border: 1.5px solid var(--idle); border-radius: 999px;
+  background: var(--idle); color: var(--ink); font-size: 15px; font-weight: 700;
 }
 .cats button i { width: 12px; height: 12px; border-radius: 999px; background: var(--c); }
-.cats button[aria-pressed="true"] { border-color: var(--c); background: var(--c); color: var(--cf); }
-.cats button[aria-pressed="true"] i { box-shadow: 0 0 0 1.5px var(--cf); }
-.cats .new { border-style: dashed; background: transparent; }
+.cats button[aria-pressed="true"] { border-color: var(--solid); background: var(--solid); color: var(--on-solid); }
+.cats button[aria-pressed="true"] i { box-shadow: 0 0 0 1.5px var(--on-solid); }
+.cats .new { border-color: var(--edge); border-style: dashed; background: transparent; }
 .newcat { display: flex; gap: 8px; }
 .newcat input { flex: 1; min-width: 0; }
 .newcat .pill { min-height: 50px; }
@@ -484,11 +499,11 @@ body.has-nav #settings .setbody { padding-bottom: calc(96px + max(16px, env(safe
 .faces { flex: none; display: flex; }
 .faces .av { width: 40px; height: 40px; border: 2.5px solid var(--carrot); font-size: 18px; }
 .faces .av + .av { margin-left: -10px; }
-.weeks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 20px; background: var(--cream); }
-.weeks button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; min-height: 52px; border: 0; border-radius: 16px; background: transparent; color: var(--on-butter); }
+.weeks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 20px; background: var(--idle); }
+.weeks button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; min-height: 52px; border: 0; border-radius: 16px; background: transparent; color: var(--ink); }
 .weeks b { font-size: 15px; font-weight: 800; }
 .weeks span { font-size: 12px; font-weight: 600; }
-.weeks button[aria-pressed="true"] { background: var(--on-butter); color: var(--cream); }
+.weeks button[aria-pressed="true"] { background: var(--solid); color: var(--on-solid); }
 .planbody, .grobody {
   display: flex; flex-direction: column; gap: 8px; max-width: 640px; margin: 0 auto;
   padding: 14px calc(16px + env(safe-area-inset-right)) calc(28px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
@@ -599,6 +614,64 @@ html.kb .over.pick .row { justify-content: flex-end; }
 .toast .go { min-height: 44px; padding: 0 8px 0 18px; cursor: pointer; }
 .toast .no { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 999px; }
 .toast :focus-visible { outline-color: var(--on-solid); }
+
+/* A closed phone: a little less header, so the list gets more of the screen. */
+@media (max-width: 599px) and (min-height: 501px) {
+  .hero { gap: 14px; padding-top: calc(16px + env(safe-area-inset-top)); padding-bottom: 16px; }
+  .kicker { font-size: 12px; }
+  .hero h1 { font-size: 40px; }
+  .search { height: 44px; }
+  .dividers { padding-top: 12px; }
+  .tabs button[aria-pressed="true"] { min-height: 48px; }
+  .band { height: 4px; }
+  .deck { padding-top: 16px; }
+}
+
+/* A short screen (the closed phone turned): every header is one band, and the tab bar is a thin row. */
+@media (max-height: 500px) {
+  .hero { flex-direction: row; align-items: center; gap: 12px; padding-top: calc(12px + env(safe-area-inset-top)); padding-bottom: 12px; border-radius: 0 0 24px 24px; }
+  .hero-top { display: contents; }
+  .hero-title { flex: none; }
+  .kicker { display: none; }
+  .hero h1 { font-size: 24px; line-height: 1.1; white-space: nowrap; }
+  .search { flex: 1 1 240px; min-width: 240px; height: 36px; }
+  .search .clear { width: 36px; height: 36px; }
+  .addbtn, .signin { width: 40px; height: 40px; }
+  .addbtn svg, .signin svg { width: 22px; height: 22px; }
+  .dividers { padding-top: 12px; }
+  .tabs button, .tabs button[aria-pressed="true"] { min-height: 44px; }
+  .band { height: 4px; background: var(--solid); }
+  .deck { padding-top: 12px; }
+
+  .nav { padding-top: 0; padding-bottom: env(safe-area-inset-bottom); }
+  .nav button { flex-direction: row; gap: 8px; min-height: 56px; font-size: 13px; }
+  .nav .ic { width: 44px; height: 30px; }
+  .nav .dot::after { top: 10px; left: calc(50% - 16px); }
+  body.has-nav #page { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
+  body.has-nav #plan .planbody, body.has-nav #grocery .grobody, body.has-nav #settings .setbody { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+  .toast { bottom: calc(72px + env(safe-area-inset-bottom)); }
+
+  .planhead, .grohead { gap: 8px; padding-top: calc(12px + env(safe-area-inset-top)); padding-bottom: 12px; border-radius: 0 0 24px 24px; }
+  .planhead h1, .grohead h1 { font-size: 24px; line-height: 1.15; }
+  .planhead { flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; }
+  .planhead .headline { align-items: center; justify-content: flex-start; gap: 12px; }
+  .planhead .sub { display: none; }
+  .faces .av { width: 28px; height: 28px; border-width: 2px; font-size: 14px; }
+  .faces .av + .av { margin-left: -8px; }
+  .weeks { flex: none; width: 260px; padding: 4px; border-radius: 999px; }
+  .weeks button { min-height: 32px; border-radius: 999px; }
+  .weeks span { display: none; }
+  .planbody { padding-top: 12px; }
+  .dinner { min-height: 52px; }
+  .grohead .heading { flex-direction: row; align-items: baseline; gap: 12px; }
+  .grohead .sub { font-size: 14px; white-space: nowrap; }
+  .gchips { flex-wrap: nowrap; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: -10px 0; padding: 10px 0; }
+  .gchips::-webkit-scrollbar { display: none; }
+  .gchip, .addrec { flex: none; min-height: 32px; white-space: nowrap; }
+  .gchip { padding-left: 12px; }
+  .gchip button { width: 32px; height: 32px; }
+  .grobody { padding-top: 12px; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .alarm { animation: none; }
@@ -733,9 +806,7 @@ html.kb .over.pick .row { justify-content: flex-end; }
 <section class="layer" id="editor" aria-labelledby="eTitle" tabindex="-1" hidden>
   <div class="screen">
     <div class="formbar">
-      <button class="backlink" id="eCancel" type="button">Cancel</button>
       <h1 class="serif" id="eTitle">New recipe</h1>
-      <button class="pill tomato" id="eSave" type="button">Save</button>
     </div>
     <p class="alert" id="eError" role="alert" hidden></p>
     <button class="aicard" id="eMany" type="button" hidden>
@@ -781,6 +852,10 @@ html.kb .over.pick .row { justify-content: flex-end; }
       <button class="switch" id="fShare" type="button" role="switch" aria-checked="true" aria-describedby="fShareHint"><i></i></button>
     </div>
     <button class="pill danger" id="eDelete" type="button" hidden>Delete recipe</button>
+  </div>
+  <div class="savebar">
+    <button class="backlink" id="eCancel" type="button">Cancel</button>
+    <button class="pill tomato" id="eSave" type="button">Save</button>
   </div>
 </section>
 

@@ -295,6 +295,40 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
     await c.close();
   }
 
+  // The compact layouts and the one-selected-state rule, at every Duo size
+  for (const [size, d] of Object.entries(duo)) {
+    const c = await newContext({ viewport: { width: d.width, height: d.height } }), p = await c.newPage();
+    watch(p);
+    await p.goto(base); await p.waitForSelector('#deck .rc');
+    const m = await p.evaluate(() => {
+      const r = s => document.querySelector(s).getBoundingClientRect(), deck = r('#deck');
+      return { over: document.documentElement.scrollWidth - innerWidth, list: Math.min(innerHeight, deck.bottom) - deck.top, hero: r('.hero').height };
+    });
+    check(`${size} ${d.width}×${d.height}: no sideways scroll in the box`, m.over <= 0, m);
+    if (size === 'closedSideways') check('594×466: the box list area is at least 250 px tall', m.list >= 250 && m.hero <= 70, m);
+    const sel = await p.evaluate(() => { const b = document.querySelector('#tabs [aria-pressed="true"]'), i = document.querySelector('#tabs [aria-pressed="false"]'), x = getComputedStyle(b), y = getComputedStyle(i), r = getComputedStyle(document.documentElement); return { on: x.backgroundColor, onText: x.color, off: y.backgroundColor, ink: r.getPropertyValue('--solid').trim() }; });
+    check(`${size}: the open divider is ink with cream text, the others sand`, sel.on === 'rgb(42, 29, 23)' && sel.onText === 'rgb(255, 246, 230)' && sel.off === 'rgb(241, 226, 199)', sel);
+    await p.tap('#signInBtn'); await opened('settings', p);
+    await p.fill('#aName', 'Madi'); await p.fill('#aPass', 'madi-password'); await p.tap('#aGo');
+    await p.waitForFunction(() => !document.getElementById('sMe').hidden);
+    await p.goBack(); await closed('settings', p);
+    await p.waitForSelector('#navPlan:not([hidden])');
+    for (const go of ['plan', 'grocery']) {
+      await p.tap(`#nav [data-go="${go}"]`); await opened(go, p); await p.waitForTimeout(400);
+      check(`${size}: no sideways scroll in ${go}`, await p.evaluate(() => document.documentElement.scrollWidth - innerWidth <= 0 && [...document.querySelectorAll('.layer.open')].every(l => l.scrollWidth <= l.clientWidth + 1)));
+    }
+    await p.tap('#nav [data-go="box"]'); await p.waitForTimeout(300);
+    await p.tap('#addBtn'); await opened('editor', p); await p.waitForTimeout(400);
+    const ed = await p.evaluate(() => {
+      const r = s => document.querySelector(s).getBoundingClientRect(), sv = r('#eSave'), cn = r('#eCancel'), l = r('#editor'), ring = getComputedStyle(document.documentElement).getPropertyValue('--focus').trim();
+      const on = document.querySelector('#fCats [aria-pressed="true"]'), dot = getComputedStyle(on.querySelector('i')).backgroundColor, bg = getComputedStyle(on).backgroundColor;
+      return { over: document.documentElement.scrollWidth - innerWidth + Math.max(0, document.getElementById('editor').scrollWidth - document.getElementById('editor').clientWidth), saveB: sv.bottom, layerB: l.bottom, saveR: sv.right, cancelL: cn.left, w: innerWidth, ring, dot, bg, onlyTitle: document.querySelectorAll('#editor .formbar button').length === 0 };
+    });
+    check(`${size}: the editor has only the title on top, Cancel left and Save right in the bottom bar, no sideways scroll`, ed.onlyTitle && ed.over <= 0 && ed.saveB <= ed.layerB + 1 && ed.saveB >= ed.layerB - 20 && ed.cancelL < ed.saveR - 100 && ed.ring === '#C63A24', ed);
+    check(`${size}: the chosen category chip is ink, and keeps its color dot`, ed.bg === 'rgb(42, 29, 23)' && ed.dot !== ed.bg && ed.dot !== 'rgba(0, 0, 0, 0)', ed);
+    await c.close();
+  }
+
   // The phone keyboard, on the Duo's Safari sizes: a stand-in visualViewport that the test shrinks and pans, the way iOS does
   // (the layout viewport stays full height). The sign-in screen is a layer with fields, so it needs no account.
   for (const [pose, kbd] of Object.entries(keyboard)) {
@@ -334,13 +368,13 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
       const f = document.getElementById('fSource'); f.scrollIntoView({ block: 'nearest' });
       const fr = f.getBoundingClientRect();
       const field = fr.top >= vv.offsetTop - 1 && fr.bottom <= vv.offsetTop + vv.height + 1;
-      const sv = document.getElementById('eSave'); sv.scrollIntoView({ block: 'nearest' });
-      const r = sv.getBoundingClientRect();
-      return { lo: vv.offsetTop, hi: vv.offsetTop + vv.height, layerTop: l.top, layerBottom: l.bottom, field, saveTop: r.top, saveBottom: r.bottom };
+      const sv = document.getElementById('eSave'), r = sv.getBoundingClientRect();   // no scrolling: the bar is always in view
+      const cn = document.getElementById('eCancel').getBoundingClientRect();
+      return { lo: vv.offsetTop, hi: vv.offsetTop + vv.height, layerTop: l.top, layerBottom: l.bottom, field, saveTop: r.top, saveBottom: r.bottom, saveL: r.left, cancelL: cn.left, scrolled: document.getElementById('editor').scrollTop };
     });
     check(`${tag} keyboard: the recipe form fits the visible area`, e.layerTop >= e.lo - 1 && e.layerBottom <= e.hi + 1, e);
     check(`${tag} keyboard: the last field can be scrolled into the visible area`, e.field, e);
-    check(`${tag} keyboard: Save can be scrolled into the visible area`, e.saveTop >= e.lo - 1 && e.saveBottom <= e.hi + 1, e);
+    check(`${tag} keyboard: Save is in the visible area without scrolling, on the right of Cancel`, e.saveTop >= e.lo - 1 && e.saveBottom <= e.hi + 1 && e.saveL > e.cancelL, e);
     await p.evaluate(() => __kb(0, 0));
     await c.close();
   }

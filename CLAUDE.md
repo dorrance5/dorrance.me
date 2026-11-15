@@ -39,7 +39,7 @@ This is a static site of small phone apps. GitHub Pages deploys `main` with `.gi
 ## Choices
 
 - Menu bars and tab bars go at the bottom or on the right side, never on the left or at the top. One exception: Calculator's menu button is at the top left, and its history slides in from the left, so the number on the right never runs under it.
-- In every row of choice buttons, put the default option on the left.
+- TV Mount only: in every row of choice buttons, put the default option on the left. This is not a site-wide rule.
 
 ## Offline cache
 
