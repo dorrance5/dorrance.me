@@ -356,9 +356,9 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
     const ed = await p.evaluate(() => {
       const r = s => document.querySelector(s).getBoundingClientRect(), sv = r('#eSave'), cn = r('#eCancel'), l = r('#editor'), ring = getComputedStyle(document.documentElement).getPropertyValue('--focus').trim();
       const on = document.querySelector('#fCats [aria-pressed="true"]'), dot = getComputedStyle(on.querySelector('i')).backgroundColor, bg = getComputedStyle(on).backgroundColor;
-      return { over: document.documentElement.scrollWidth - innerWidth + Math.max(0, document.getElementById('editor').scrollWidth - document.getElementById('editor').clientWidth), saveB: sv.bottom, layerB: l.top + document.getElementById('editor').clientHeight, saveR: sv.right, cancelL: cn.left, w: innerWidth, ring, dot, bg, onlyTitle: document.querySelectorAll('#editor .formbar button').length === 0 };
+      return { over: document.documentElement.scrollWidth - innerWidth + Math.max(0, document.getElementById('editor').scrollWidth - document.getElementById('editor').clientWidth), saveB: sv.bottom, layerB: l.bottom, saveR: sv.right, cancelL: cn.left, w: innerWidth, ring, dot, bg, onlyTitle: document.querySelectorAll('#editor .formbar button').length === 0, noBar: ['#eSave', '#eCancel'].every(q => { const b = document.querySelector(q).parentElement, cs = getComputedStyle(b); return cs.backgroundColor === 'rgba(0, 0, 0, 0)' && cs.borderTopWidth === '0px' && b.getBoundingClientRect().width > 0 && !(b.querySelector('#eSave').getBoundingClientRect().width > b.getBoundingClientRect().width * 0.9); }) && getComputedStyle(document.getElementById('eSave')).boxShadow !== 'none' };
     });
-    check(`${size}: the editor has only the title on top, Cancel left and Save right in the bottom bar, no sideways scroll`, ed.onlyTitle && ed.over <= 0 && ed.saveB <= ed.layerB + 1 && ed.saveB >= ed.layerB - 20 && ed.cancelL < ed.saveR - 100 && ed.ring === '#C63A24', ed);
+    check(`${size}: the editor has only the title on top, Cancel left and Save right in the bottom bar, no sideways scroll`, ed.onlyTitle && ed.over <= 0 && ed.saveB <= ed.layerB + 1 && ed.saveB >= ed.layerB - 40 && ed.noBar && ed.cancelL < ed.saveR - 100 && ed.ring === '#C63A24', ed);
     check(`${size}: the chosen category chip is ink, and keeps its color dot`, ed.bg === 'rgb(42, 29, 23)' && ed.dot !== ed.bg && ed.dot !== 'rgba(0, 0, 0, 0)', ed);
     await c.close();
   }
@@ -382,7 +382,7 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
     await p.evaluate(([kb, o]) => __kb(kb, o), [kh, off]); await p.waitForTimeout(500);
     const k = await p.evaluate(() => {
       const r = document.getElementById('aPass').getBoundingClientRect(), l = document.getElementById('settings').getBoundingClientRect();
-      return { kb: document.documentElement.classList.contains('kb'), layerH: document.getElementById('settings').clientHeight, top: r.top, bottom: r.bottom, layerTop: l.top };
+      return { kb: document.documentElement.classList.contains('kb'), layerH: document.getElementById('settings').clientHeight - Math.max(0, innerHeight - visualViewport.offsetTop - visualViewport.height), top: r.top, bottom: r.bottom, layerTop: l.top };
     });
     check(`${tag} keyboard: html.kb is set and the screen fits the visible height`, k.kb && Math.abs(k.layerH - kbd.visibleHeight) < 2, k);
     check(`${tag} keyboard: the focused field is in the visible part`, k.top >= k.layerTop - 1 && k.bottom <= k.layerTop + k.layerH + 1 && Math.abs(k.layerTop - off) < 2, k);
@@ -404,16 +404,16 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
       const field = fr.top >= vv.offsetTop - 1 && fr.bottom <= vv.offsetTop + vv.height + 1;
       const sv = document.getElementById('eSave'), r = sv.getBoundingClientRect();   // no scrolling: the bar is always in view
       const cn = document.getElementById('eCancel').getBoundingClientRect();
-      return { lo: vv.offsetTop, hi: vv.offsetTop + vv.height, layerTop: l.top, layerBottom: l.top + document.getElementById('editor').clientHeight, field, saveTop: r.top, saveBottom: r.bottom, saveL: r.left, cancelL: cn.left, scrolled: document.getElementById('editor').scrollTop };
+      return { lo: vv.offsetTop, hi: vv.offsetTop + vv.height, layerTop: l.top, layerBottom: l.bottom, innerH: innerHeight, field, fieldBottom: fr.bottom,  maxScroll: document.getElementById('editor').scrollHeight - document.getElementById('editor').clientHeight, saveTop: r.top, saveBottom: r.bottom, saveL: r.left, cancelL: cn.left, scrolled: document.getElementById('editor').scrollTop };
     });
-    check(`${tag} keyboard: the recipe form fits the visible area`, e.layerTop >= e.lo - 1 && e.layerBottom <= e.hi + 1, e);
-    check(`${tag} keyboard: the last field can be scrolled into the visible area`, e.field, e);
-    check(`${tag} keyboard: Save is in the visible area without scrolling, on the right of Cancel`, e.saveTop >= e.lo - 1 && e.saveBottom <= e.hi + 1 && e.saveL > e.cancelL, e);
+    check(`${tag} keyboard: the recipe form starts at the visible top and goes on under the keyboard to the bottom of the page`, Math.abs(e.layerTop - e.lo) < 2 && e.layerBottom >= e.hi - 1 && Math.abs(e.layerBottom - e.innerH) < 2, e);
+    check(`${tag} keyboard: the last field can be scrolled into the visible area, above the floating buttons`, e.field && e.fieldBottom <= e.saveTop + 1, e);
+    check(`${tag} keyboard: Save is fully in the visible area without scrolling (floating, 12 px up), on the right of Cancel`, e.saveTop >= e.lo - 1 && e.saveBottom <= e.hi + 1 && e.saveL > e.cancelL, e);
     // the glass keyboard shows what is under the layout viewport edge: 20 px under the visible area must still be the layer
     const under = await p.evaluate(() => {
-      const vv = visualViewport, y = vv.offsetTop + vv.height + 20, l = document.getElementById('editor'), r = l.getBoundingClientRect();
-      const hit = y < innerHeight ? document.elementFromPoint(innerWidth / 2, y) : null;
-      return { y, innerHeight, bottom: r.bottom, hit: hit && (hit.id || hit.className || hit.tagName), ok: r.bottom >= y && (!hit || l.contains(hit)) };
+      const vv = visualViewport, y = Math.min(vv.offsetTop + vv.height + 20, innerHeight - 1), l = document.getElementById('editor'), r = l.getBoundingClientRect();
+      const hit = document.elementFromPoint(innerWidth / 2, y);
+      return { y, innerHeight, bottom: r.bottom, hit: hit && (hit.id || hit.className || hit.tagName), ok: r.bottom >= y && !!hit && l.contains(hit) };
     });
     check(`${tag} keyboard: 20 px under the visible area is still the recipe form, not the box under it`, under.ok, under);
     await p.keyboard.press('Escape');

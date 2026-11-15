@@ -250,15 +250,15 @@ body.has-nav #page { padding-bottom: calc(72px + max(16px, env(safe-area-inset-b
 
 /* the phone keyboard is up (app.js sets html.kb): no tab bar over the fields, room to scroll the last one up */
 html.kb .nav { display: none; }
-html.kb .layer:not(.over)::after { content: ''; display: block; height: calc(var(--vvh, 100%) * .4); }
+html.kb .layer:not(.over)::after { content: ''; display: block; height: calc(var(--vvh, 100%) * .4 + var(--hid)); }
+/* iOS 26: the keyboard is glass over the layout viewport below the visible area. Each layer is fitted to the visible area plus
+   that hidden part (--hid), so its own content scrolls on under the keyboard; scroll-padding keeps the focused field above it */
+html.kb .layer { --hid: max(0px, calc(100lvh - var(--vvt, 0px) - var(--vvh, 100lvh))); height: calc(var(--vvh, 100%) + var(--hid)); scroll-padding-bottom: var(--hid); }
 
 /* ---- full screens over the box ---- */
 .layer {
   position: fixed; left: 0; right: 0; top: var(--vvt, 0px); height: var(--vvh, 100%); z-index: 20; overflow-y: auto; overscroll-behavior: contain;
   background: var(--ground); transform: translateX(100%); transition: transform .32s cubic-bezier(.2, .8, .2, 1); outline: none;
-  /* iOS 26: the keyboard and its accessory bar are glass over the page under the layout viewport. The layer's content and
-     Save bar stay in the visible area (height); its own background goes on 100lvh below it, under a transparent border */
-  box-sizing: content-box; border-bottom: 100vh solid transparent; border-bottom-width: 100lvh;
 }
 .layer.up { transform: translateY(100%); }
 .layer.fade { transform: none; opacity: 0; transition: opacity .16s ease; }
@@ -384,15 +384,15 @@ p.source { margin: 0; color: var(--soft); }
 #editor .screen { flex: none; width: 100%; }
 #editor .formbar { display: flex; justify-content: center; min-height: 48px; }
 .savebar {
-  position: sticky; bottom: 0; z-index: 3; flex: none; margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px;
-  padding: 8px max(calc(16px + env(safe-area-inset-right)), calc((100% - 640px) / 2 + 16px)) max(8px, env(safe-area-inset-bottom)) max(calc(16px + env(safe-area-inset-left)), calc((100% - 640px) / 2 + 16px));
-  background: var(--surface); border-top: 1px solid var(--line);
+  position: sticky; bottom: calc(var(--hid, 0px) + 12px + env(safe-area-inset-bottom)); z-index: 3; flex: none; margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 0 max(calc(16px + env(safe-area-inset-right)), calc((100% - 640px) / 2 + 16px)) 0 max(calc(16px + env(safe-area-inset-left)), calc((100% - 640px) / 2 + 16px));
+  pointer-events: none;
 }
-.savebar .backlink { padding: 0 8px 0 4px; }
-.savebar .pill { min-height: 44px; padding: 0 22px; font-size: 16px; font-weight: 800; }
-html.kb .savebar { padding-bottom: 8px; }
-html.kb #editor::after { display: none; }
-#editor .field input, #editor .field textarea, #editor .cats button { scroll-margin-top: 40px; scroll-margin-bottom: 72px; }
+.savebar .pill { pointer-events: auto; min-height: 44px; padding: 0 22px; font-size: 16px; font-weight: 800; box-shadow: 0 4px 16px var(--lift), 0 1px 3px var(--lift-edge); }
+.savebar .backlink { pointer-events: auto; min-height: 44px; padding: 0 22px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); font-size: 16px; font-weight: 700; box-shadow: 0 4px 16px var(--lift), 0 1px 3px var(--lift-edge); }
+html.kb #editor::after { flex: none; height: calc(var(--hid) + 72px); }
+#editor .field input, #editor .field textarea, #editor .cats button { scroll-margin-top: 40px; }
+html.kb #editor { scroll-padding-bottom: calc(var(--hid) + 68px); }
 .formbar h1 { font-size: 22px; font-weight: 800; white-space: nowrap; }
 .formbar .backlink { justify-self: start; padding: 0 4px; }
 .formbar .pill { justify-self: end; padding: 0 20px; font-size: 16px; font-weight: 800; }
