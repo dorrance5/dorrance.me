@@ -36,8 +36,8 @@
 @keyframes bump{40%{transform:scale(1.1)}}
 .more{grid-column:1/-1;display:flex;gap:8px;align-items:center;padding:0 8px 8px}
 .more button{height:44px;padding:0 18px;border-radius:13px;font-size:17px;font-weight:650}
-.move{display:flex;gap:6px}
-.move button{width:44px;height:44px;border-radius:10px;display:grid;place-items:center}
+.move{display:flex;gap:6px;margin-left:-10px}   /* flush with the chevron, so the two arrows keep 44 px in three narrow columns */
+.move button{flex:none;width:44px;height:44px;border-radius:10px;display:grid;place-items:center}
 .more button,.move button{background:var(--cbox);color:var(--c)}
 .move button:disabled{opacity:.35}
 .move svg{width:20px;height:20px}

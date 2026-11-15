@@ -117,6 +117,9 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
     const head = await box(p, 'header h1'), bar = await box(p, '#bar'), list = await box(p, '#list');
     check(`${w}×${h}: "Counter" at the top left, +, Edit and sort in a bar at the bottom`, await p.textContent('header h1') === 'Counter' && head.x < 30 && head.y < 40
       && Math.abs(bar.y + bar.h - h) <= 1 && bar.y >= list.y + list.h - 1 && await p.$$eval('#bar button', l => l.map(b => b.id).join()) === 'addBtn,editBtn,sortBtn', { head, bar, list });
+    await p.tap('#editBtn');
+    const mv = await p.$$eval('.move button', l => l.map(b => { const r = b.getBoundingClientRect(), n = b.closest('.cnt').querySelector('.num').getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height), r.right <= n.left]; }).filter(x => x[0] < 44 || x[1] < 44 || !x[2]));
+    check(`${w}×${h}: in Edit the move arrows are 44 px and clear of the number box`, mv.length === 0, mv);
     await c.close();
   }
 
