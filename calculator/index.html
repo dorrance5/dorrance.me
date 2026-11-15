@@ -3,12 +3,13 @@
 <head>
 <meta charset="utf-8">
 <title>Calculator</title>
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Calculator">
-<meta name="theme-color" content="#0E0A1E">
+<meta name="theme-color" content="#F4F4F5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141517" media="(prefers-color-scheme: dark)">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-180.png">
@@ -69,8 +70,8 @@
   .expr{font-size:15px;color:var(--dim);text-align:right;min-height:20px;font-variant-numeric:tabular-nums}
   .value{text-align:right;line-height:.95;margin-top:8px;font-size:clamp(42px,14vw,64px);
          font-weight:300;letter-spacing:-.025em;font-variant-numeric:tabular-nums;
-         text-shadow:0 1px 14px rgba(0,0,0,.28);word-break:break-word}
-  .value.err{font-size:17px;font-weight:500;color:#FFD08A;letter-spacing:0}
+         text-shadow:0 1px 14px rgba(0,0,0,.28);white-space:nowrap}
+  .value.err{font-size:17px;font-weight:500;color:#FFD08A;letter-spacing:0;white-space:normal;word-break:break-word}
   .fr{display:inline-flex;flex-direction:column;align-items:center;font-size:.42em;line-height:1.06;
       vertical-align:.44em;margin-left:.14em;font-weight:500}
   .fr .den{border-top:1.5px solid currentColor;padding-top:1px;margin-top:1px}
@@ -82,7 +83,7 @@
   .alt .sep{padding:0 6px;opacity:.45}
 
   /* ---- hamburger ---- */
-  .menu{position:absolute;top:13px;left:13px;width:40px;height:40px;border-radius:14px;
+  .menu{position:absolute;top:13px;left:13px;width:44px;height:44px;border-radius:14px;
         display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
         cursor:pointer;z-index:3;border:.5px solid rgba(255,255,255,.28)}
   .menu i{display:block;width:16px;height:1.6px;border-radius:1px;background:rgba(255,255,255,.85)}
@@ -136,17 +137,19 @@
   .panel{position:fixed;top:0;bottom:0;left:0;z-index:9;width:min(350px,87vw);
          border-radius:0 26px 26px 0;border-left-style:none;
          display:flex;flex-direction:column;
-         transform:translateX(-101%);transition:transform .3s cubic-bezier(.3,.9,.25,1)}
-  .panel.on{transform:translateX(0)}
+         transform:translateX(-101%);visibility:hidden;transition:transform .3s cubic-bezier(.3,.9,.25,1),visibility 0s .3s}
+  .panel.on{transform:translateX(0);visibility:visible;transition-delay:0s}
   @media (prefers-reduced-motion:reduce){.panel{transition:none}.scrim{transition:none}}
 
   /* ---- full width at every size; wide and short screens (iPhone Duo sizes: see test/devices.cjs) ---- */
   @media (orientation:portrait){ .pad{height:clamp(420px,72vh,680px)} }
   @media (orientation:landscape) and (min-width:800px){
-    .panel{transform:none;width:min(320px,34vw);transition:none}
+    .panel{transform:none;visibility:visible;width:min(320px,34vw);transition:none}
     .scrim,#menuBtn{display:none}
     #app{margin-left:min(320px,34vw)}
   }
+  /* short upright screens (closed Duo 588, split 579): a little less around the display so every key stays 44 px high */
+  @media (orientation:portrait) and (max-height:600px){ .display{padding:12px 16px 11px;margin-bottom:7px} .pad{height:424px} }
   @media (max-height:500px){
     #app{--gap:5px;padding-top:calc(env(safe-area-inset-top) + 6px);padding-bottom:calc(env(safe-area-inset-bottom) + 6px)}
     .display{flex:0 0 auto;padding:8px 14px 7px;margin-bottom:5px;border-radius:20px}
@@ -154,7 +157,7 @@
     .value{font-size:34px;margin-top:0}
     .alt{margin-top:2px;min-height:14px}
     .menu{top:9px;left:9px}
-    .display{padding-left:62px}
+    .display{padding-left:66px}
     .pad{flex:1 1 0;height:auto}
     .zone.whole button,.zone.ops button{font-size:24px}
     .subpad button{font-size:19px}
@@ -163,11 +166,11 @@
          padding:calc(env(safe-area-inset-top) + 16px) 15px 13px;
          border-bottom:.5px solid rgba(255,255,255,.16)}
   .ptitle{flex:1;font-size:19px;font-weight:600;letter-spacing:-.01em}
-  .pill{flex:0 0 auto;height:32px;padding:0 14px;border-radius:16px;font-size:12.5px;font-weight:600;
+  .pill{flex:0 0 auto;height:44px;padding:0 14px;border-radius:22px;font-size:12.5px;font-weight:600;
         letter-spacing:.02em;background:rgba(255,255,255,.16);border:.5px solid rgba(255,255,255,.3)}
   .pill.danger{background:rgba(255,92,92,.26);border-color:rgba(255,160,160,.4)}
   .rows{flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;
-        padding:10px 12px 10px}
+        padding:10px 12px 14px}
   .row{width:100%;display:block;text-align:right;padding:12px 14px;margin-bottom:8px;
        border-radius:17px;background:rgba(255,255,255,.09);border:.5px solid rgba(255,255,255,.17);
        box-shadow:none;font-weight:300}
@@ -186,8 +189,8 @@
   .toast.on{opacity:1;transform:translate(-50%,0)}
   .toast.tap{pointer-events:auto;cursor:pointer}
 
-  .pfoot{flex:0 0 auto;display:flex;justify-content:center;padding:8px 15px calc(env(safe-area-inset-bottom) + 14px)}
-  .pfoot a{color:var(--dim);text-decoration:none;font-size:13px;font-weight:600;padding:8px 14px;border-radius:14px;
+  .pfoot{flex:0 0 auto;display:flex;justify-content:center;padding:8px 15px calc(env(safe-area-inset-bottom) + 14px);border-top:.5px solid rgba(255,255,255,.16)}
+  .pfoot a{display:inline-flex;align-items:center;min-height:44px;color:var(--dim);text-decoration:none;font-size:13px;font-weight:600;padding:8px 14px;border-radius:14px;
            border:.5px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06)}
   body[data-theme="day"] .pfoot a{border-color:rgba(0,0,0,.12);background:rgba(0,0,0,.04)}
 
@@ -197,7 +200,7 @@
           color:var(--faint);margin-bottom:8px}
   [hidden]{display:none!important}
   .seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:6px}
-  .seg button{height:36px;border-radius:13px;font-size:13px;font-weight:600;letter-spacing:.01em;
+  .seg button{height:44px;border-radius:13px;font-size:13px;font-weight:600;letter-spacing:.01em;
               background:rgba(255,255,255,.09);border:.5px solid rgba(255,255,255,.18);
               box-shadow:none;text-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
   .seg button.sel{background:rgba(255,255,255,.24);border-color:rgba(255,255,255,.5)}
@@ -225,6 +228,11 @@
   body[data-theme="night"] .bar{background:linear-gradient(90deg,#6CC3E0,#B8ACF6);box-shadow:none}
   body[data-theme="night"] .pill.danger{background:rgba(248,113,104,.16);border-color:rgba(248,113,104,.45);color:#FD9891}
   body[data-theme="night"] .toast{background:rgba(30,31,34,.97)}
+  /* flat background: nothing shows through, so the blur is skipped */
+  body[data-theme="night"] .glass,body[data-theme="night"] .toast,
+  body[data-theme="day"] .glass,body[data-theme="day"] .toast{-webkit-backdrop-filter:none;backdrop-filter:none}
+  body[data-theme="night"] .zone.whole button:active,body[data-theme="night"] .subpad button:active{background:#2B2D31;filter:none}
+  body[data-theme="night"] .subpad button.del,body[data-theme="night"] .zone.whole button.sym{color:#A0A3A9}
   body[data-theme="night"] .seg button.sel{background:#1C2B41;
     border-color:#579DFF;color:#85B8FF}
 
@@ -254,11 +262,13 @@
   body[data-theme="day"] .zone.ops button.clear{background:#FFECEB;
     border-color:rgba(201,55,44,.35);color:#AE2E24}
   body[data-theme="day"] .zone.ops button.eq{background:linear-gradient(180deg,rgba(255,255,255,.22),transparent) #0C66E4;border-color:#0055CC;color:#fff}
+  body[data-theme="day"] .zone.whole button:active,body[data-theme="day"] .subpad button:active{background:#E6E8EB;filter:none}
   body[data-theme="day"] .scrim{background:rgba(0,0,0,.28)}
   body[data-theme="day"] .row{background:rgba(0,0,0,.045);border-color:rgba(0,0,0,.10)}
   body[data-theme="day"] .pill{background:rgba(0,0,0,.06);border-color:rgba(0,0,0,.14)}
   body[data-theme="day"] .pill.danger{background:#FFECEB;border-color:rgba(201,55,44,.35);color:#AE2E24}
   body[data-theme="day"] .phead{border-bottom-color:rgba(0,0,0,.12)}
+  body[data-theme="day"] .pfoot{border-top-color:rgba(0,0,0,.12)}
   body[data-theme="day"] .toast{background:rgba(255,255,255,.97);color:#1E2126;border-color:rgba(0,0,0,.12)}
   body[data-theme="day"] .seg button{background:rgba(0,0,0,.05);border-color:rgba(0,0,0,.12)}
   body[data-theme="day"] .seg button.sel{background:#E9F2FF;border-color:#0C66E4;color:#0C66E4}
@@ -310,13 +320,13 @@ if(t==="dark") document.body.dataset.theme="night";
       <i></i><i></i><i></i><span class="dot" id="dot"></span>
     </button>
     <div class="expr" id="expr"></div>
-    <div class="value" id="value">0</div>
+    <div class="value" id="value" role="status" aria-live="polite" aria-atomic="true">0</div>
     <div class="alt" id="alt"></div>
   </div>
 
   <div class="pad">
 
-    <div class="zone whole" aria-label="Whole number">
+    <div class="zone whole" role="group" aria-label="Whole number">
       <button data-k="w9">9</button><button data-k="w8">8</button>
       <button data-k="w7">7</button><button data-k="w6">6</button>
       <button data-k="w5">5</button><button data-k="w4">4</button>
@@ -327,20 +337,20 @@ if(t==="dark") document.body.dataset.theme="night";
     </div>
 
     <div class="frac">
-      <div class="subpad num" aria-label="Numerator">
+      <div class="subpad num" role="group" aria-label="Numerator">
         <button data-k="n7">7</button><button data-k="n8">8</button><button data-k="n9">9</button>
         <button data-k="n4">4</button><button data-k="n5">5</button><button data-k="n6">6</button>
         <button data-k="n1">1</button><button data-k="n2">2</button><button data-k="n3">3</button>
-        <button data-k="n0">0</button><button class="wide del" data-k="ndel">del</button>
+        <button data-k="n0">0</button><button class="wide del" data-k="ndel" aria-label="Delete numerator digit">del</button>
       </div>
 
       <div class="bar"></div>
 
-      <div class="subpad den" aria-label="Denominator">
+      <div class="subpad den" role="group" aria-label="Denominator">
         <button data-k="d7">7</button><button data-k="d8">8</button><button data-k="d9">9</button>
         <button data-k="d4">4</button><button data-k="d5">5</button><button data-k="d6">6</button>
         <button data-k="d1">1</button><button data-k="d2">2</button><button data-k="d3">3</button>
-        <button data-k="d0">0</button><button class="wide del" data-k="ddel">del</button>
+        <button data-k="d0">0</button><button class="wide del" data-k="ddel" aria-label="Delete denominator digit">del</button>
       </div>
     </div>
 
@@ -481,7 +491,12 @@ if(t==="dark") document.body.dataset.theme="night";
     if(!panel.classList.contains("on")) dot.classList.add("on");
   }
 
+  /* the rows are built when the panel opens (or is docked), not on every "=" while it is closed */
+  var histDirty=true, dockMQ=matchMedia("(orientation:landscape) and (min-width:800px)");
+  function esc(t){ return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
   function paintHist(){
+    if(!panel.classList.contains("on")&&!dockMQ.matches){ histDirty=true; return; }
+    histDirty=false;
     if(!hist.length){
       rowsEl.innerHTML='<div class="empty">Nothing yet.<br>Results land here when you press&nbsp;=</div>';
       return;
@@ -489,7 +504,7 @@ if(t==="dark") document.body.dataset.theme="night";
     var html="";
     for(var i=0;i<hist.length;i++){
       html+='<button class="row" data-i="'+i+'">'+
-              '<div class="rexpr">'+hist[i].expr+'</div>'+
+              '<div class="rexpr">'+esc(hist[i].expr)+'</div>'+
               '<div class="rres">'+mixedHTML(hist[i].res)+'</div>'+
             '</button>';
     }
@@ -526,7 +541,8 @@ if(t==="dark") document.body.dataset.theme="night";
     }
   }
 
-  function openPanel(){ panel.classList.add("on"); scrim.classList.add("on");
+  dockMQ.addEventListener("change",function(){ if(dockMQ.matches&&histDirty) paintHist(); });
+  function openPanel(){ panel.classList.add("on"); scrim.classList.add("on"); if(histDirty) paintHist();
                         menuBtn.setAttribute("aria-expanded","true"); dot.classList.remove("on"); }
   function closePanel(){ panel.classList.remove("on"); scrim.classList.remove("on");
                          menuBtn.setAttribute("aria-expanded","false"); }
@@ -551,7 +567,7 @@ if(t==="dark") document.body.dataset.theme="night";
 
   /* ================= themes ================= */
   var themeSeg=document.getElementById("themeSeg");
-  var themeMeta=document.querySelector('meta[name="theme-color"]');
+  var themeMetas=document.querySelectorAll('meta[name="theme-color"]');
   var THEME_BG={day:"#F4F4F5",night:"#141517",aurora:"#0E0A1E"};
 
   var darkMQ=matchMedia("(prefers-color-scheme: dark)");
@@ -572,7 +588,7 @@ if(t==="dark") document.body.dataset.theme="night";
     var mode=t==="auto"?(darkMQ.matches?"night":"day"):t;
     if(mode==="aurora") delete document.body.dataset.theme;
     else document.body.dataset.theme=mode;
-    if(themeMeta) themeMeta.setAttribute("content",THEME_BG[mode]||THEME_BG.aurora);
+    themeMetas.forEach(function(m){ m.setAttribute("content",t==="auto"?(m.media.indexOf("dark")>-1?THEME_BG.night:THEME_BG.day):(THEME_BG[mode]||THEME_BG.aurora)); });
     themeSeg.querySelectorAll("button").forEach(function(b){
       b.classList.toggle("sel",b.dataset.t===t);
       if(b.dataset.t==="aurora") b.hidden=t!=="aurora";
@@ -603,7 +619,7 @@ if(t==="dark") document.body.dataset.theme="night";
     if(err){
       exprEl.textContent="";
       valEl.className="value err"; valEl.textContent=err;
-      altEl.innerHTML=""; return;
+      valEl.style.fontSize=""; altEl.innerHTML=""; return;
     }
 
     exprEl.textContent=parts.join(" ");
@@ -612,6 +628,8 @@ if(t==="dark") document.body.dataset.theme="night";
     if(!blank()){ live=curFrac(); valEl.innerHTML=entryHTML(); }
     else { live=acc; valEl.innerHTML = acc!==null ? mixedHTML(acc) : "0"; }
     valEl.className="value";
+    valEl.style.fontSize="";   /* a very long number shrinks to stay on one line */
+    if(valEl.scrollWidth>valEl.clientWidth) valEl.style.fontSize=Math.max(20,Math.floor(parseFloat(getComputedStyle(valEl).fontSize)*valEl.clientWidth/valEl.scrollWidth))+"px";
 
     if(!live){ altEl.innerHTML=""; return; }
     var dec=live.n/live.d;

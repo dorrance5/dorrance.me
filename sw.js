@@ -1,7 +1,7 @@
 /* dorrance.me home page — offline cache. Bump CACHE when the home page or a file below changes.
    Its scope is the whole site, so it answers only for the home page's own files. The apps and Recipes have
    their own service workers, and everything else (the API, mycat.html) goes to the network as before. */
-const CACHE = 'home-v4';
+const CACHE = 'home-v5';
 const APPS = ['calculator', 'counter', 'converter', 'triangle', 'tvmount', 'roadtrip', 'recipes'];
 const FILES = ['./', './index.html', './favicon.ico', './favicon.svg', './apple-touch-icon.png', './photos/cat-thumb.jpg',
   ...APPS.flatMap(a => [`./${a}/icon-180.png`, `./${a}/icon-180-light.png`])];
@@ -23,7 +23,8 @@ self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET' || url.origin !== location.origin || !PATHS.has(url.pathname)) return;
   e.respondWith(caches.open(CACHE).then(async cache => {
     const hit = await cache.match(e.request);
-    const net = fetch(e.request).then(r => { if (r.ok) cache.put(e.request, r.clone()); return r; }).catch(() => hit);
+    const net = fetch(e.request, { cache: 'no-cache' }).then(async r => { if (r.ok) await cache.put(e.request, r.clone()); return r; }).catch(() => hit);
+    if (hit) e.waitUntil(net.catch(() => {}));   // keep the worker alive until the new copy is stored
     return hit || net;
   }));
 });

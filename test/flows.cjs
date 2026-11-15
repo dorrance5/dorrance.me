@@ -5,6 +5,7 @@ const { webkit, devices } = require('playwright');
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
+const { duo } = require('./devices.cjs');
 
 const root = path.join(__dirname, '..');
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.woff2': 'font/woff2' };
@@ -48,6 +49,23 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
     check(`${scheme}: only the ${scheme} icons are fetched`, icons.length === ICONS && light === (scheme === 'light' ? ICONS : 0), icons);
     await c.close();
   }
+
+  // The five Duo sizes: no sideways scroll, the menu button and theme buttons at least 44 px, the menu inside the screen
+  for (const [size, { width: w, height: h }] of Object.entries(duo)) {
+    const dc = await browser.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 3, isMobile: true, hasTouch: true, serviceWorkers: 'block' }), dp = watch(await dc.newPage());
+    await dp.goto(base); await dp.waitForSelector('.apps');
+    await dp.tap('#burger');
+    const r = await dp.evaluate(() => {
+      const box = s => document.querySelector(s).getBoundingClientRect(), m = box('#menu'), b = box('#burger');
+      const segs = [...document.querySelectorAll('#theme button')].filter(x => !x.hidden).map(x => x.getBoundingClientRect());
+      return { sw: document.documentElement.scrollWidth, burger: [b.width, b.height], segMin: Math.min(...segs.map(x => x.height)), menuL: m.left, menuR: m.right };
+    });
+    check(`${w}×${h} (${size}): no sideways scroll`, r.sw <= w, r);
+    check(`${w}×${h} (${size}): menu button and theme buttons are at least 44 px`, r.burger[0] >= 44 && r.burger[1] >= 44 && r.segMin >= 44, r);
+    check(`${w}×${h} (${size}): the menu is inside the screen`, r.menuL >= 0 && r.menuR <= w, r);
+    await dc.close();
+  }
+  check('sw.js refreshes past the browser\'s copy (no-cache) inside waitUntil', /no-cache/.test(fs.readFileSync(path.join(root, 'sw.js'), 'utf8')) && /waitUntil\(net/.test(fs.readFileSync(path.join(root, 'sw.js'), 'utf8')));
 
   const c = await browser.newContext({ ...devices['iPhone 13'] }), p = watch(await c.newPage());
   await p.goto(base);

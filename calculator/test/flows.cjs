@@ -81,7 +81,7 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
 
   // iPhone Duo sizes: closed upright and sideways, open upright and sideways (CSS px). The keypad spans the
   // width and fits the height; history stays open on the left only on the open screen sideways.
-  for (const [size, docked] of [['closed', false], ['closedSideways', false], ['open', false], ['openSideways', true]]) {
+  for (const [size, docked] of [['closed', false], ['closedSideways', false], ['open', false], ['openSideways', true], ['split', false]]) {
     const { width: w, height: h } = duo[size];
     const c = await browser.newContext({ viewport: { width: w, height: h }, isMobile: true, hasTouch: true, serviceWorkers: 'block' }), p = watch(await c.newPage());
     await p.goto(base); await p.waitForSelector('#value');
@@ -95,6 +95,19 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
       await p.tap('#menuBtn'); await p.waitForTimeout(450);
       const pn = await p.$eval('#panel', el => { const b = el.getBoundingClientRect(); return { l: b.left, r: b.right }; });
       check(`${w}×${h}: the menu button on the left opens history from the left`, m < w / 2 && Math.abs(pn.l) <= 1 && pn.r < w, { m, pn });
+      await p.tap('#scrim', { position: { x: w - 10, y: 10 } });
+    }
+    await p.waitForTimeout(450);
+    const hs = await p.evaluate(() => { const pn = document.getElementById('panel'); return getComputedStyle(pn).visibility; });
+    check(`${w}×${h}: history is ${docked ? 'visible' : 'hidden to keyboard and VoiceOver while closed'}`, hs === (docked ? 'visible' : 'hidden'), hs);
+    check(`${w}×${h}: no sideways scroll`, await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+    if (size === 'closed' || size === 'split') {
+      const small = await p.evaluate(() => [...document.querySelectorAll('button')].filter(b => b.offsetParent && !b.closest('#panel')).map(b => { const r = b.getBoundingClientRect(); return [b.dataset.k || b.id, +r.width.toFixed(1), +r.height.toFixed(1)]; }).filter(x => x[1] < 43.99 || x[2] < 43.99));
+      check(`${w}×${h}: every key and the menu button are at least 44 px`, small.length === 0, small);
+      await p.tap('#menuBtn'); await p.waitForTimeout(450);
+      const ph = await p.evaluate(() => [...document.querySelectorAll('#panel button:not([hidden]), #panel a')].map(b => { const r = b.getBoundingClientRect(); return [b.textContent.trim(), Math.round(r.height)]; }).filter(x => x[1] < 44));
+      check(`${w}×${h}: history buttons and the link are at least 44 px high`, ph.length === 0, ph);
+      check(`${w}×${h}: history rows are built when it opens`, await p.evaluate(() => document.querySelectorAll('#rows .row, #rows .empty').length > 0));
       await p.tap('#scrim', { position: { x: w - 10, y: 10 } });
     }
     if (docked) {
@@ -131,6 +144,9 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
     swBump = null;
     await c.close();
   }
+
+  const swSrc = fs.readFileSync(path.join(root, 'calculator', 'sw.js'), 'utf8');
+  check('sw.js refreshes past the browser\'s copy (no-cache) inside waitUntil', /no-cache/.test(swSrc) && /waitUntil\(net/.test(swSrc));
 
   check('no console errors', errors.length === 0, errors);
   await browser.close();
