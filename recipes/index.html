@@ -252,8 +252,8 @@ body.has-nav #page { padding-bottom: calc(72px + max(16px, env(safe-area-inset-b
 html.kb .nav { display: none; }
 html.kb .layer:not(.over)::after { content: ''; display: block; height: calc(var(--vvh, 100%) * .4 + var(--hid)); }
 /* iOS 26: the keyboard is glass over the layout viewport below the visible area. Each layer is fitted to the visible area plus
-   that hidden part (--hid), so its own content scrolls on under the keyboard; scroll-padding keeps the focused field above it */
-html.kb .layer { --hid: max(0px, calc(100lvh - var(--vvt, 0px) - var(--vvh, 100lvh))); height: calc(var(--vvh, 100%) + var(--hid)); scroll-padding-bottom: var(--hid); }
+   that hidden part (--hid, set by app.js fit() from innerHeight, since 100lvh is taller than innerHeight while Safari's toolbar shows), so its own content scrolls on under the keyboard; scroll-padding keeps the focused field above it */
+html.kb .layer { height: calc(var(--vvh, 100%) + var(--hid, 0px)); scroll-padding-bottom: var(--hid, 0px); }
 
 /* ---- full screens over the box ---- */
 .layer {
@@ -379,20 +379,32 @@ p.source { margin: 0; color: var(--soft); }
 
 /* add and edit */
 .formbar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; }
-/* the editor: the title alone on top; Cancel and Save are in the bar at the bottom of the visible screen */
-#editor { display: flex; flex-direction: column; }
-#editor .screen { flex: none; width: 100%; }
-#editor .formbar { display: flex; justify-content: center; min-height: 48px; }
-.savebar {
-  position: sticky; bottom: calc(var(--hid, 0px) + 12px + env(safe-area-inset-bottom)); z-index: 3; flex: none; margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  padding: 0 max(calc(16px + env(safe-area-inset-right)), calc((100% - 640px) / 2 + 16px)) 0 max(calc(16px + env(safe-area-inset-left)), calc((100% - 640px) / 2 + 16px));
+/* the editor: a pinned top row, Cancel pill left, title centred, Save pill right, nothing behind it but a fade of the page colour.
+   It is sticky inside the layer, which already follows the visible area, so it stays at the top with or without the keyboard. */
+#editor { display: flex; flex-direction: column; scroll-padding-top: 64px; scroll-padding-bottom: 60px; }
+#editor .screen { flex: none; width: 100%; padding-top: 8px; }
+.ebar {
+  position: sticky; top: 0; z-index: 3; flex: none; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; height: calc(52px + env(safe-area-inset-top)); box-sizing: border-box;
+  padding: env(safe-area-inset-top) max(calc(16px + env(safe-area-inset-right)), calc((100% - 640px) / 2 + 16px)) 0 max(calc(16px + env(safe-area-inset-left)), calc((100% - 640px) / 2 + 16px));
   pointer-events: none;
 }
-.savebar .pill { pointer-events: auto; min-height: 44px; padding: 0 22px; font-size: 16px; font-weight: 800; box-shadow: 0 4px 16px var(--lift), 0 1px 3px var(--lift-edge); }
-.savebar .backlink { pointer-events: auto; min-height: 44px; padding: 0 22px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); font-size: 16px; font-weight: 700; box-shadow: 0 4px 16px var(--lift), 0 1px 3px var(--lift-edge); }
-html.kb #editor::after { flex: none; height: calc(var(--hid) + 72px); }
-#editor .field input, #editor .field textarea, #editor .cats button { scroll-margin-top: 40px; }
-html.kb #editor { scroll-padding-bottom: calc(var(--hid) + 68px); }
+.ebar::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: calc(68px + env(safe-area-inset-top)); z-index: -1; pointer-events: none;
+  background: linear-gradient(to bottom, var(--ground) 0, var(--ground) calc(100% - 16px), transparent 100%); }
+.ebar h1 { margin: 0; font-size: 17px; font-weight: 800; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* the pill is 40 tall (36 low); the button is 44 so the finger has room, and the fill, border and shadow are drawn inside it */
+.ebar button { position: relative; isolation: isolate; pointer-events: auto; min-height: 44px; border: 0; background: none; font-size: 16px; }
+.ebar button::before { content: ''; position: absolute; inset: 2px 0; z-index: -1; border: 1px solid transparent; border-radius: 999px; box-shadow: 0 2px 8px rgba(42, 29, 23, .18); }
+.ebar .backlink { padding: 0 16px; color: var(--ink); font-weight: 600; }
+.ebar .backlink::before { background: var(--tint); }
+.ebar .pill { padding: 0 20px; font-weight: 800; color: var(--cream); }
+.ebar .pill::before { background: var(--tomato); border-color: var(--tomato); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .ebar button::before { box-shadow: 0 2px 8px rgba(0, 0, 0, .4); } :root:not([data-theme="light"]) .ebar .backlink::before { background: var(--surface); border-color: var(--topedge); } }
+:root[data-theme="dark"] .ebar button::before, :root[data-theme="aurora"] .ebar button::before { box-shadow: 0 2px 8px rgba(0, 0, 0, .4); }
+:root[data-theme="dark"] .ebar .backlink::before, :root[data-theme="aurora"] .ebar .backlink::before { background: var(--surface); border-color: var(--topedge); }
+@media (max-height: 500px) { .ebar { height: calc(44px + env(safe-area-inset-top)); } .ebar::before { height: calc(60px + env(safe-area-inset-top)); } .ebar button::before { inset: 4px 0; } }
+html.kb #editor { scroll-padding-bottom: calc(var(--hid, 0px) + 60px); }
+html.kb #editor::after { flex: none; height: calc(var(--hid, 0px) + 24px); }
+#editor .field input, #editor .field textarea, #editor .cats button { scroll-margin-top: 0; }
 .formbar h1 { font-size: 22px; font-weight: 800; white-space: nowrap; }
 .formbar .backlink { justify-self: start; padding: 0 4px; }
 .formbar .pill { justify-self: end; padding: 0 20px; font-size: 16px; font-weight: 800; }
@@ -840,10 +852,12 @@ html.kb .over.pick .row { justify-content: flex-end; }
 
 <!-- add and edit -->
 <section class="layer" id="editor" aria-labelledby="eTitle" tabindex="-1" hidden>
+  <div class="ebar">
+    <button class="backlink" id="eCancel" type="button">Cancel</button>
+    <h1 class="serif" id="eTitle">New recipe</h1>
+    <button class="pill tomato" id="eSave" type="button">Save</button>
+  </div>
   <div class="screen">
-    <div class="formbar">
-      <h1 class="serif" id="eTitle">New recipe</h1>
-    </div>
     <p class="alert" id="eError" role="alert" hidden></p>
     <button class="aicard" id="eMany" type="button" hidden>
       <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 3.5l1.6 4.4a3 3 0 0 0 1.8 1.8L17.8 11.3l-4.4 1.6a3 3 0 0 0-1.8 1.8L10 19.1l-1.6-4.4a3 3 0 0 0-1.8-1.8L2.2 11.3l4.4-1.6a3 3 0 0 0 1.8-1.8z"/><path d="M18.5 2.5l.7 1.8a1.2 1.2 0 0 0 .7.7l1.8.7-1.8.7a1.2 1.2 0 0 0-.7.7l-.7 1.8-.7-1.8a1.2 1.2 0 0 0-.7-.7L15.3 5.7l1.8-.7a1.2 1.2 0 0 0 .7-.7z"/></svg>
@@ -851,8 +865,8 @@ html.kb .over.pick .row { justify-content: flex-end; }
       <svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
     </button>
     <div class="field">
-      <label for="fDish">Na<span>me</span></label>
-      <input id="fDish" name="rcp_dish" aria-label="Name" type="text" autocomplete="off" autocapitalize="sentences" enterkeyhint="next">
+      <label for="fDish">Dish</label>
+      <input id="fDish" name="rcp_dish" aria-label="Dish" type="text" autocomplete="off" autocapitalize="sentences" enterkeyhint="next">
     </div>
     <div class="field">
       <span class="label" id="fCatLabel">Category</span>
@@ -888,10 +902,6 @@ html.kb .over.pick .row { justify-content: flex-end; }
       <button class="switch" id="fShare" type="button" role="switch" aria-checked="true" aria-describedby="fShareHint"><i></i></button>
     </div>
     <button class="pill danger" id="eDelete" type="button" hidden>Delete recipe</button>
-  </div>
-  <div class="savebar">
-    <button class="backlink" id="eCancel" type="button">Cancel</button>
-    <button class="pill tomato" id="eSave" type="button">Save</button>
   </div>
 </section>
 

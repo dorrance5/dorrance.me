@@ -356,9 +356,9 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
     const ed = await p.evaluate(() => {
       const r = s => document.querySelector(s).getBoundingClientRect(), sv = r('#eSave'), cn = r('#eCancel'), l = r('#editor'), ring = getComputedStyle(document.documentElement).getPropertyValue('--focus').trim();
       const on = document.querySelector('#fCats [aria-pressed="true"]'), dot = getComputedStyle(on.querySelector('i')).backgroundColor, bg = getComputedStyle(on).backgroundColor;
-      return { over: document.documentElement.scrollWidth - innerWidth + Math.max(0, document.getElementById('editor').scrollWidth - document.getElementById('editor').clientWidth), saveB: sv.bottom, layerB: l.bottom, saveR: sv.right, cancelL: cn.left, w: innerWidth, ring, dot, bg, onlyTitle: document.querySelectorAll('#editor .formbar button').length === 0, noBar: ['#eSave', '#eCancel'].every(q => { const b = document.querySelector(q).parentElement, cs = getComputedStyle(b); return cs.backgroundColor === 'rgba(0, 0, 0, 0)' && cs.borderTopWidth === '0px' && b.getBoundingClientRect().width > 0 && !(b.querySelector('#eSave').getBoundingClientRect().width > b.getBoundingClientRect().width * 0.9); }) && getComputedStyle(document.getElementById('eSave')).boxShadow !== 'none' };
+      return { over: document.documentElement.scrollWidth - innerWidth + Math.max(0, document.getElementById('editor').scrollWidth - document.getElementById('editor').clientWidth), saveT: sv.top, layerT: l.top, saveR: sv.right, cancelL: cn.left, cancelR: cn.right, w: innerWidth, ring, dot, bg, noBar: ['#eSave', '#eCancel'].every(q => { const b = document.querySelector(q).parentElement, cs = getComputedStyle(b); return cs.backgroundColor === 'rgba(0, 0, 0, 0)' && cs.borderTopWidth === '0px' && cs.boxShadow === 'none'; }) && getComputedStyle(document.getElementById('eSave'), '::before').boxShadow !== 'none', title: document.getElementById('eTitle').getBoundingClientRect() };
     });
-    check(`${size}: the editor has only the title on top, Cancel left and Save right in the bottom bar, no sideways scroll`, ed.onlyTitle && ed.over <= 0 && ed.saveB <= ed.layerB + 1 && ed.saveB >= ed.layerB - 40 && ed.noBar && ed.cancelL < ed.saveR - 100 && ed.ring === '#C63A24', ed);
+    check(`${size}: the editor has Cancel left, the title in the middle and Save right in a pinned top row, no bar behind them, no sideways scroll`, ed.over <= 0 && ed.saveT >= ed.layerT && ed.saveT <= ed.layerT + 20 && ed.noBar && ed.cancelR < ed.title.left + 1 && ed.title.right - 1 < ed.saveR && ed.cancelL < ed.saveR - 100 && ed.ring === '#C63A24', ed);
     check(`${size}: the chosen category chip is ink, and keeps its color dot`, ed.bg === 'rgb(42, 29, 23)' && ed.dot !== ed.bg && ed.dot !== 'rgba(0, 0, 0, 0)', ed);
     await c.close();
   }
@@ -402,13 +402,26 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
       const f = document.getElementById('fSource'); f.scrollIntoView({ block: 'nearest' });
       const fr = f.getBoundingClientRect();
       const field = fr.top >= vv.offsetTop - 1 && fr.bottom <= vv.offsetTop + vv.height + 1;
-      const sv = document.getElementById('eSave'), r = sv.getBoundingClientRect();   // no scrolling: the bar is always in view
-      const cn = document.getElementById('eCancel').getBoundingClientRect();
-      return { lo: vv.offsetTop, hi: vv.offsetTop + vv.height, layerTop: l.top, layerBottom: l.bottom, innerH: innerHeight, field, fieldBottom: fr.bottom,  maxScroll: document.getElementById('editor').scrollHeight - document.getElementById('editor').clientHeight, saveTop: r.top, saveBottom: r.bottom, saveL: r.left, cancelL: cn.left, scrolled: document.getElementById('editor').scrollTop };
+      const sv = document.getElementById('eSave').getBoundingClientRect(), cn = document.getElementById('eCancel').getBoundingClientRect();   // no scrolling: the row is pinned
+      const inside = r => r.top >= vv.offsetTop - 1 && r.bottom <= vv.offsetTop + vv.height + 1 && r.left >= 0 && r.right <= innerWidth;
+      const bar = ['#eSave', '#eCancel'].some(q => { const b = document.querySelector(q).parentElement, cs = getComputedStyle(b); return cs.backgroundColor !== 'rgba(0, 0, 0, 0)' || cs.borderTopWidth !== '0px'; });
+      return { lo: vv.offsetTop, hi: vv.offsetTop + vv.height, layerTop: l.top, layerBottom: l.bottom, innerH: innerHeight, field, fieldBottom: fr.bottom, saveTop: sv.top, saveBottom: sv.bottom, saveL: sv.left, cancelL: cn.left, rowBottom: Math.max(sv.bottom, cn.bottom), pillsIn: inside(sv) && inside(cn), bar, scrolled: document.getElementById('editor').scrollTop,
+        hid: getComputedStyle(document.documentElement).getPropertyValue('--hid') };
     });
     check(`${tag} keyboard: the recipe form starts at the visible top and goes on under the keyboard to the bottom of the page`, Math.abs(e.layerTop - e.lo) < 2 && e.layerBottom >= e.hi - 1 && Math.abs(e.layerBottom - e.innerH) < 2, e);
-    check(`${tag} keyboard: the last field can be scrolled into the visible area, above the floating buttons`, e.field && e.fieldBottom <= e.saveTop + 1, e);
-    check(`${tag} keyboard: Save is fully in the visible area without scrolling (floating, 12 px up), on the right of Cancel`, e.saveTop >= e.lo - 1 && e.saveBottom <= e.hi + 1 && e.saveL > e.cancelL, e);
+    check(`${tag} keyboard: the last field can be scrolled into the visible area, below the pinned row`, e.field && e.fieldBottom > e.rowBottom, e);
+    check(`${tag} keyboard: Cancel and Save are fully in the visible area, at its top, Cancel left of Save, with no bar behind them`, e.pillsIn && e.saveTop - e.lo <= 20 && e.saveL > e.cancelL && !e.bar, e);
+    check(`${tag} keyboard: --hid is the innerHeight minus the visible bottom`, Math.abs(parseFloat(e.hid) - Math.max(0, e.innerH - e.hi)) < 1, e);
+    // scrolled down, then the Dish field focused: it lands under the row, not behind it
+    const dish = await p.evaluate(async () => {
+      const ed = document.getElementById('editor'); ed.scrollTop = 400;
+      document.getElementById('fDish').focus();
+      await new Promise(r => setTimeout(r, 600));
+      const fr = document.getElementById('fDish').getBoundingClientRect(), sv = document.getElementById('eSave').getBoundingClientRect(), cn = document.getElementById('eCancel').getBoundingClientRect();
+      const hit = document.elementFromPoint(innerWidth / 2, fr.top + fr.height / 2);
+      return { top: fr.top, bottom: fr.bottom, rowBottom: Math.max(sv.bottom, cn.bottom), hi: visualViewport.offsetTop + visualViewport.height, hit: hit && (hit.id || hit.tagName) };
+    });
+    check(`${tag} keyboard: the focused Dish field is not covered by the row`, dish.top >= dish.rowBottom - 1 && dish.bottom <= dish.hi + 1 && dish.hit === 'fDish', dish);
     // the glass keyboard shows what is under the layout viewport edge: 20 px under the visible area must still be the layer
     const under = await p.evaluate(() => {
       const vv = visualViewport, y = Math.min(vv.offsetTop + vv.height + 20, innerHeight - 1), l = document.getElementById('editor'), r = l.getBoundingClientRect();
@@ -529,11 +542,11 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
   await tap('#addBtn');
   await opened('editor');
   check('+ opens a new recipe, with the keyboard on the name', (await text('#eTitle')) === 'New recipe' && await page.evaluate(() => document.activeElement.id === 'fDish') && await page.isHidden('#eDelete'));
-  check('Name field: id and name carry no "name", label still reads Name', await page.$eval('#fDish', i => !/name/i.test(i.id) && !/name/i.test(i.name) && i.getAttribute('aria-label') === 'Name' && i.labels[0].textContent === 'Name' && i.autocomplete === 'off'));
+  check('Dish field: id and name carry no "name", the label and aria-label read Dish', await page.$eval('#fDish', i => !/name/i.test(i.id) && !/name/i.test(i.name) && i.getAttribute('aria-label') === 'Dish' && i.labels[0].textContent === 'Dish' && i.labels[0].children.length === 0 && i.autocomplete === 'off'));
   check('Category: None on the left and picked', (await page.$$eval('#fCats button', bs => bs.map(b => b.textContent.trim()).join())) === 'None,Crock pot,Soup,New' && (await pressed('#fCats button')).join() === 'None');
   await phoneRules('editor');
   await tap('#eSave');
-  check('Save with no name asks for one', (await text('#eError')) === 'Give the recipe a name.' && await page.$eval('#fDish', i => i.classList.contains('bad')) && gh.puts.length === 0);
+  check('Save with no dish asks for one', (await text('#eError')) === 'Type a dish.' && await page.$eval('#fDish', i => i.classList.contains('bad')) && gh.puts.length === 0);
   await page.fill('#fDish', 'Grandma’s crème brûlée');
   await tap('#fCats [data-cat="Soup"]');
   check('picking Soup unpicks None', (await pressed('#fCats button')).join() === 'Soup');

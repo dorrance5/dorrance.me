@@ -387,12 +387,15 @@
   // iOS keeps the layout viewport at full height under the keyboard and pans the visual one, so only that one tells.
   // The writes wait for the next frame, skip what did not change, and happen only while a layer is open.
   const vv = window.visualViewport;
-  let vvRaf = 0, vvH = '', vvT = '', focused = 0;
+  let vvRaf = 0, vvH = '', vvT = '', vvHid = '', focused = 0;
   function fit() {
     vvRaf = 0;
     if (!vv) return;
     root.classList.toggle('kb', innerHeight - vv.height > 120);
     if (!stack.length) return;
+    // the part of the layout viewport the glass keyboard covers; from innerHeight, because 100lvh is taller than it while Safari's toolbar shows
+    const hid = Math.max(0, innerHeight - vv.offsetTop - vv.height) + 'px';
+    if (hid !== vvHid) root.style.setProperty('--hid', vvHid = hid);
     const h = vv.height + 'px', t = vv.offsetTop + 'px';
     if (h !== vvH) root.style.setProperty('--vvh', vvH = h);
     if (t !== vvT) root.style.setProperty('--vvt', vvT = t);
@@ -836,7 +839,7 @@
   eSave.addEventListener('click', async () => {
     if (busy) return;
     const v = values();
-    if (!v.name.trim()) { error('Give the recipe a name.'); F.name.classList.add('bad'); F.name.focus(); return; }
+    if (!v.name.trim()) { error('Type a dish.'); F.name.classList.add('bad'); F.name.focus(); return; }
     if (!session()) return openSettings(true);
     error('');
     setBusy(eSave, 'Saving…');
