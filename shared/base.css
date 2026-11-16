@@ -130,6 +130,9 @@ html.kb .kb-pad::after{content:'';display:block;flex:none;grid-column:1/-1;heigh
 .backdrop.top{align-items:flex-start;padding:calc(env(safe-area-inset-top,0px) + 56px) 12px 0}
 .sheet{background:var(--sheet);border:.5px solid var(--line);width:100%;max-width:560px;margin:0 auto;border-radius:22px 22px 0 0;padding:20px 16px calc(env(safe-area-inset-bottom,0px) + 16px);animation:up .2s ease-out;max-height:85dvh;max-height:min(85dvh,calc(var(--vvh,100dvh) - 12px));overflow-y:auto;overscroll-behavior:contain}
 .top .sheet{border-radius:22px;padding-bottom:16px;max-height:min(85dvh,calc(var(--vvh,100dvh) - 68px - env(safe-area-inset-top,0px)))}
+/* keyboard up: a top sheet moves up to the top edge so its buttons clear the keyboard on the closed phone (about 306px shows) */
+html.kb .backdrop.top{padding-top:calc(env(safe-area-inset-top,0px) + 8px)}
+html.kb .top .sheet{max-height:calc(var(--vvh,100dvh) - 16px - env(safe-area-inset-top,0px))}
 .sheet h2{margin:0 0 14px;font-size:20px;font-weight:650}
 /* a sideways phone (layout viewport stays full height) with the keyboard up shows about 200px: drop the sheet title and hints so the field and its Save/Add button fit */
 @media (orientation:landscape) and (max-height:620px){html.kb .sheet h2,html.kb .sheet .hint{display:none}html.kb .backdrop.top{padding-top:calc(env(safe-area-inset-top,0px) + 6px)}html.kb .top .sheet{padding-top:12px;padding-bottom:12px;max-height:calc(var(--vvh,100dvh) - 12px - env(safe-area-inset-top,0px))}}

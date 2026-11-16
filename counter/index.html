@@ -52,7 +52,8 @@
 .c-green{--c:var(--green);--cbg:var(--green-bg)}.c-purple{--c:var(--purple);--cbg:var(--purple-bg)}.c-orange{--c:var(--orange);--cbg:var(--orange-bg)}
 .c-gray{--c:var(--muted);--cbg:var(--tile);--cbox:var(--chip)}
 .cnt.c-gray{color:var(--text);border-color:var(--tile-line)}
-.swatches{display:flex;gap:10px;margin:4px 0 18px;flex-wrap:wrap}
+/* one row of seven: 3px apart on the closed phone, up to 15px when wider */
+.swatches{display:grid;grid-template-columns:repeat(7,44px);justify-content:space-between;max-width:400px;margin:4px 0 18px}
 .sw{width:44px;height:44px;border-radius:50%;background:var(--c);border:3px solid var(--tile);box-shadow:0 0 0 2px transparent}
 .sw.on{box-shadow:0 0 0 2px var(--text)}
 .sheet .input{margin-bottom:14px}
