@@ -94,6 +94,16 @@ window.App = (function () {
   };
   if (vv) {
     vv.addEventListener('resize', () => { fitSoon(); if (performance.now() - focused < 1500) setTimeout(reveal, 60); });
+    // folding or turning the phone with the keyboard up leaves iOS reporting a stale visible height (sheets end up the
+    // wrong size until the keyboard closes), so a width change closes the keyboard; the keyboard alone never changes width
+    let wide = innerWidth;
+    addEventListener('resize', () => {
+      if (innerWidth === wide) return;
+      wide = innerWidth;
+      const a = document.activeElement;
+      if (a && a.matches('input, textarea')) a.blur();
+      fitSoon();
+    });
     vv.addEventListener('scroll', fitSoon);
     fit();
   }
