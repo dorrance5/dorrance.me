@@ -628,7 +628,7 @@
       ${fld('iLabel', 'What', 'name="rt_info_what" autocomplete="off" maxlength="30" autocapitalize="sentences" placeholder="Spark plugs"', 'wide')}
       <label class="fld wide"><span class="fk">Value</span><textarea id="iValue" rows="2" maxlength="${T.MAX.value}" placeholder="NGK 97506"></textarea></label>
       <p class="hint">To take an entry off, clear it in the form.</p>
-      <div class="actions"><button class="primary" type="button" id="iSave">Add</button></div>`);
+      <div class="actions"><button class="btn" type="button" data-close>Cancel</button><button class="primary" type="button" id="iSave">Add</button></div>`);
     const $i = id => box.querySelector('#' + id);
     $i('iSave').addEventListener('click', () => {
       const label = $i('iLabel').value.trim(), value = $i('iValue').value.trim(), info = car.info || [];
@@ -771,7 +771,7 @@
       <p class="hint" id="fHint">Fill in two of the three, and the third works itself out.</p>
       <div class="seg" id="fFull"><button type="button" data-v="full" class="${f && f.partial ? '' : 'on'}">Filled tank</button><button type="button" data-v="part" class="${f && f.partial ? 'on' : ''}">Not filled</button></div>
       ${switchHTML('fReset', !!(f && f.reset), 'Missed a fill-up before this', 'MPG starts over here, so the fuel that was not logged does not count.')}
-      <div class="actions">${f ? '<button class="danger" type="button" data-del>Delete</button>' : ''}<button class="primary" type="button" id="fSave">Save</button></div>`);
+      <div class="actions">${f ? '<button class="danger" type="button" data-del>Delete</button>' : ''}<button class="btn" type="button" data-close>Cancel</button><button class="primary" type="button" id="fSave">Save</button></div>`);
     const $f = id => box.querySelector('#' + id);
     const full = wireSeg(box, '#fFull'), reset = wireSwitch(box, 'fReset');
     // The two fields typed last decide the third.
@@ -850,7 +850,7 @@
       <div class="seg" id="cKind">${T.KINDS.map(k => `<button type="button" data-v="${k}" class="${(c ? c.kind : 'service') === k ? 'on' : ''}">${KIND[k]}</button>`).join('')}</div>
       <label class="fld wide"><span class="fk">Note</span><textarea id="cNote" rows="2" placeholder="Parts, shop, anything to remember">${esc(c ? c.note : '')}</textarea></label>
       <p class="hint" id="cHint" hidden></p>
-      <div class="actions">${c ? '<button class="danger" type="button" data-del>Delete</button>' : ''}<button class="primary" type="button" id="cSave">Save</button></div>`);
+      <div class="actions">${c ? '<button class="danger" type="button" data-del>Delete</button>' : ''}<button class="btn" type="button" data-close>Cancel</button><button class="primary" type="button" id="cSave">Save</button></div>`);
     const $c = id => box.querySelector('#' + id), kind = wireSeg(box, '#cKind');
     // A reminder with this name counts from here.
     function hint() {
@@ -888,7 +888,7 @@
       ${chips(r ? [] : names(car, ['Oil change', 'Tire rotation', 'Air filter', 'Cabin air filter']))}
       <div class="grid2">${fld('rMiles', 'Every … miles', `inputmode="numeric" value="${r && r.miles ? r.miles : ''}" placeholder="5,000"`)}${fld('rMonths', 'Or every … months', `inputmode="numeric" value="${r && r.months ? r.months : ''}" placeholder="6"`)}</div>
       <p class="hint" id="rHint"></p>
-      <div class="actions">${r ? '<button class="danger" type="button" data-del>Delete</button><button class="btn" type="button" id="rLog">Log it</button>' : ''}<button class="primary" type="button" id="rSave">Save</button></div>`);
+      <div class="actions">${r ? '<button class="danger" type="button" data-del>Delete</button><button class="btn" type="button" id="rLog">Log it</button>' : '<button class="btn" type="button" data-close>Cancel</button>'}<button class="primary" type="button" id="rSave">Save</button></div>`);
     const $r = id => box.querySelector('#' + id);
     function hint() {
       const name = $r('rWhat').value.trim(), done = name && car.costs.filter(c => T.same(c.name, name)).sort((a, b) => (a.date < b.date ? 1 : -1))[0];
@@ -935,7 +935,7 @@
     const box = sheet(`<h2>Add a car</h2>
       <div class="grid2">${fld('nCar', 'Car', 'name="rt_car_label" autocomplete="off" maxlength="40" autocapitalize="words" placeholder="Pilot"')}${fld('nTank', 'Tank size, gal', 'inputmode="decimal" placeholder="14.8"')}</div>
       <p class="hint">Anything works: the model, or what you call it.</p>
-      <div class="actions"><button class="primary" type="button" id="nSave">Add the car</button></div>`);
+      <div class="actions"><button class="btn" type="button" data-close>Cancel</button><button class="primary" type="button" id="nSave">Add the car</button></div>`);
     const $n = id => box.querySelector('#' + id);
     $n('nSave').addEventListener('click', () => {
       const name = $n('nCar').value.trim(), tankText = $n('nTank').value.trim(), tank = tankText ? num(tankText) : null;

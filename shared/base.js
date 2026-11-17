@@ -69,13 +69,17 @@ window.App = (function () {
      to sit above the keyboard; a scroller with class kb-pad gets room under it (base.css) so its last field can clear
      it. An app turns html.kb off by putting class nokb on <html> (TV Mount while its own keypad is open). */
   const root = document.documentElement, vv = window.visualViewport;
-  let vvRaf = 0, vvH = '', vvT = '', focused = 0, locked = false;
+  let vvRaf = 0, vvH = '', vvT = '', focused = 0, locked = false, wasKb = false;
   function fit() {
     vvRaf = 0;
     if (!vv) return;
     // iOS sometimes shrinks innerHeight to the visible height while the page is held (html.locked); clientHeight keeps the full one
     const kb = !root.classList.contains('nokb') && Math.max(innerHeight, root.clientHeight) - vv.height > 120;
     root.classList.toggle('kb', kb);
+    // iOS can leave a page that never scrolls (body overflow hidden) scrolled up after the keyboard goes, which lifts
+    // the tab bar over an empty band and hides the header: put it back
+    if (wasKb && !kb && scrollY && getComputedStyle(document.body).overflowY === 'hidden') scrollTo(0, 0);
+    wasKb = kb;
     if (!kb && !locked) return;
     const h = vv.height + 'px', t = vv.offsetTop + 'px';
     if (h !== vvH) root.style.setProperty('--vvh', vvH = h);
@@ -83,17 +87,25 @@ window.App = (function () {
   }
   const fitSoon = () => { if (!vvRaf) vvRaf = requestAnimationFrame(fit); };
   // Bring the field under the cursor into view once the keyboard has settled. A kb-pad scroller reaches under the
-  // keyboard, so the field goes to the middle of the part of it that shows, not of the whole scroller.
+  // keyboard, so the field goes to the middle of the part of it that shows, not of the whole scroller. In a sheet
+  // only the sheet scrolls (scrollIntoView would move the page too), and its pinned Save row (base.css) is left out.
   const reveal = () => {
-    const a = document.activeElement, pad = a && a.closest('.kb-pad');
+    const a = document.activeElement, pad = a && a.closest('.kb-pad'), sh = a && a.closest('.sheet');
     if (!a || !a.matches('input, textarea') || !a.closest('.backdrop, .kb-pad')) return;
-    if (pad && !a.closest('.backdrop')) {
-      const r = a.getBoundingClientRect(), s = pad.getBoundingClientRect(), top = Math.max(s.top, vv ? vv.offsetTop : 0), bottom = vv ? vv.offsetTop + vv.height : innerHeight;
+    const r = a.getBoundingClientRect();
+    if (sh) {
+      const s = sh.getBoundingClientRect(), act = sh.querySelector(':scope>.actions');
+      const room = sh.clientHeight - (act && getComputedStyle(act).position === 'sticky' ? act.offsetHeight : 0);
+      const y = r.top - s.top + sh.scrollTop - sh.clientTop;
+      sh.scrollTop = r.height > room / 2 ? y - 32 : y + r.height / 2 - room / 2;
+    } else if (pad) {
+      const s = pad.getBoundingClientRect(), top = Math.max(s.top, vv ? vv.offsetTop : 0), bottom = vv ? vv.offsetTop + vv.height : innerHeight;
       pad.scrollBy({ top: r.top + r.height / 2 - (top + bottom) / 2, behavior: 'instant' });
     } else a.scrollIntoView({ block: a.matches('textarea') ? 'nearest' : 'center', behavior: 'instant' });
   };
   if (vv) {
-    vv.addEventListener('resize', () => { fitSoon(); if (performance.now() - focused < 1500) setTimeout(reveal, 60); });
+    // the keyboard can still be sliding in at the first resize (the field was missed on a first tap), so look again later
+    vv.addEventListener('resize', () => { fitSoon(); if (performance.now() - focused < 1500) { setTimeout(reveal, 60); setTimeout(reveal, 450); } });
     // folding or turning the phone with the keyboard up leaves iOS reporting a stale visible height (sheets end up the
     // wrong size until the keyboard closes), so a width change closes the keyboard; the keyboard alone never changes width
     let wide = innerWidth;
@@ -110,7 +122,7 @@ window.App = (function () {
   document.addEventListener('focusin', e => {
     if (!e.target.matches('input, textarea')) return;
     focused = performance.now();
-    setTimeout(reveal, 350);
+    setTimeout(reveal, 350); setTimeout(reveal, 800);
   });
 
   /* ---- sheets ---- */
@@ -126,6 +138,7 @@ window.App = (function () {
         if (typing) { typing = false; document.activeElement.blur(); } else closeSheet();
         return;
       }
+      if (e.target.closest('[data-close]')) return closeSheet();   // a sheet's own Cancel
       const t = e.target.closest('[data-theme]');
       if (t) setTheme(t.dataset.theme);
       if (aurora && e.target.closest('[data-theme-label]')) secretTap();
