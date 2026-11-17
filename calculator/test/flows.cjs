@@ -101,6 +101,10 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
     const hs = await p.evaluate(() => { const pn = document.getElementById('panel'); return getComputedStyle(pn).visibility; });
     check(`${w}×${h}: history is ${docked ? 'visible' : 'hidden to keyboard and VoiceOver while closed'}`, hs === (docked ? 'visible' : 'hidden'), hs);
     check(`${w}×${h}: no sideways scroll`, await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+    if (size === 'openSideways') {   // docked history, so only the keys
+      const small = await p.evaluate(() => [...document.querySelectorAll('.pad button')].filter(b => b.offsetParent).map(b => { const r = b.getBoundingClientRect(); return [b.dataset.k || b.id, +r.width.toFixed(1), +r.height.toFixed(1)]; }).filter(x => x[1] < 43.99 || x[2] < 43.99));
+      check(`${w}×${h}: every key is at least 44 px`, small.length === 0, small);
+    }
     if (size === 'closed' || size === 'split') {
       const small = await p.evaluate(() => [...document.querySelectorAll('button')].filter(b => b.offsetParent && !b.closest('#panel')).map(b => { const r = b.getBoundingClientRect(); return [b.dataset.k || b.id, +r.width.toFixed(1), +r.height.toFixed(1)]; }).filter(x => x[1] < 43.99 || x[2] < 43.99));
       check(`${w}×${h}: every key and the menu button are at least 44 px`, small.length === 0, small);
