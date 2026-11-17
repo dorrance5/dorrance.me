@@ -411,6 +411,10 @@ html.kb #editor .field textarea { max-height: max(72px, calc(var(--vvh, 100%) - 
 .formbar h1 { font-size: 22px; font-weight: 800; white-space: nowrap; }
 .formbar .backlink { justify-self: start; padding: 0 4px; }
 .formbar .pill { justify-self: end; padding: 0 20px; font-size: 16px; font-weight: 800; }
+/* the importer's Cancel/Import row stays at the top while the page scrolls (with the keyboard up Import went off the top) */
+#importer { scroll-padding-top: 84px; }
+#importer .formbar { position: sticky; top: 0; z-index: 3; margin: calc(-14px - env(safe-area-inset-top)) -16px 0; padding: calc(14px + env(safe-area-inset-top)) 16px 12px;
+  background: linear-gradient(to bottom, var(--ground) 0, var(--ground) calc(100% - 12px), transparent 100%); }
 .field { display: flex; flex-direction: column; gap: 8px; }
 .field > label, .field > .label, .field .labels label { font-size: 15px; font-weight: 800; }
 .field .labels { display: flex; flex-direction: column; gap: 2px; }

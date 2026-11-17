@@ -411,6 +411,16 @@
   if (vv) {
     vv.addEventListener('resize', () => { fitSoon(); if (performance.now() - focused < 4000) setTimeout(reveal, 60); });
     vv.addEventListener('scroll', fitSoon);
+    // folding or turning the phone with the keyboard up leaves iOS reporting a stale visible height (the field ends up
+    // under the keyboard), so a width change closes the keyboard; the keyboard alone never changes width (shared/base.js too)
+    let wide = innerWidth;
+    addEventListener('resize', () => {
+      if (innerWidth === wide) return;
+      wide = innerWidth;
+      const a = document.activeElement;
+      if (a && a.matches('input, textarea')) a.blur();
+      fitSoon();
+    });
     fit();
   }
   document.addEventListener('focusin', e => {
