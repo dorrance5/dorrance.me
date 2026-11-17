@@ -136,6 +136,10 @@ html.kb .top .sheet{max-height:calc(var(--vvh,100dvh) - 16px - env(safe-area-ins
 .sheet h2{margin:0 0 14px;font-size:20px;font-weight:650}
 /* a sideways phone (layout viewport stays full height) with the keyboard up shows about 200px: drop the sheet title and hints so the field and its Save/Add button fit */
 @media (orientation:landscape) and (max-height:620px){html.kb .sheet h2,html.kb .sheet .hint{display:none}html.kb .backdrop.top{padding-top:calc(env(safe-area-inset-top,0px) + 6px)}html.kb .top .sheet{padding-top:12px;padding-bottom:12px;max-height:calc(var(--vvh,100dvh) - 12px - env(safe-area-inset-top,0px))}}
+/* keyboard up: a sheet taller than what shows keeps its Save/Add row pinned to its bottom edge, the fields scroll above it */
+html.kb .sheet>.actions{position:sticky;bottom:0;z-index:1;background:var(--sheet);padding:10px 0 12px;box-shadow:0 -10px 10px -4px var(--sheet)}
+/* iOS stops a sticky row above the scroller's bottom padding, so the row carries that padding instead */
+html.kb .sheet:has(>.actions){padding-bottom:0}
 .sheet .seg{margin:0 0 20px}
 @keyframes fade{from{opacity:0}}
 @keyframes up{from{transform:translateY(24px);opacity:0}}
