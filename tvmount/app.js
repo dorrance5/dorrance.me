@@ -1041,7 +1041,7 @@
     const el = sheet(`<h2>Rename ${what}</h2>
       <input class="input" id="modelIn" value="${esc(x.model || '')}" placeholder="Model number" maxlength="60" autocomplete="off" autocapitalize="characters" enterkeyhint="done">
       <p class="hint">Changes the name for everyone who uses this site.</p>
-      <div class="stack"><button class="primary" data-act="save">Rename</button></div>`);
+      <div class="actions"><button class="btn" data-close>Cancel</button><button class="primary" data-act="save">Rename</button></div>`);
     const inp = el.querySelector('#modelIn');
     setTimeout(() => { inp.focus(); inp.select(); }, 60);
     const save = async () => {
@@ -1068,7 +1068,7 @@
     const el = sheet(`<h2>Save ${kind === 'tv' ? 'TV' : 'mount'}</h2>
       <input class="input" id="modelIn" value="${esc(cur || '')}" placeholder="Model number" maxlength="60" autocomplete="off" autocapitalize="characters" enterkeyhint="done">
       <p class="hint">${kind === 'tv' ? 'Saves the measured width, height and VESA holes.' : 'Saves the bracket chain, sag and plate values.'} An existing entry with the same model number is updated.</p>
-      <div class="stack"><button class="primary" data-act="save">Save</button></div>`);
+      <div class="actions"><button class="btn" data-close>Cancel</button><button class="primary" data-act="save">Save</button></div>`);
     const inp = el.querySelector('#modelIn');
     setTimeout(() => inp.focus(), 60);
     const save = () => {

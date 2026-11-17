@@ -117,7 +117,10 @@
 .libi .del{width:44px;height:44px;border-radius:12px;color:var(--danger-text);font-size:18px}
 .libi .ed{width:44px;height:44px;border-radius:12px;color:var(--muted);display:grid;place-items:center}
 .sheet .input{margin-bottom:10px}
-.sheet .stack{margin-top:14px}
+.sheet .stack,.sheet .actions{margin-top:14px}
+/* long field labels ("Top holes → TV bottom") take a second line instead of an ellipsis on narrow columns */
+.fld .fk{white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-height:1.25}
+.sheet .actions .primary{flex:1}
 /* the keypad: shared/keypad.css */
 
 /* wide screens like the open iPhone Duo (open upright or sideways; sizes in test/devices.cjs): the sketch and results on the left, the form
