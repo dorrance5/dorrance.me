@@ -249,12 +249,12 @@ function paint() {
   for (const x of KEYS) { const raw = $('#' + x).value.trim(); S.v[x] = raw; k[x] = raw ? parseFrac(raw) : NaN; if (raw && isNaN(k[x])) bad.push(x); }
   persist();
   KEYS.forEach(x => { $('#' + x).parentElement.classList.toggle('bad', bad.includes(x)); $('#' + x).parentElement.classList.remove('solved'); });
-  const r = bad.length ? { err: 'Numbers only. Fractions like 3 1/2 are fine.' } : solve(k);
+  const r = bad.length ? { err: 'Numbers only. Fractions like 3 1/2 are fine.' } : KEYS.some(x => S.v[x]) ? solve(k) : { err: '', empty: true };   // an empty form says nothing
   const note = $('#note'); note.className = 'note' + (r.err ? ' err' : '');
   $('#alt').hidden = !r.ambiguous;
   const given = KEYS.filter(x => isFinite(k[x])).length;
-  solveNote = r.err && !bad.length && given < 3 ? `Need ${3 - given} more value${given === 2 ? '' : 's'}` : r.err || '';
-  if (r.err) { note.textContent = r.err; draw(null); $('#facts').innerHTML = ''; return; }
+  solveNote = (r.err || r.empty) && !bad.length && given < 3 ? `Need ${3 - given} more value${given === 2 ? '' : 's'}` : r.err || '';
+  if (r.err || r.empty) { note.textContent = r.err; draw(null); $('#facts').innerHTML = ''; return; }
   if (which >= r.sols.length) which = 0;
   const t = r.sols[which];
   document.querySelectorAll('#alt button').forEach(c => c.classList.toggle('on', +c.dataset.sol === which));
