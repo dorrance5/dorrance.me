@@ -266,7 +266,8 @@ function load(){try{pos=JSON.parse(ls.get(posKey()))||{x:0,y:0}}catch(e){pos={x:
 grille.addEventListener('pointerdown',e=>{if(!wide.matches)return;sx=null;sdir=0;e.preventDefault();grille.setPointerCapture(e.pointerId);drag={x:e.clientX-pos.x,y:e.clientY-pos.y};dev.classList.add('lifted')});
 grille.addEventListener('pointermove',e=>{if(!drag)return;pos={x:e.clientX-drag.x,y:e.clientY-drag.y};place();shaking(e.clientX)});
 
-/* Easter egg: shake it too hard and Billie gets dizzy (fast back-and-forth while dragging); the third time she lies down */
+/* Easter egg: shake it too hard and Billie gets dizzy (fast back-and-forth while dragging); the third time she lies down,
+   and the fourth starts over */
 let sx=null,sdir=0,flips=[],shakes=0,shakeT=0;
 const SHAKE=['> WHOA. WHOA. WHOA.',"> HEY! I'M NOT A SNOW GLOBE.","> THAT'S IT. I'M LYING DOWN."];
 function shaking(x){
@@ -275,7 +276,7 @@ function shaking(x){
   const dir=Math.sign(d);sx=x;if(dir===sdir)return;
   sdir=dir;const now=Date.now();flips=flips.filter(t=>now-t<1200).concat(now);
   if(flips.length<6||now-shakeT<3000)return;
-  flips=[];shakeT=now;const n=Math.min(++shakes,3);
+  flips=[];shakeT=now;const n=shakes++%3+1;
   home();setMood('awake','@ _ @');type(SHAKE[n-1]);
   $('#lcd').classList.remove('glitch');void $('#lcd').offsetWidth;$('#lcd').classList.add('glitch');
   dev.classList.add('rattle');setTimeout(()=>{dev.classList.remove('rattle');$('#lcd').classList.remove('glitch')},900);
