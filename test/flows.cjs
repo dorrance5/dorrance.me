@@ -1,4 +1,4 @@
-// Drives the home page in WebKit at iPhone size: the icons for the theme that shows, offline, an app update, and
+// Drives the home page (the DM-1 gadget) in WebKit at iPhone size: its key icons, the Duo sizes, offline, an app update, and
 // first visits to the apps while the home page's worker is in charge. Exits 1 on a failed check or console error.
 //   NODE_PATH=/path/to/node_modules node test/flows.cjs
 const { webkit, devices } = require('playwright');
@@ -24,8 +24,8 @@ const server = http.createServer((req, res) => {
   res.end(body);
 });
 
-// The app icons on the home page, each in a dark and a light version
-const ICONS = fs.readFileSync(path.join(root, 'index.html'), 'utf8').match(/<a class="app"/g).length;
+// One key per app, each with one icon (the same in Day and Night)
+const ICONS = fs.readFileSync(path.join(root, 'index.html'), 'utf8').match(/\{id:'/g).length;
 const results = [];
 const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}${info !== undefined && !ok ? ' — ' + JSON.stringify(info) : ''}`); };
 
@@ -39,30 +39,31 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
   const ctl = p => p.evaluate(() => navigator.serviceWorker.controller?.scriptURL || '');
   const notice = p => p.$eval('.toast', t => t.classList.contains('tap') && t.classList.contains('on') ? t.textContent : null).catch(() => null);
 
-  // Only the icons for the theme that shows are fetched
+  // Each key's icon is fetched once, the same in both themes
   for (const scheme of ['light', 'dark']) {
     const c = await browser.newContext({ ...devices['iPhone 13'], colorScheme: scheme, serviceWorkers: 'block' }), p = watch(await c.newPage());
     const icons = [];
     p.on('request', r => { if (/icon-180/.test(r.url())) icons.push(r.url()); });
     await p.goto(base); await p.waitForLoadState('networkidle');
-    const light = icons.filter(u => u.includes('-light')).length;
-    check(`${scheme}: only the ${scheme} icons are fetched`, icons.length === ICONS && light === (scheme === 'light' ? ICONS : 0), icons);
+    check(`${scheme}: one icon per key is fetched`, icons.length === ICONS && new Set(icons).size === ICONS, icons);
     await c.close();
   }
 
-  // The five Duo sizes: no sideways scroll, the menu button and theme buttons at least 44 px, the menu inside the screen
+  // The Duo sizes: no sideways scroll, the gadget inside the screen at its one size, every key and the SND switch at least 44 px,
+  // and MODE switches the theme
   for (const [size, { width: w, height: h }] of Object.entries(duo)) {
     const dc = await browser.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 3, isMobile: true, hasTouch: true, serviceWorkers: 'block' }), dp = watch(await dc.newPage());
-    await dp.goto(base); await dp.waitForSelector('.apps');
-    await dp.tap('#burger');
+    await dp.goto(base); await dp.waitForSelector('.key');
     const r = await dp.evaluate(() => {
-      const box = s => document.querySelector(s).getBoundingClientRect(), m = box('#menu'), b = box('#burger');
-      const segs = [...document.querySelectorAll('#theme button')].filter(x => !x.hidden).map(x => x.getBoundingClientRect());
-      return { sw: document.documentElement.scrollWidth, burger: [b.width, b.height], segMin: Math.min(...segs.map(x => x.height)), menuL: m.left, menuR: m.right };
+      const d = document.getElementById('dev').getBoundingClientRect();
+      const hs = [...document.querySelectorAll('.key, #snd')].map(x => x.getBoundingClientRect().height);
+      return { sw: document.documentElement.scrollWidth, devL: d.left, devR: d.right, devW: d.width, minH: Math.min(...hs) };
     });
     check(`${w}×${h} (${size}): no sideways scroll`, r.sw <= w, r);
-    check(`${w}×${h} (${size}): menu button and theme buttons are at least 44 px`, r.burger[0] >= 44 && r.burger[1] >= 44 && r.segMin >= 44, r);
-    check(`${w}×${h} (${size}): the menu is inside the screen`, r.menuL >= 0 && r.menuR <= w, r);
+    check(`${w}×${h} (${size}): the gadget is inside the screen at its one size`, r.devL >= 0 && r.devR <= w && Math.round(r.devW) === 358, r);
+    check(`${w}×${h} (${size}): every key and the SND switch are at least 44 px tall`, r.minH >= 44, r);
+    await dp.tap('.key.mode');
+    check(`${w}×${h} (${size}): MODE switches the theme`, await dp.evaluate(() => document.documentElement.dataset.theme === 'light' && localStorage.getItem('theme') === 'light'));
     await dc.close();
   }
   check('sw.js refreshes past the browser\'s copy (no-cache) inside waitUntil', /no-cache/.test(fs.readFileSync(path.join(root, 'sw.js'), 'utf8')) && /waitUntil\(net/.test(fs.readFileSync(path.join(root, 'sw.js'), 'utf8')));
@@ -78,7 +79,7 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
   await c.setOffline(true);
   const status = await p.reload().then(r => r && r.status(), () => 0);
   await p.waitForTimeout(800);
-  const shown = () => p.$$eval('.app img', im => im.filter(i => i.offsetParent).map(i => i.complete && i.naturalWidth > 0));
+  const shown = () => p.$$eval('.key img', im => im.map(i => i.complete && i.naturalWidth > 0));
   check('opens with the network off, with its icons', status === 200 && (await shown()).filter(Boolean).length === ICONS);
   await p.evaluate(() => localStorage.setItem('theme', document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'));
   await p.reload(); await p.waitForTimeout(800);

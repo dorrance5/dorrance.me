@@ -1,10 +1,10 @@
 /* dorrance.me home page — offline cache. Bump CACHE when the home page or a file below changes.
    Its scope is the whole site, so it answers only for the home page's own files. The apps and Recipes have
    their own service workers, and everything else (the API, mycat.html) goes to the network as before. */
-const CACHE = 'home-v5';
+const CACHE = 'home-v6';
 const APPS = ['calculator', 'counter', 'converter', 'triangle', 'tvmount', 'roadtrip', 'recipes'];
 const FILES = ['./', './index.html', './favicon.ico', './favicon.svg', './apple-touch-icon.png', './photos/cat-thumb.jpg',
-  ...APPS.flatMap(a => [`./${a}/icon-180.png`, `./${a}/icon-180-light.png`])];
+  ...APPS.map(a => `./${a}/icon-180${a === 'calculator' ? '-light' : ''}.png`)];   // the keys' icons (Calculator's yellow key uses the light one)
 const PATHS = new Set(FILES.map(f => new URL(f, location).pathname));
 
 self.addEventListener('install', e => {
