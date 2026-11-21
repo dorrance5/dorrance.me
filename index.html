@@ -126,6 +126,11 @@ dialog button{position:absolute;top:calc(12px + env(safe-area-inset-top));right:
   .dev.lifted{filter:drop-shadow(0 26px 34px rgba(0,0,0,.36))}
   .dev.lifted .grille{cursor:grabbing}
 }
+/* shaken too hard: the screen glitches and the case rattles */
+.lcd.glitch{animation:glitch .9s steps(9)}
+@keyframes glitch{0%,100%{transform:none;filter:none}20%{transform:translateX(-3px);filter:contrast(1.8)}40%{transform:translate(2px,1px);filter:invert(.15)}60%{transform:translateX(-1px);filter:contrast(.6)}80%{transform:translateX(2px);filter:none}}
+.dev.rattle .half{animation:rattle .5s linear}
+@keyframes rattle{25%{transform:rotate(-1.2deg)}50%{transform:rotate(1deg)}75%{transform:rotate(-.6deg)}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -258,8 +263,25 @@ function place(save){
   if(save)ls.set(posKey(),JSON.stringify(pos));
 }
 function load(){try{pos=JSON.parse(ls.get(posKey()))||{x:0,y:0}}catch(e){pos={x:0,y:0}}place()}
-grille.addEventListener('pointerdown',e=>{if(!wide.matches)return;e.preventDefault();grille.setPointerCapture(e.pointerId);drag={x:e.clientX-pos.x,y:e.clientY-pos.y};dev.classList.add('lifted')});
-grille.addEventListener('pointermove',e=>{if(!drag)return;pos={x:e.clientX-drag.x,y:e.clientY-drag.y};place()});
+grille.addEventListener('pointerdown',e=>{if(!wide.matches)return;sx=null;sdir=0;e.preventDefault();grille.setPointerCapture(e.pointerId);drag={x:e.clientX-pos.x,y:e.clientY-pos.y};dev.classList.add('lifted')});
+grille.addEventListener('pointermove',e=>{if(!drag)return;pos={x:e.clientX-drag.x,y:e.clientY-drag.y};place();shaking(e.clientX)});
+
+/* Easter egg: shake it too hard and Billie gets dizzy (fast back-and-forth while dragging); the third time she lies down */
+let sx=null,sdir=0,flips=[],shakes=0,shakeT=0;
+const SHAKE=['> WHOA. WHOA. WHOA.',"> HEY! I'M NOT A SNOW GLOBE.","> THAT'S IT. I'M LYING DOWN."];
+function shaking(x){
+  if(sx===null){sx=x;return}
+  const d=x-sx;if(Math.abs(d)<24)return;
+  const dir=Math.sign(d);sx=x;if(dir===sdir)return;
+  sdir=dir;const now=Date.now();flips=flips.filter(t=>now-t<1200).concat(now);
+  if(flips.length<6||now-shakeT<3000)return;
+  flips=[];shakeT=now;const n=Math.min(++shakes,3);
+  home();setMood('awake','@ _ @');type(SHAKE[n-1]);
+  $('#lcd').classList.remove('glitch');void $('#lcd').offsetWidth;$('#lcd').classList.add('glitch');
+  dev.classList.add('rattle');setTimeout(()=>{dev.classList.remove('rattle');$('#lcd').classList.remove('glitch')},900);
+  for(let i=0;i<6;i++)setTimeout(click,i*55);
+  if(n===3)setTimeout(()=>setMood('sleep'),1800);
+}
 function drop(){if(!drag)return;drag=null;dev.classList.remove('lifted');place(true)}
 grille.addEventListener('pointerup',drop);grille.addEventListener('pointercancel',drop);
 addEventListener('resize',load);wide.addEventListener('change',load);load();

@@ -78,6 +78,14 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
       check(`${w}×${h} (${size}): the gadget stays where it was dropped after a reload`, JSON.stringify(await devBox()) === JSON.stringify(moved), [moved, await devBox()]);
       const r2 = await dp.$eval('#dev', e => { const r = e.getBoundingClientRect(); return [r.left, r.right]; });
       check(`${w}×${h} (${size}): the moved gadget is still on screen`, r2[0] >= 0 && r2[1] <= w, r2);
+      // Easter egg: shaking it hard makes Billie dizzy
+      const g2 = await dp.$eval('.grille', e => { const r = e.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; });
+      await dp.mouse.move(g2[0], g2[1]); await dp.mouse.down();
+      for (let i = 0; i < 8; i++) await dp.mouse.move(g2[0] + (i % 2 ? -60 : 60), g2[1], { steps: 2 });
+      await dp.mouse.up(); await dp.waitForTimeout(500);
+      check(`${w}×${h} (${size}): shaking it hard makes Billie dizzy`, await dp.$eval('#bubble', e => e.textContent === '@ _ @'));
+      await dp.waitForTimeout(900);
+      check(`${w}×${h} (${size}): the gadget is still on screen after the shake`, await dp.$eval('#dev', e => { const r = e.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth; }));
     } else check(`${w}×${h} (${size}): the grille does not move the gadget`, JSON.stringify(moved) === JSON.stringify(start), [start, moved]);
     await dp.tap('.key.mode');
     check(`${w}×${h} (${size}): MODE switches the theme`, await dp.evaluate(() => document.documentElement.dataset.theme === 'light' && localStorage.getItem('theme') === 'light'));
