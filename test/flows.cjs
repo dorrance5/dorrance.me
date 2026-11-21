@@ -107,6 +107,10 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
       await dp.reload(); await dp.waitForSelector('.key');
       await dp.tap('.key.mode'); seq.push(await dp.evaluate(() => document.documentElement.dataset.theme));
       check('Aurora: once found, MODE flips Day and Aurora, and it is remembered', seq.join() === 'light,aurora,light,aurora', seq);
+      await dp.tap('.key.mode');   // back to Day, then five quick taps on Billie: the secret doesn't come back
+      for (let i = 0; i < 5; i++) await dp.tap('#lcd');
+      await dp.waitForTimeout(700);
+      check('Aurora: the secret shows only the first time', await dp.evaluate(() => document.documentElement.dataset.theme === 'light') && !(await dp.$eval('#msg', e => e.textContent)).includes('AURORA'));
     }
     await dc.close();
   }

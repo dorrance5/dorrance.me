@@ -262,7 +262,7 @@ document.addEventListener('click',e=>{
     thud();   // the knock is for the main screen only, not the photo
     if(petHold>0){petHold--;return}   // the Aurora screen stays up for 5 taps
     const now=Date.now();petTaps=petTaps.filter(t=>now-t<2500).concat(now);
-    if(petTaps.length>=5){petTaps=[];auroraFound=true;ls.set('dm1-aurora','1');petHold=5;setTheme('aurora');setMood('happy','♥ ♥ ♥');type('> SECRET: AURORA BACKLIGHT');return}
+    if(petTaps.length>=5&&!auroraFound){petTaps=[];auroraFound=true;ls.set('dm1-aurora','1');petHold=5;setTheme('aurora');setMood('happy','♥ ♥ ♥');type('> SECRET: AURORA BACKLIGHT');return}
     const napping=mood==='sleep';setMood('happy','prrr · · ·');type(napping&&!auroraFound?'> HE WAS NAPPING.':'> PRRRRR.')}   // once Aurora is found, every tap purrs
 });
 $('#vclose').onclick=()=>$('#viewer').close();
