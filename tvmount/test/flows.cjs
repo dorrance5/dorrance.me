@@ -193,7 +193,7 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
   // theme: no Aurora here, and a shared Aurora setting shows as Night
   await page.tap('#menuBtn');
   const themes = await page.$$eval('.sheet [data-theme]', b => b.map(x => x.dataset.theme));
-  check('theme choices are Auto, Day, Night', themes.join() === 'auto,light,dark', themes);
+  check('theme choices are Day and Night', themes.join() === 'light,dark', themes);
   await page.tap('.backdrop', { position: { x: 20, y: 20 } });
   await page.evaluate(() => { localStorage.setItem('theme', 'aurora'); App.applyTheme(); });
   check('a shared Aurora setting shows Night', await page.evaluate(() => document.documentElement.dataset.mode === 'dark' && !document.querySelector('.field')));

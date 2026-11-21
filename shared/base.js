@@ -28,8 +28,9 @@ window.App = (function () {
     const r = document.documentElement;
     if (mode === 'light') delete r.dataset.mode; else r.dataset.mode = mode;
     document.querySelectorAll('meta[name="theme-color"]').forEach(m => { m.content = THEME_BG[mode]; });
+    const sel = t === 'auto' ? mode : t;   // Auto is the default, not a button: the picker shows what the phone is on
     document.querySelectorAll('[data-theme]').forEach(b => {
-      b.classList.toggle('on', b.dataset.theme === t);
+      b.classList.toggle('on', b.dataset.theme === sel);
       if (b.dataset.theme === 'aurora') b.hidden = t !== 'aurora';
     });
   }
@@ -37,9 +38,9 @@ window.App = (function () {
   darkMQ.addEventListener('change', applyTheme);
   window.addEventListener('storage', e => { if (e.key === 'theme') applyTheme(); });
 
-  const THEMES = [['auto','Auto'],['light','Day'],['dark','Night']];
+  const THEMES = [['light','Day'],['dark','Night']];
   function themeSegHTML() {
-    const t = shown(themePref());
+    const p = shown(themePref()), t = p === 'auto' ? (darkMQ.matches ? 'dark' : 'light') : p;
     return `<div class="label" data-theme-label>Theme</div><div class="seg">${THEMES.map(([k, l]) =>
       `<button data-theme="${k}" class="${t === k ? 'on' : ''}">${l}</button>`).join('')}${aurora
       ? `<button data-theme="aurora"${t === 'aurora' ? ' class="on"' : ' hidden'}>Aurora</button>` : ''}</div>`;

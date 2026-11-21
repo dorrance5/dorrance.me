@@ -87,8 +87,27 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
       await dp.waitForTimeout(900);
       check(`${w}×${h} (${size}): the gadget is still on screen after the shake`, await dp.$eval('#dev', e => { const r = e.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth; }));
     } else check(`${w}×${h} (${size}): the grille does not move the gadget`, JSON.stringify(moved) === JSON.stringify(start), [start, moved]);
+    // MODE flips Day and Night (no Auto step): this phone is light, so the first press gives Night, the next Day
     await dp.tap('.key.mode');
-    check(`${w}×${h} (${size}): MODE switches the theme`, await dp.evaluate(() => document.documentElement.dataset.theme === 'light' && localStorage.getItem('theme') === 'light'));
+    const t1 = await dp.evaluate(() => document.documentElement.dataset.theme + ',' + localStorage.getItem('theme'));
+    await dp.tap('.key.mode');
+    const t2 = await dp.evaluate(() => document.documentElement.dataset.theme + ',' + localStorage.getItem('theme'));
+    check(`${w}×${h} (${size}): MODE flips between Night and Day`, t1 === 'dark,dark' && t2 === 'light,light', [t1, t2]);
+    if (size === 'closed') {
+      // Five taps on Billie turn Aurora on; the next 5 taps leave the Aurora screen up; from then on MODE's Night is Aurora
+      for (let i = 0; i < 5; i++) await dp.tap('#lcd');
+      await dp.waitForTimeout(700);
+      const msg = () => dp.$eval('#msg', e => e.textContent);
+      const m1 = await msg();
+      for (let i = 0; i < 5; i++) await dp.tap('#lcd');
+      await dp.waitForTimeout(300);
+      check('Aurora: five taps on Billie turn it on, and the next 5 taps leave its screen up', m1.includes('AURORA') && (await msg()) === m1 && await dp.evaluate(() => document.documentElement.dataset.theme === 'aurora'), [m1, await msg()]);
+      const seq = [];
+      for (let i = 0; i < 3; i++) { await dp.tap('.key.mode'); seq.push(await dp.evaluate(() => document.documentElement.dataset.theme)); }
+      await dp.reload(); await dp.waitForSelector('.key');
+      await dp.tap('.key.mode'); seq.push(await dp.evaluate(() => document.documentElement.dataset.theme));
+      check('Aurora: once found, MODE flips Day and Aurora, and it is remembered', seq.join() === 'light,aurora,light,aurora', seq);
+    }
     await dc.close();
   }
   check('sw.js refreshes past the browser\'s copy (no-cache) inside waitUntil', /no-cache/.test(fs.readFileSync(path.join(root, 'sw.js'), 'utf8')) && /waitUntil\(net/.test(fs.readFileSync(path.join(root, 'sw.js'), 'utf8')));

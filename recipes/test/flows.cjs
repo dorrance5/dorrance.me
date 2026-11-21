@@ -512,12 +512,12 @@ const TOMATO = 'rgb(198, 58, 36)', CARROT = 'rgb(224, 123, 46)', BUTTER = 'rgb(2
   await opened('settings');
   check('signed out, Settings has a back button to the box and no tab bar', await page.isVisible('#sBack') && (await text('#sBackText')) === 'Recipe box' && await page.isHidden('#nav'));
   check('Settings shows the sign-in form', await page.isVisible('#aForm') && await page.isHidden('#sMe'));
-  check('Theme: Auto, Day, Night, with Auto on the left and picked', (await page.$$eval('#themeSeg button', bs => bs.map(b => b.textContent).join())) === 'Auto,Day,Night' && (await pressed('#themeSeg button')).join() === 'Auto');
+  check('Theme: Day and Night, with the one the phone is on picked', (await page.$$eval('#themeSeg button', bs => bs.map(b => b.textContent).join())) === 'Day,Night' && (await pressed('#themeSeg button')).join() === 'Day');
   await tap('#themeSeg [data-t="dark"]');
   check('Night: saved for the whole site, and the page turns dark', (await page.evaluate(() => [localStorage.getItem('theme'), document.documentElement.dataset.theme].join())) === 'dark,dark' && (await bg('body')) === 'rgb(28, 21, 18)');
   await phoneRules('settings');
-  await tap('#themeSeg [data-t="auto"]');
-  check('Auto follows the phone', (await page.evaluate(() => [localStorage.getItem('theme'), document.documentElement.dataset.theme || ''].join())) === 'auto,' && (await bg('body')) === 'rgb(251, 243, 228)');
+  await page.evaluate(() => { localStorage.removeItem('theme'); dispatchEvent(new StorageEvent('storage', { key: 'theme' })); });
+  check('with nothing picked it follows the phone', (await page.evaluate(() => [localStorage.getItem('theme'), document.documentElement.dataset.theme || ''].join())) === ',' && (await bg('body')) === 'rgb(251, 243, 228)');
   await page.evaluate(() => localStorage.setItem('theme', 'aurora'));
   await page.reload();
   await page.waitForSelector('#deck .rc');

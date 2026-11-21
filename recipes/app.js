@@ -56,13 +56,14 @@
   const face = name => FACES[hash(String(name).toLowerCase()) % FACES.length];
 
   /* ---- theme: the site setting, key "theme" = auto | light | dark | aurora ---- */
-  // This page has Auto, Day and Night. Aurora, which the apps have, shows as Night here and stays saved.
+  // This page has Day and Night; with nothing picked (auto) it follows the phone and the picker shows what is on.
+  // Aurora, which the apps have, shows as Night here and stays saved.
   const meta = document.querySelector('meta[name="theme-color"]');
   const shownTheme = () => { const t = store.get('theme'); return ['light', 'dark', 'aurora'].includes(t) ? t : 'auto'; };
   function applyTheme() {
     const t = shownTheme();
     if (t === 'auto') delete root.dataset.theme; else root.dataset.theme = t;
-    const on = t === 'aurora' ? 'dark' : t;
+    const on = t === 'aurora' ? 'dark' : t === 'auto' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : t;
     document.querySelectorAll('#themeSeg [data-t]').forEach(b => b.setAttribute('aria-pressed', b.dataset.t === on));
     barColor();
   }

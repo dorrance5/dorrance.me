@@ -318,7 +318,6 @@ if(t==="dark") document.body.dataset.theme="night";
   <div class="ptheme">
     <div class="plabel" id="themeLabel" data-theme-label>Theme</div>
     <div class="seg" id="themeSeg" role="group" aria-label="Theme">
-      <button data-t="auto">Auto</button>
       <button data-t="day">Day</button>
       <button data-t="night">Night</button>
       <button data-t="aurora" hidden>Aurora</button>
@@ -596,7 +595,7 @@ if(t==="dark") document.body.dataset.theme="night";
   }catch(e){}
 
   // t = auto | day | night | aurora; Auto follows the device's light/dark setting.
-  // Aurora is secret: the picker shows Auto, Day and Night. Five taps on the "Theme" label
+  // Aurora is secret: the picker shows Day and Night (with nothing picked, it follows the phone). Five taps on the "Theme" label
   // within 2 seconds turn Aurora on, and its button shows, selected, until another theme is picked.
   function setTheme(t){
     themePref=t;
@@ -604,8 +603,9 @@ if(t==="dark") document.body.dataset.theme="night";
     if(mode==="aurora") delete document.body.dataset.theme;
     else document.body.dataset.theme=mode;
     themeMetas.forEach(function(m){ m.setAttribute("content",t==="auto"?(m.media.indexOf("dark")>-1?THEME_BG.night:THEME_BG.day):(THEME_BG[mode]||THEME_BG.aurora)); });
+    var sel=t==="auto"?mode:t;   /* Auto is the default, not a button: the picker shows what the phone is on */
     themeSeg.querySelectorAll("button").forEach(function(b){
-      b.classList.toggle("sel",b.dataset.t===t);
+      b.classList.toggle("sel",b.dataset.t===sel);
       if(b.dataset.t==="aurora") b.hidden=t!=="aurora";
     });
     try{ localStorage.setItem("theme",TO_SHARED[t]||t); }catch(e){}
