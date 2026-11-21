@@ -1,7 +1,7 @@
 /* dorrance.me home page — offline cache. Bump CACHE when the home page or a file below changes.
    Its scope is the whole site, so it answers only for the home page's own files. The apps and Recipes have
    their own service workers, and everything else (the API, mycat.html) goes to the network as before. */
-const CACHE = 'home-v15';
+const CACHE = 'home-v16';
 const FILES = ['./', './index.html', './favicon.ico', './favicon.svg', './apple-touch-icon.png', './photos/cat-thumb.jpg'];   // the keys' glyphs are inline
 const PATHS = new Set(FILES.map(f => new URL(f, location).pathname));
 
