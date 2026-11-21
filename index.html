@@ -65,7 +65,7 @@ body{background:var(--desk);background-image:radial-gradient(var(--desk-dot) 1px
 
 /* screen */
 .bezel{background:var(--bezel);border-radius:14px;padding:10px;box-shadow:inset 0 2px 6px rgba(0,0,0,.6),0 1px 0 var(--engrave-hi)}
-.lcd{--px:4px;position:relative;background:var(--lcd);color:var(--ink);border-radius:5px;padding:10px 12px;min-height:128px;overflow:hidden;cursor:pointer;
+.lcd{--px:4px;position:relative;background:var(--lcd);color:var(--ink);border-radius:5px;padding:10px 12px;height:128px;overflow:hidden;cursor:pointer;
   display:grid;grid-template-rows:auto 1fr auto;gap:6px;font:700 13px/1.2 var(--mono);letter-spacing:.06em;text-transform:uppercase;
   box-shadow:inset 0 2px 8px rgba(0,0,0,.35),0 0 26px var(--lcd-glow);
   background-image:linear-gradient(var(--ink-soft) 1px,transparent 1px),linear-gradient(90deg,var(--ink-soft) 1px,transparent 1px),radial-gradient(120% 90% at 30% 10%,var(--lcd-hi),var(--lcd));
@@ -87,7 +87,10 @@ body{background:var(--desk);background-image:radial-gradient(var(--desk-dot) 1px
 .msg::after{content:"_";animation:cur 1s steps(1) infinite}
 @keyframes cur{50%{opacity:0}}
 .lcd.photo .stage{display:none}
-.shot{display:none;width:100%;image-rendering:pixelated}
+.shot{display:none;height:100%;width:auto;min-height:0;justify-self:center;image-rendering:pixelated}
+/* the photo takes the clock row's place, so the screen keeps its height */
+.lcd.photo{grid-template-rows:1fr auto}
+.lcd.photo .row{display:none}
 .lcd.photo .shot{display:block}
 
 /* keys */
@@ -134,7 +137,7 @@ dialog button{position:absolute;top:calc(12px + env(safe-area-inset-top));right:
       <div class="lcd" id="lcd" role="status" aria-live="polite">
         <div class="row"><span id="clock">--:--</span><span class="batt" id="batt"><span id="battTxt"></span><i><b></b><b></b><b></b></i></span></div>
         <div class="stage" id="stage"><svg class="pet" id="pet"></svg><span class="bubble" id="bubble"></span></div>
-        <canvas class="shot" id="shot" width="144" height="96"></canvas>
+        <canvas class="shot" id="shot" width="63" height="42"></canvas>
         <div class="msg" id="msg"></div>
       </div>
     </div>

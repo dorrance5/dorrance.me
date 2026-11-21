@@ -62,6 +62,10 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
     check(`${w}×${h} (${size}): no sideways scroll`, r.sw <= w, r);
     check(`${w}×${h} (${size}): the gadget is inside the screen at its one size`, r.devL >= 0 && r.devR <= w && Math.round(r.devW) === 358, r);
     check(`${w}×${h} (${size}): every key and the SND switch are at least 44 px tall`, r.minH >= 44, r);
+    const lcdH = () => dp.$eval('#lcd', e => e.getBoundingClientRect().height);
+    const before = await lcdH();
+    await dp.tap('.key.cat'); await dp.waitForTimeout(300);
+    check(`${w}×${h} (${size}): BILLIE shows her photo without changing the screen's height`, await dp.$eval('#lcd', e => e.classList.contains('photo')) && Math.abs((await lcdH()) - before) < 0.5, [before, await lcdH()]);
     await dp.tap('.key.mode');
     check(`${w}×${h} (${size}): MODE switches the theme`, await dp.evaluate(() => document.documentElement.dataset.theme === 'light' && localStorage.getItem('theme') === 'light'));
     await dc.close();
