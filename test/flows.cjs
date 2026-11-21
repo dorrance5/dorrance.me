@@ -1,4 +1,4 @@
-// Drives the home page (the DM-1 gadget) in WebKit at iPhone size: its key icons, the Duo sizes, offline, an app update, and
+// Drives the home page (the DM-1 gadget) in WebKit at iPhone size: its key glyphs, the Duo sizes, offline, an app update, and
 // first visits to the apps while the home page's worker is in charge. Exits 1 on a failed check or console error.
 //   NODE_PATH=/path/to/node_modules node test/flows.cjs
 const { webkit, devices } = require('playwright');
@@ -24,7 +24,7 @@ const server = http.createServer((req, res) => {
   res.end(body);
 });
 
-// One key per app, each with one icon (the same in Day and Night)
+// One key per app, each with its glyph drawn inline
 const ICONS = fs.readFileSync(path.join(root, 'index.html'), 'utf8').match(/\{id:'/g).length;
 const results = [];
 const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}${info !== undefined && !ok ? ' — ' + JSON.stringify(info) : ''}`); };
@@ -39,13 +39,13 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
   const ctl = p => p.evaluate(() => navigator.serviceWorker.controller?.scriptURL || '');
   const notice = p => p.$eval('.toast', t => t.classList.contains('tap') && t.classList.contains('on') ? t.textContent : null).catch(() => null);
 
-  // Each key's icon is fetched once, the same in both themes
+  // The keys' glyphs are inline: no icon files are fetched, in either theme
   for (const scheme of ['light', 'dark']) {
     const c = await browser.newContext({ ...devices['iPhone 13'], colorScheme: scheme, serviceWorkers: 'block' }), p = watch(await c.newPage());
     const icons = [];
     p.on('request', r => { if (/icon-180/.test(r.url())) icons.push(r.url()); });
     await p.goto(base); await p.waitForLoadState('networkidle');
-    check(`${scheme}: one icon per key is fetched`, icons.length === ICONS && new Set(icons).size === ICONS, icons);
+    check(`${scheme}: no icon files are fetched, and every app key has its glyph`, icons.length === 0 && (await p.$$('.key[data-app] svg.g')).length === ICONS, icons);
     await c.close();
   }
 
@@ -104,11 +104,11 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
   await c.setOffline(true);
   const status = await p.reload().then(r => r && r.status(), () => 0);
   await p.waitForTimeout(800);
-  const shown = () => p.$$eval('.key img', im => im.map(i => i.complete && i.naturalWidth > 0));
-  check('opens with the network off, with its icons', status === 200 && (await shown()).filter(Boolean).length === ICONS);
+  const shown = () => p.$$eval('.key[data-app] svg.g', g => g.map(s => s.getBoundingClientRect().width > 0 && s.childElementCount > 0));
+  check('opens with the network off, with its glyphs', status === 200 && (await shown()).filter(Boolean).length === ICONS);
   await p.evaluate(() => localStorage.setItem('theme', document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'));
   await p.reload(); await p.waitForTimeout(800);
-  check('the other theme\'s icons are there offline too', (await shown()).filter(Boolean).length === ICONS);
+  check('the glyphs are there offline in the other theme too', (await shown()).filter(Boolean).length === ICONS);
   await p.evaluate(() => localStorage.removeItem('theme'));
   await c.setOffline(false);
   check('pages it does not keep come from the network (mycat.html)', (await p.goto(base + 'mycat.html').then(r => r.status())) === 200);
