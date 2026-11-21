@@ -65,7 +65,7 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
     const lcdH = () => dp.$eval('#lcd', e => e.getBoundingClientRect().height);
     const before = await lcdH();
     await dp.tap('.key.cat'); await dp.waitForTimeout(300);
-    check(`${w}×${h} (${size}): BILLIE shows her photo without changing the screen's height`, await dp.$eval('#lcd', e => e.classList.contains('photo')) && Math.abs((await lcdH()) - before) < 0.5, [before, await lcdH()]);
+    check(`${w}×${h} (${size}): BILLIE shows his photo without changing the screen's height`, await dp.$eval('#lcd', e => e.classList.contains('photo')) && Math.abs((await lcdH()) - before) < 0.5, [before, await lcdH()]);
     // The speaker grille moves the gadget on the open phone (and it stays put after a reload), but not on the narrow screens
     const devBox = () => dp.$eval('#dev', e => { const r = e.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top)]; });
     const g = await dp.$eval('.grille', e => { const r = e.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; });

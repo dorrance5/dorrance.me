@@ -244,7 +244,7 @@ document.addEventListener('click',e=>{
     if($('#lcd').classList.contains('photo')){$('#viewerImg').src='mycat.jpeg';$('#viewer').showModal();return}
     const now=Date.now();petTaps=petTaps.filter(t=>now-t<2500).concat(now);
     if(petTaps.length>=5){petTaps=[];setTheme('aurora');setMood('happy','♥ ♥ ♥');type('> SECRET: AURORA BACKLIGHT');return}
-    const napping=mood==='sleep';setMood('happy','prrr · · ·');type(napping?'> SHE WAS NAPPING.':'> PRRRRR.')}
+    const napping=mood==='sleep';setMood('happy','prrr · · ·');type(napping?'> HE WAS NAPPING.':'> PRRRRR.')}
 });
 $('#vclose').onclick=()=>$('#viewer').close();
 $('#viewer').addEventListener('click',e=>{if(e.target===$('#viewer'))$('#viewer').close()});
@@ -266,7 +266,7 @@ function load(){try{pos=JSON.parse(ls.get(posKey()))||{x:0,y:0}}catch(e){pos={x:
 grille.addEventListener('pointerdown',e=>{if(!wide.matches)return;sx=null;sdir=0;e.preventDefault();grille.setPointerCapture(e.pointerId);drag={x:e.clientX-pos.x,y:e.clientY-pos.y};dev.classList.add('lifted')});
 grille.addEventListener('pointermove',e=>{if(!drag)return;pos={x:e.clientX-drag.x,y:e.clientY-drag.y};place();shaking(e.clientX)});
 
-/* Easter egg: shake it too hard and Billie gets dizzy (fast back-and-forth while dragging); the third time she lies down,
+/* Easter egg: shake it too hard and Billie gets dizzy (fast back-and-forth while dragging); the third time he lies down,
    and the fourth starts over */
 let sx=null,sdir=0,flips=[],shakes=0,shakeT=0;
 const SHAKE=['> WHOA. WHOA. WHOA.',"> HEY! I'M NOT A SNOW GLOBE.","> THAT'S IT. I'M LYING DOWN."];
