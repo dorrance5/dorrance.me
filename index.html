@@ -56,7 +56,7 @@ body{background:var(--desk);background-image:radial-gradient(var(--desk-dot) 1px
 .brand svg{width:20px;height:20px}
 .brand b{font:800 14px/1 var(--ui);letter-spacing:.02em;color:var(--engrave);text-shadow:0 1px 0 var(--engrave-hi)}
 .brand i{font:700 10px/1 var(--mono);letter-spacing:.18em;font-style:normal;color:var(--engrave);text-shadow:0 1px 0 var(--engrave-hi)}
-.grille{margin-left:auto;display:grid;grid-template-columns:repeat(6,4px);gap:3px}
+.grille{margin:-16px -14px -16px auto;padding:16px 14px;display:grid;grid-template-columns:repeat(6,4px);gap:3px;touch-action:none}
 .grille span{width:4px;height:4px;border-radius:50%;background:var(--engrave);box-shadow:0 1px 0 var(--engrave-hi)}
 .snd{display:flex;align-items:center;gap:6px;border:0;background:none;padding:0 4px;height:44px;align-self:flex-start;cursor:pointer;font:700 9px/1 var(--mono);letter-spacing:.14em;color:var(--engrave)}
 .snd span{width:26px;height:12px;border-radius:3px;background:var(--engrave);position:relative}
@@ -121,6 +121,10 @@ dialog button{position:absolute;top:calc(12px + env(safe-area-inset-top));right:
 /* OPEN (upright or sideways): the same one gadget, on the left */
 @media (min-width:560px){
   body{justify-content:flex-start;padding-left:max(28px,env(safe-area-inset-left))}
+  /* the speaker grille is a handle: drag it to move the gadget around the screen */
+  .grille{cursor:grab}
+  .dev.lifted{filter:drop-shadow(0 26px 34px rgba(0,0,0,.36))}
+  .dev.lifted .grille{cursor:grabbing}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -239,6 +243,26 @@ document.addEventListener('click',e=>{
 });
 $('#vclose').onclick=()=>$('#viewer').close();
 $('#viewer').addEventListener('click',e=>{if(e.target===$('#viewer'))$('#viewer').close()});
+
+/* on the open phone, drag the speaker grille to move the gadget; it stays on screen and remembers its place (upright and sideways apart) */
+const wide=matchMedia('(min-width:560px)'),dev=$('#dev'),grille=$('.grille');
+let pos={x:0,y:0},drag=null;
+const posKey=()=>'dm1-pos-'+(innerWidth>innerHeight?'sideways':'upright');
+function place(save){
+  dev.style.transform='';
+  if(!wide.matches)return;
+  const r=dev.getBoundingClientRect();
+  pos.x=Math.round(Math.min(Math.max(pos.x,8-r.left),innerWidth-8-r.right));
+  pos.y=Math.round(Math.min(Math.max(pos.y,8-r.top),Math.max(0,innerHeight-8-r.bottom)));
+  dev.style.transform=`translate(${pos.x}px,${pos.y}px)`;
+  if(save)ls.set(posKey(),JSON.stringify(pos));
+}
+function load(){try{pos=JSON.parse(ls.get(posKey()))||{x:0,y:0}}catch(e){pos={x:0,y:0}}place()}
+grille.addEventListener('pointerdown',e=>{if(!wide.matches)return;e.preventDefault();grille.setPointerCapture(e.pointerId);drag={x:e.clientX-pos.x,y:e.clientY-pos.y};dev.classList.add('lifted')});
+grille.addEventListener('pointermove',e=>{if(!drag)return;pos={x:e.clientX-drag.x,y:e.clientY-drag.y};place()});
+function drop(){if(!drag)return;drag=null;dev.classList.remove('lifted');place(true)}
+grille.addEventListener('pointerup',drop);grille.addEventListener('pointercancel',drop);
+addEventListener('resize',load);wide.addEventListener('change',load);load();
 
 /* the gadget has one fixed size; a window narrower than it scales the whole thing down evenly */
 function fit(){const w=innerWidth-24;$('#dev').style.zoom=w<358?w/358:''}

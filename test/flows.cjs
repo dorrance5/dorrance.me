@@ -66,6 +66,19 @@ const check = (name, ok, info) => { results.push({ name, ok: !!ok }); console.lo
     const before = await lcdH();
     await dp.tap('.key.cat'); await dp.waitForTimeout(300);
     check(`${w}×${h} (${size}): BILLIE shows her photo without changing the screen's height`, await dp.$eval('#lcd', e => e.classList.contains('photo')) && Math.abs((await lcdH()) - before) < 0.5, [before, await lcdH()]);
+    // The speaker grille moves the gadget on the open phone (and it stays put after a reload), but not on the narrow screens
+    const devBox = () => dp.$eval('#dev', e => { const r = e.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top)]; });
+    const g = await dp.$eval('.grille', e => { const r = e.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; });
+    const start = await devBox();
+    await dp.mouse.move(g[0], g[1]); await dp.mouse.down(); await dp.mouse.move(g[0] + 120, g[1] + 30, { steps: 5 }); await dp.mouse.up();
+    const moved = await devBox();
+    if (w >= 560) {
+      check(`${w}×${h} (${size}): dragging the grille moves the gadget`, moved[0] - start[0] > 60 && moved[1] - start[1] > 10, [start, moved]);
+      await dp.reload(); await dp.waitForSelector('.key');
+      check(`${w}×${h} (${size}): the gadget stays where it was dropped after a reload`, JSON.stringify(await devBox()) === JSON.stringify(moved), [moved, await devBox()]);
+      const r2 = await dp.$eval('#dev', e => { const r = e.getBoundingClientRect(); return [r.left, r.right]; });
+      check(`${w}×${h} (${size}): the moved gadget is still on screen`, r2[0] >= 0 && r2[1] <= w, r2);
+    } else check(`${w}×${h} (${size}): the grille does not move the gadget`, JSON.stringify(moved) === JSON.stringify(start), [start, moved]);
     await dp.tap('.key.mode');
     check(`${w}×${h} (${size}): MODE switches the theme`, await dp.evaluate(() => document.documentElement.dataset.theme === 'light' && localStorage.getItem('theme') === 'light'));
     await dc.close();
