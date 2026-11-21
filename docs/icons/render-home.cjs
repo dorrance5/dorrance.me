@@ -1,6 +1,5 @@
 // Renders the homepage icons: docs/icons/home.svg to apple-touch-icon.png (180, full bleed; iOS rounds the corners)
-// and favicon.svg to favicon.ico (16, 32 and 48, rounded, transparent corners). The ICO holds the three PNGs as they are.
-// The ICO cannot switch with light and dark mode, so it gets the dark drawing, which shows on both.
+// and favicon.svg to favicon.ico (16, 32 and 48, no background). The ICO holds the three PNGs as they are.
 // Needs Playwright on NODE_PATH (see CLAUDE.md):  NODE_PATH=<folder> node docs/icons/render-home.cjs
 const { webkit } = require('playwright');
 const fs = require('node:fs');

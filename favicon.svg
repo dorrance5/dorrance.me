@@ -1,15 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-<!-- Home favicon: four app tiles on a rounded tile, in the colors of TV Mount (blue), Triangle (orange), Counter (green)
-     and Calculator (purple). Black tile in dark mode, white tile and deeper colors in light mode, like the homepage icons.
-     The homepage header draws the same logo inline so it follows the site theme. docs/icons/home.svg is the dark drawing,
-     full bleed. Render favicon.ico and apple-touch-icon.png with docs/icons/render-home.cjs. -->
-<style>
-.t{fill:#000}.b{fill:#579DFF}.o{fill:#FEA362}.g{fill:#4BCE97}.p{fill:#9F8FEF}
-@media (prefers-color-scheme:light){.t{fill:#fff}.b{fill:#1D7AFC}.o{fill:#E56910}.g{fill:#22A06B}.p{fill:#8270DB}}
-</style>
-<rect class="t" width="512" height="512" rx="112"/>
-<rect class="b" x="96" y="96" width="140" height="140" rx="34"/>
-<rect class="o" x="276" y="96" width="140" height="140" rx="34"/>
-<rect class="g" x="96" y="276" width="140" height="140" rx="34"/>
-<rect class="p" x="276" y="276" width="140" height="140" rx="34"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+<!-- Home favicon: a Bauhaus capital D (blue bar, red bowl with a see-through hole, yellow corner), no background.
+     docs/icons/home.svg is the same D on a cream tile, for the home-screen icon. The home page's gadget badge draws it inline.
+     Render favicon.ico and apple-touch-icon.png with docs/icons/render-home.cjs. -->
+<path d="M26 10h6.5a21 22 0 0 1 0 44H26zM26 21.7h6.5a9.2 10.3 0 0 1 0 20.6H26z" fill="#D7372E" fill-rule="evenodd"/><rect x="13" y="10" width="13" height="44" fill="#1F4FB5"/><path d="M57 7H44L57 20z" fill="#F2B705"/>
 </svg>
