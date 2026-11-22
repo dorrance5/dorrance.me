@@ -190,38 +190,6 @@
       "owner": "Nicole"
     },
     {
-      "id": "cajun-shrimp-and-sausage-skillet",
-      "name": "Cajun shrimp and sausage skillet",
-      "servings": "4",
-      "tags": [
-        "One pan"
-      ],
-      "ingredients": [
-        "1 lb large shrimp (peeled and deveined)",
-        "12 oz andouille sausage (sliced)",
-        "1 tbsp olive oil",
-        "2 tsp Cajun seasoning",
-        "1 red bell pepper (chopped)",
-        "1 green bell pepper (chopped)",
-        "1 small onion (chopped)",
-        "3 cloves garlic (minced)",
-        "1 cup corn (frozen is fine)",
-        "1 tbsp butter",
-        "1 tbsp lemon juice",
-        "2 tbsp parsley (chopped)"
-      ],
-      "steps": [
-        "Toss the shrimp with 1 tsp Cajun seasoning.",
-        "Heat the oil in a large skillet on medium-high. Brown the sausage 4 to 5 minutes. Set it aside.",
-        "Add the peppers and onion. Cook 5 minutes, until soft. Stir in the garlic, corn and the rest of the Cajun seasoning and cook 2 minutes.",
-        "Push the vegetables to the side. Melt the butter and add the shrimp in one layer. Cook 2 minutes a side, until pink.",
-        "Put the sausage back in and stir it all together. Squeeze the lemon over and top with parsley.",
-        "Serve over rice or with crusty bread."
-      ],
-      "notes": "Cajun seasoning is salty, so taste before adding any salt.",
-      "owner": "Mitchell"
-    },
-    {
       "id": "philly-cheesesteaks",
       "name": "Philly cheesesteaks",
       "servings": "4",
@@ -429,7 +397,6 @@
       "lasagna-soup"
     ],
     "riley": [
-      "cajun-shrimp-and-sausage-skillet",
       "grilled-chicken-and-potatoes",
       "lasagna-soup",
       "madis-pasta-salad",
