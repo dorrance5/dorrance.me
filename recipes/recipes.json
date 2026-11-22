@@ -252,42 +252,6 @@
       "owner": "Mitchell"
     },
     {
-      "id": "quick-butter-chicken",
-      "name": "Quick butter chicken",
-      "servings": "4",
-      "tags": [
-        "One pan"
-      ],
-      "ingredients": [
-        "1 1/2 lb boneless chicken thighs (cut in bite-size pieces)",
-        "1/2 cup plain yogurt",
-        "2 tsp garam masala (1 for the chicken, 1 for the sauce)",
-        "1 tsp salt",
-        "3 tbsp butter",
-        "1 onion (finely diced)",
-        "4 cloves garlic (minced)",
-        "1 tbsp fresh ginger (grated)",
-        "1 tsp cumin",
-        "1 tsp paprika",
-        "1/2 tsp chili powder",
-        "1 can (15 oz) tomato sauce",
-        "3/4 cup heavy cream",
-        "1/4 cup cilantro (chopped)",
-        "4 cups cooked basmati rice"
-      ],
-      "steps": [
-        "Toss the chicken with the yogurt, 1 tsp garam masala and the salt.",
-        "Melt 1 tbsp butter in a large pot on medium-high. Cook the chicken 6 to 8 minutes, until browned. Set it aside.",
-        "Melt the rest of the butter. Cook the onion 5 minutes, until soft.",
-        "Add the garlic, ginger, cumin, paprika, chili powder and the rest of the garam masala. Stir 1 minute.",
-        "Stir in the tomato sauce and simmer 10 minutes.",
-        "Stir in the cream and put the chicken back in. Simmer 5 to 10 minutes, until the chicken is cooked through.",
-        "Top with cilantro. Serve over rice with naan."
-      ],
-      "notes": "Taste before serving and add salt or a pinch of sugar if the tomatoes are sharp. Freezes well.",
-      "owner": "Mitchell"
-    },
-    {
       "id": "cajun-shrimp-and-sausage-skillet",
       "name": "Cajun shrimp and sausage skillet",
       "servings": "4",
@@ -537,7 +501,6 @@
       "pepperoncini-roast",
       "philly-cheesesteaks",
       "pulled-pork-sandwiches",
-      "quick-butter-chicken",
       "salmon-bowls",
       "tacos-and-beans",
       "white-chicken-chili"
