@@ -390,6 +390,31 @@
       "source": "Aunt Lisa",
       "owner": "Nicole",
       "shared": false
+    },
+    {
+      "id": "jake-and-annies-cranberry-dip",
+      "name": "Jake and Annie’s cranberry dip",
+      "tags": [
+        "Dip"
+      ],
+      "ingredients": [
+        "One lb frozen cranberry’s",
+        "One cup sugar",
+        "One lime",
+        "One jalapeño",
+        "One bunch of green onion",
+        "One-two bunches cilantro",
+        "One block cream cheese",
+        "Wheat thins"
+      ],
+      "steps": [
+        "Add the cranberry’s sugar and lime juice to the food processor and blend. Little bit of water helps too",
+        "Finely chop the cilantro leaves, green onions, and jalapeño and mix in",
+        "Let sit in the fridge",
+        "Serve over a block of softened cream cheese"
+      ],
+      "source": "Annie’s aunt",
+      "owner": "Nicole"
     }
   ],
   "books": {
