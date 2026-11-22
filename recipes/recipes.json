@@ -219,42 +219,6 @@
       "owner": "Mitchell"
     },
     {
-      "id": "sheet-pan-chicken-shawarma",
-      "name": "Sheet pan chicken shawarma",
-      "servings": "4",
-      "tags": [
-        "One pan"
-      ],
-      "ingredients": [
-        "2 lb boneless chicken thighs",
-        "1 red onion (cut in wedges)",
-        "3 tbsp olive oil",
-        "2 tbsp lemon juice",
-        "2 tsp cumin",
-        "2 tsp paprika",
-        "1 tsp coriander",
-        "1/2 tsp turmeric",
-        "1/2 tsp cinnamon",
-        "1 tsp salt",
-        "1/2 tsp pepper",
-        "4 cloves garlic (minced, 3 for the chicken and 1 for the sauce)",
-        "1 cup plain Greek yogurt",
-        "1 tbsp lemon juice (for the sauce)",
-        "4 pitas or naan",
-        "1 cucumber and 2 tomatoes (chopped)"
-      ],
-      "steps": [
-        "Heat the oven to 425°F.",
-        "Mix the olive oil, 2 tbsp lemon juice, spices, salt, pepper and 3 cloves of garlic in a big bowl. Add the chicken and onion and toss to coat.",
-        "Spread the chicken and onion on a sheet pan. Roast for 25 minutes, until the chicken is browned at the edges.",
-        "While it roasts, stir the yogurt, 1 tbsp lemon juice, the last clove of garlic and a pinch of salt together for the sauce.",
-        "Let the chicken rest 5 minutes, then slice it.",
-        "Serve in warm pitas with the garlic sauce, cucumber and tomatoes."
-      ],
-      "notes": "The chicken can sit in the spices overnight in the fridge for more flavor. Also good over rice instead of in pitas.",
-      "owner": "Mitchell"
-    },
-    {
       "id": "marry-me-chicken",
       "name": "Marry me chicken",
       "servings": "4",
@@ -606,7 +570,6 @@
       "quick-butter-chicken",
       "salmon-bowls",
       "sausage-gnocchi-skillet",
-      "sheet-pan-chicken-shawarma",
       "tacos-and-beans",
       "white-chicken-chili"
     ],
