@@ -320,36 +320,6 @@
       "owner": "Mitchell"
     },
     {
-      "id": "sausage-gnocchi-skillet",
-      "name": "Sausage gnocchi skillet",
-      "servings": "4",
-      "tags": [
-        "One pan"
-      ],
-      "ingredients": [
-        "1 lb shelf-stable potato gnocchi",
-        "1 lb Italian sausage (casings removed)",
-        "1 tbsp olive oil",
-        "1/2 onion (diced)",
-        "3 cloves garlic (minced)",
-        "1 can (14 oz) diced tomatoes",
-        "1/2 cup chicken broth",
-        "1/2 cup heavy cream",
-        "3 cups baby spinach",
-        "1/2 cup grated parmesan",
-        "Salt and pepper"
-      ],
-      "steps": [
-        "Heat the oil in a large skillet on medium-high. Add the gnocchi in one layer and cook 5 minutes, turning, until golden. Set them aside.",
-        "Brown the sausage in the same pan for 6 to 8 minutes, breaking it up.",
-        "Add the onion and cook 3 minutes, then the garlic for 1 minute.",
-        "Stir in the tomatoes, broth and cream. Simmer 5 minutes.",
-        "Stir in the gnocchi, spinach and parmesan. Cook 2 minutes, until the spinach wilts. Season with salt and pepper."
-      ],
-      "notes": "Browning the gnocchi first keeps them from going gummy. A ball of mozzarella torn over the top and a few minutes under the broiler makes it cheesy.",
-      "owner": "Mitchell"
-    },
-    {
       "id": "philly-cheesesteaks",
       "name": "Philly cheesesteaks",
       "servings": "4",
@@ -569,7 +539,6 @@
       "pulled-pork-sandwiches",
       "quick-butter-chicken",
       "salmon-bowls",
-      "sausage-gnocchi-skillet",
       "tacos-and-beans",
       "white-chicken-chili"
     ],
