@@ -591,6 +591,34 @@
       ],
       "source": "Nana",
       "owner": "GiGi"
+    },
+    {
+      "id": "aunt-lisas-broccoli-salad",
+      "name": "Aunt Lisa's broccoli salad",
+      "tags": [
+        "Salad"
+      ],
+      "ingredients": [
+        "1-2 heads broccoli (chopped in small pieces)",
+        "1/4 cup red onion (minced)",
+        "1 cup dried cranberries or raisins",
+        "3 tablespoons sunflower or pumpkin seeds",
+        "1 cup mayo (for the dressing)",
+        "3 tbsp apple cider vinegar (for the dressing)",
+        "3 tbsp sugar (for the dressing)",
+        "1 lb bacon"
+      ],
+      "steps": [
+        "Mix the mayo, apple cider vinegar and sugar for the dressing and let it sit.",
+        "Put the salad ingredients in your BIGGEST bowl so you can mix it easily.",
+        "Add the dressing about 1 hour before eating. It can get soggy.",
+        "Chop the bacon, then fry it in a pan.",
+        "Add the chopped bacon just before serving (no one likes soggy bacon!)."
+      ],
+      "notes": "Use as much or as little of the tasty broccoli salad ingredients as you like, or omit completely (John didn't like dried fruit).",
+      "source": "Aunt Lisa",
+      "owner": "Nicole",
+      "shared": false
     }
   ],
   "books": {
