@@ -570,6 +570,27 @@
       ],
       "notes": "Maybe more than 2 cups of rice.",
       "owner": "Mitchell"
+    },
+    {
+      "id": "nanas-ambrosia-salad",
+      "name": "Nanas Ambrosia salad",
+      "tags": [
+        "Salad"
+      ],
+      "ingredients": [
+        "1 20 oz can crushed pineapple drained",
+        "1 pint sour cream 16 oz",
+        "1/2 cup coconut",
+        "Mandarin oranges 2 cans. (1 to decorate top)",
+        "1/2 bag mini Marshmellows",
+        "10-16 oz maraschino cherries drained",
+        "8 oz cool whip"
+      ],
+      "steps": [
+        "Mix together and let stand 8 hours or overnight"
+      ],
+      "source": "Nana",
+      "owner": "GiGi"
     }
   ],
   "books": {
