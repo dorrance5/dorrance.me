@@ -288,39 +288,6 @@
       "owner": "Mitchell"
     },
     {
-      "id": "smash-burger-tacos",
-      "name": "Smash burger tacos",
-      "servings": "4 (8 tacos)",
-      "tags": [
-        "Sandwiches & tacos"
-      ],
-      "ingredients": [
-        "1 lb ground beef (80/20)",
-        "8 small flour tortillas",
-        "1 tsp salt",
-        "1/2 tsp pepper",
-        "1/2 tsp garlic powder",
-        "8 slices American cheese",
-        "1/4 cup mayo",
-        "1 tbsp ketchup",
-        "1 tbsp mustard",
-        "1 tbsp pickle juice",
-        "1 cup shredded lettuce",
-        "1/2 cup dill pickles (chopped)",
-        "1/2 small onion (finely diced)"
-      ],
-      "steps": [
-        "Stir the mayo, ketchup, mustard and pickle juice together for the sauce.",
-        "Split the beef into 8 balls. Mix the salt, pepper and garlic powder.",
-        "Heat a griddle or large skillet on medium-high. Set a beef ball on a tortilla and press it flat and thin all the way to the edges. Do the rest the same way.",
-        "Put them in the pan meat side down, a few at a time. Sprinkle with the seasoning and cook for 3 minutes, until the beef is browned and crispy.",
-        "Flip so the tortilla is down. Add a slice of cheese and cook 1 to 2 minutes more, until the cheese melts and the tortilla is crisp.",
-        "Top with lettuce, pickles, onion and the sauce. Fold and eat right away."
-      ],
-      "notes": "Wet hands or a piece of parchment keep the beef from sticking when you press it.",
-      "owner": "Mitchell"
-    },
-    {
       "id": "quick-butter-chicken",
       "name": "Quick butter chicken",
       "servings": "4",
@@ -640,7 +607,6 @@
       "salmon-bowls",
       "sausage-gnocchi-skillet",
       "sheet-pan-chicken-shawarma",
-      "smash-burger-tacos",
       "tacos-and-beans",
       "white-chicken-chili"
     ],
