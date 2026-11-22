@@ -219,39 +219,6 @@
       "owner": "Mitchell"
     },
     {
-      "id": "marry-me-chicken",
-      "name": "Marry me chicken",
-      "servings": "4",
-      "tags": [
-        "One pan"
-      ],
-      "ingredients": [
-        "2 large chicken breasts (cut in half the long way)",
-        "1 tsp salt",
-        "1/2 tsp pepper",
-        "1 tsp Italian seasoning",
-        "2 tbsp olive oil",
-        "2 tbsp butter",
-        "4 cloves garlic (minced)",
-        "1/2 cup sun-dried tomatoes in oil (chopped)",
-        "1 cup chicken broth",
-        "3/4 cup heavy cream",
-        "1/2 cup grated parmesan",
-        "1/2 tsp red pepper flakes",
-        "1/4 cup basil (chopped)"
-      ],
-      "steps": [
-        "Season the chicken with salt, pepper and Italian seasoning.",
-        "Heat the oil in a large skillet on medium-high. Sear the chicken 4 to 5 minutes a side, until golden. Set it on a plate.",
-        "Turn the heat to medium. Melt the butter, add the garlic and sun-dried tomatoes and cook 1 minute.",
-        "Stir in the broth, scraping up the brown bits, then the cream, parmesan and red pepper flakes.",
-        "Put the chicken back in the pan. Simmer 8 to 10 minutes, until the chicken is cooked through and the sauce thickens.",
-        "Top with basil. Serve with pasta, rice or crusty bread."
-      ],
-      "notes": "A handful of spinach stirred into the sauce at the end works well.",
-      "owner": "Mitchell"
-    },
-    {
       "id": "cajun-shrimp-and-sausage-skillet",
       "name": "Cajun shrimp and sausage skillet",
       "servings": "4",
@@ -496,7 +463,6 @@
       "korean-beef-bowls",
       "lasagna-soup",
       "madis-pasta-salad",
-      "marry-me-chicken",
       "megans-zuppa-toscana",
       "pepperoncini-roast",
       "philly-cheesesteaks",
