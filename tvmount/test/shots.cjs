@@ -30,7 +30,7 @@ function jobDoc(mode) {
   const t = d.tabs[0];
   t.name = 'Living room';
   Object.assign(t.tv, { src: 'measured', model: 'QN65Q80C', w: 57.125, h: 32.75, vesaTop: 7.5, vesaW: 400, vesaH: 300 });
-  Object.assign(t.mount, { model: 'Sanus VLT7', holesToTop: 4.5, chain: 'split', hookDrop: 1.25, armDrop: 0.5, sag: 0.125, plateW: 26.5, plateH: 10.75, holeDown: 0.75, rowGap: 8.5, slide: 3, adjUp: 0.5, adjDown: 0.5 });
+  Object.assign(t.mount, { model: 'Sanus VLT7', holesToTop: 4.5, chain: 'split', hookDrop: 1.25, armDrop: 0.5, sag: 0.125, plateW: 26.5, plateH: 10.75, holeDown: 0.75, slide: 3, adjUp: 0.5, adjDown: 0.5 });
   t.ref.kind = 'mantle';
   Object.assign(t.ref.mantle, { edge: 'bottom', value: 4, h: 54.25, hR: 54.625, len: 66 });
   Object.assign(t.center, { mode: 'two', from: 'left', a: 30.25, b: 96.5 });

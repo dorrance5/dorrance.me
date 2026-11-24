@@ -375,7 +375,9 @@
     const P = r.slide && r.slide.P != null ? r.slide.P : vesaX;
     r.plateX = P;
 
-    const holeRows = y.hole == null ? [] : [y.hole].concat(isNum(e.rowGap) && e.rowGap > 0 ? [y.hole - e.rowGap] : []);
+    // the bottom row mirrors the top one: as far up from the plate bottom as the top row is down from its top
+    const rowGap = isNum(e.plateH) && isNum(e.holeDown) && e.plateH - 2 * e.holeDown > 0.5 ? e.plateH - 2 * e.holeDown : null;
+    const holeRows = y.hole == null ? [] : [y.hole].concat(rowGap ? [y.hole - rowGap] : []);
     r.holeRows = holeRows;
     // lag holes go on the studs the plate reaches, even when the TV can't slide far enough (drawn hollow)
     r.drill = r.slide && r.slide.P != null ? r.slide.hits.flatMap(x => holeRows.map(yy => ({ x, y: yy, ok: r.slide.ok }))) : [];

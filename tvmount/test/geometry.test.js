@@ -241,7 +241,7 @@ test('studs measured from the edge convert to the center line', () => {
 });
 
 test('VESA centered and drill points on two rows', () => {
-  const t = tab(BASE, { tv: { w: 57.125, h: 32.75, vesaW: 400, vesaH: 300 }, mount: { holesToTop: 4.5, plateW: 26, plateH: 10, holeDown: 1, rowGap: 8, slide: 0 }, studs: { list: [-8, 8] } });
+  const t = tab(BASE, { tv: { w: 57.125, h: 32.75, vesaW: 400, vesaH: 300 }, mount: { holesToTop: 4.5, plateW: 26, plateH: 10, holeDown: 1, slide: 0 }, studs: { list: [-8, 8] } });
   const r = G.compute(t, { mode: 'pro' });
   near(r.vesa.x, 0);
   near(r.vesa.w, 400 / 25.4);                           // typed in mm, drawn in inches
@@ -470,7 +470,7 @@ for (const j of jobs) {
 }
 
 test('blank slide: the arms ride the plate rails, so the plate moves onto the studs', () => {
-  const m = { holesToTop: 4.5, plateW: 27, plateH: 12, holeDown: 1.25, rowGap: 9.5 };
+  const m = { holesToTop: 4.5, plateW: 27, plateH: 12, holeDown: 1.25 };   // rows 9 1/2" apart, mirrored
   let r = G.compute(tab(BASE, { tv: { vesaW: 400, vesaH: 300 }, mount: m, studs: { list: [-13.75, 2.25] } }), { mode: 'pro' });
   assert.ok(r.slide.ok); assert.equal(r.slide.from, 'plate');
   near(r.slide.slide, (27 - 400 / 25.4 - 1.5) / 2);

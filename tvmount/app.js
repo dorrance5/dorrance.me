@@ -35,12 +35,12 @@
     return `<svg class="plate-fig" viewBox="0 0 340 124" role="img" aria-label="Wall plate measurements">
       <rect class="pl" x="100" y="36" width="200" height="80" rx="6"/>
       ${[118, 282].flatMap(x => [52, 100].map(y => slot(x, y))).join('')}
-      <path class="ex" d="M100 36H80M112 52H80M112 100H80M100 36V16M300 36V16M300 36h20M300 116h20"/>
-      ${dim(100, 22, 300, 22)}${dim(314, 36, 314, 116)}${dim(86, 36, 86, 52)}${dim(86, 52, 86, 100)}
+      <path class="ex" d="M100 36H80M112 52H80M112 100H80M100 116H80M100 36V16M300 36V16M300 36h20M300 116h20"/>
+      ${dim(100, 22, 300, 22)}${dim(314, 36, 314, 116)}${dim(86, 36, 86, 52)}${dim(86, 100, 86, 116)}
       <text x="200" y="13" text-anchor="middle">Plate width</text>
       <text transform="translate(322 76) rotate(90)" text-anchor="middle">Plate height</text>
       <text x="78" y="40" text-anchor="end">Plate top →</text><text x="78" y="52" text-anchor="end">lag holes</text>
-      <text x="78" y="76" text-anchor="end">Top row →</text><text x="78" y="88" text-anchor="end">bottom row</text>
+      <text x="78" y="104" text-anchor="end">Plate bottom →</text><text x="78" y="116" text-anchor="end">bottom row</text>
     </svg>`;
   })();
 
@@ -69,7 +69,7 @@
     'tv.vesaTop': ['To TV top'], 'tv.vesaW': ['Width'], 'tv.vesaH': ['Height'],
     'mount.holesToTop': ['Top holes → TV top'], 'mount.holesToBottom': ['Top holes → TV bottom'],
     'mount.hookDrop': ['Top holes → hook'], 'mount.armDrop': ['Arm hook → VESA'], 'mount.sag': ['Sag once hung', 0],
-    'mount.plateW': ['Plate width'], 'mount.plateH': ['Plate height'], 'mount.holeDown': ['Plate top → lag holes', 0], 'mount.rowGap': ['Top row → bottom row', 'one row'],
+    'mount.plateW': ['Plate width'], 'mount.plateH': ['Plate height'], 'mount.holeDown': ['Plate top → lag holes', 0],
     'mount.slide': ['TV slides left or right', 'on the plate'],
     'mount.adjUp': ['Can raise TV'], 'mount.adjDown': ['Can lower TV'],
     'ref.mantle.h': ['Mantle height'], 'ref.mantle.hR': ['Right end', 'same'], 'ref.mantle.len': ['Mantle length', 'TV width'],
@@ -235,8 +235,8 @@
         : 'Plate top holes down to the hook, the arm’s hook down to its top VESA hole, then the TV’s top VESA holes up to its top edge.'}</div>`;
     }
     if (P) {
-      b += `<div class="label">Wall plate</div>${PLATE_SVG}<div class="grid2">${fld('mount.plateW')}${fld('mount.plateH')}${fld('mount.holeDown')}${fld('mount.rowGap')}</div>`;
-      b += hint('The wall plate is the part that bolts to the wall. Lag holes are its slots for the lag bolts into the studs; they run to about 1" from each end. Measure to the center of each row.');
+      b += `<div class="label">Wall plate</div>${PLATE_SVG}<div class="grid2">${fld('mount.plateW')}${fld('mount.plateH')}${fld('mount.holeDown', { wide: true })}</div>`;
+      b += hint('The wall plate is the part that bolts to the wall. Lag holes are its slots for the lag bolts into the studs; they run to about 1" from each end. Measure to the center of the top row; the bottom row is the same distance up from the plate bottom.');
       b += `<div class="label">Lag bolts go into</div>` + seg('mount.studsNeeded', [['null', 'Auto'], ['1', '1 stud'], ['2', '2 studs'], ['3', '3 studs']]);
       b += hint(t.mount.studsNeeded == null ? 'Auto picks 2 studs when the plate is 18" or wider, and 1 when it is narrower.' : 'The plate goes where its lag holes reach this many studs.');
       b += `<div class="label">Adjustment</div><div class="grid2">${fld('mount.adjUp')}${fld('mount.adjDown')}${fld('mount.slide', { wide: true })}</div>`;
