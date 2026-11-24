@@ -40,7 +40,7 @@
       <text x="200" y="13" text-anchor="middle">Plate width</text>
       <text transform="translate(322 76) rotate(90)" text-anchor="middle">Plate height</text>
       <text x="78" y="40" text-anchor="end">Plate top →</text><text x="78" y="52" text-anchor="end">lag holes</text>
-      <text x="78" y="76" text-anchor="end">Top → bottom</text><text x="78" y="88" text-anchor="end">lag row</text>
+      <text x="78" y="76" text-anchor="end">Top row →</text><text x="78" y="88" text-anchor="end">bottom row</text>
       <text x="200" y="150" text-anchor="middle">Left ↔ right lag holes</text>
     </svg>`;
   })();
@@ -70,8 +70,8 @@
     'tv.vesaTop': ['To TV top'], 'tv.vesaW': ['Width'], 'tv.vesaH': ['Height'],
     'mount.holesToTop': ['Top holes → TV top'], 'mount.holesToBottom': ['Top holes → TV bottom'],
     'mount.hookDrop': ['Top holes → hook'], 'mount.armDrop': ['Arm hook → VESA'], 'mount.sag': ['Sag once hung', 0],
-    'mount.plateW': ['Plate width'], 'mount.plateH': ['Plate height'], 'mount.holeDown': ['Plate top → lag holes', 0], 'mount.rowGap': ['Top → bottom lag row', 'one row'],
-    'mount.lagSpan': ['Left ↔ right lag holes', 'plate width'], 'mount.slide': ['TV slides left or right', 0],
+    'mount.plateW': ['Plate width'], 'mount.plateH': ['Plate height'], 'mount.holeDown': ['Plate top → lag holes', 0], 'mount.rowGap': ['Top row → bottom row', 'one row'],
+    'mount.lagSpan': ['Left ↔ right lag holes', 'plate width − 2″'], 'mount.slide': ['TV slides left or right', 'on the plate'],
     'mount.adjUp': ['Can raise TV'], 'mount.adjDown': ['Can lower TV'],
     'ref.mantle.h': ['Mantle height'], 'ref.mantle.hR': ['Right end', 'same'], 'ref.mantle.len': ['Mantle length', 'TV width'],
     'ref.ceiling.h': ['Ceiling height'], 'ref.ff': ['Finished floor adds', 0],
@@ -241,7 +241,7 @@
       b += `<div class="label">Lag bolts go into</div>` + seg('mount.studsNeeded', [['null', 'Auto'], ['1', '1 stud'], ['2', '2 studs'], ['3', '3 studs']]);
       b += hint(t.mount.studsNeeded == null ? 'Auto picks 2 studs when the lag holes are 16" or more apart, and 1 when they are closer.' : 'The plate goes where its lag holes reach this many studs.');
       b += `<div class="label">Adjustment</div><div class="grid2">${fld('mount.adjUp')}${fld('mount.adjDown')}${fld('mount.slide', { wide: true })}</div>`;
-      b += hint('How far the mount lets the TV move once it hangs. Leave blank if it has no adjustment.');
+      b += hint('How far the mount lets the TV move once it hangs. Leave slide blank when the arms ride the plate rails: the plate can sit off center, so it moves onto the studs as long as both arms stay on it. Type 0 if the TV can’t move.');
       b += libButtons('mount');
     }
     h += card('bracket', 'Bracket', b);
@@ -406,15 +406,16 @@
     return `<div class="li${x.cls ? ' ' + x.cls : ''}${HUE[x.id] ? ' h-' + HUE[x.id] : ''}"><div class="k">${esc(x.k)}</div><div class="v">${esc(v)}</div>${x.sub ? `<div class="s">${esc(fill(x.sub))}</div>` : ''}${x.alt ? `<div class="a">${esc(fill(x.alt))}</div>` : ''}</div>`;
   }
   function renderResults() {
-    const by = id => r.rows.find(x => x.id === id), hero = by('hole');
+    const by = id => r.rows.find(x => x.id === id), hero = by('hole'), low = by('hole2');
+    const lowHTML = low ? `<div class="lo"><div class="k">Lower holes</div><div class="v">${fmt(low.v)}</div><div class="s">${esc(fill(low.alt))}</div></div>` : '';
     let h = r.ok
-      ? `<div class="hero"><div class="k">Drill top holes</div><div class="v">${fmt(hero.v)}</div><div class="s">${esc(hero.sub)}${hero.alt ? ' · ' + esc(fill(hero.alt)) : ''}</div></div>`
+      ? `<div class="hero"><div class="k">Drill top holes</div><div class="v">${fmt(hero.v)}</div><div class="s">${esc(hero.sub)}${hero.alt ? ' · ' + esc(fill(hero.alt)) : ''}</div>${lowHTML}</div>`
       : `<div class="hero empty"><div class="k">Drill top holes</div><div class="v">—</div><div class="s">${esc(needText())}</div></div>`;
     const tri = ['top', 'center', 'bottom'].map(by);
     if (tri.some(x => x.v != null)) h += `<div class="tri">${tri.map(x => `<div class="fact${x.id === r.ref.edge ? ' set' : ''}"><div class="k">${x.k}</div><div class="v">${x.v != null ? fmt(x.v) : '—'}</div><div class="s">${esc(x.alt ? fill(x.alt) : x.sub)}</div></div>`).join('')}</div>`;
     const bh = by('barhole');
     if (bh) h += `<div class="hero sb"><div class="k">${esc(bh.k)}</div><div class="v">${fmt(bh.v)}</div><div class="s">${esc(bh.sub)}${bh.alt ? ' · ' + esc(fill(bh.alt)) : ''}</div></div>`;
-    const rest = r.rows.filter(x => !['hole', 'top', 'center', 'bottom', 'barhole', 'tv'].includes(x.id));
+    const rest = r.rows.filter(x => !['hole', 'hole2', 'top', 'center', 'bottom', 'barhole', 'tv'].includes(x.id));
     if (rest.length) h += `<div class="card list">${rest.map(factHTML).join('')}</div>`;
     if (r.warnings.length) h += `<ul class="warns">${r.warnings.map(w => `<li>${esc(fill(w))}</li>`).join('')}</ul>`;
     $('#res').innerHTML = h;
@@ -568,7 +569,7 @@
 
     // dimensions: drill red, the number you set orange, TV purple, bracket blue, soundbar teal, center line magenta
     // (label classes must not match shape classes such as .tv or .hole, or they take that shape's outline)
-    const dimCls = d => 'dl' + (d.key === 'hole' || d.key === 'barhole' ? ' drl' : d.input ? ' in' : d.key === 'chain' ? ' br' : d.key === 'tv' ? ' tvd'
+    const dimCls = d => 'dl' + (d.key === 'hole' || d.key === 'hole2' || d.key === 'barhole' ? ' drl' : d.input ? ' in' : d.key === 'chain' ? ' br' : d.key === 'tv' ? ' tvd'
       : d.key === 'bargap' || d.key === 'bartop' ? ' sb' : d.side === 'bottom' ? ' cl' : '');
     const dims = [], t = f * 0.38;
     let top = E.y1;   // a label too long for its dimension sits above it; the drawing grows to fit it

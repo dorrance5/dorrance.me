@@ -468,3 +468,20 @@ for (const j of jobs) {
     }
   });
 }
+
+test('blank slide: the arms ride the plate rails, so the plate moves onto the studs', () => {
+  const m = { holesToTop: 4.5, plateW: 27, plateH: 12, holeDown: 1.25, rowGap: 9.5 };
+  let r = G.compute(tab(BASE, { tv: { vesaW: 400, vesaH: 300 }, mount: m, studs: { list: [-13.75, 2.25] } }), { mode: 'pro' });
+  assert.ok(r.slide.ok); assert.equal(r.slide.from, 'plate');
+  near(r.slide.slide, (27 - 400 / 25.4 - 1.5) / 2);
+  near(r.plateX, -1.25);   // lag slots end 1" in from each plate end
+  assert.deepEqual(r.slide.hits, [-13.75, 2.25]);
+  assert.equal(r.drill.length, 4); assert.ok(r.drill.every(d => d.ok));
+  // the lower row gets its own height, in the results and in the sketch
+  const low = r.rows.find(x => x.id === 'hole2');
+  near(low.v, r.m.hole - 9.5);
+  assert.ok(r.sketch.items.some(i => i.t === 'dim' && i.key === 'hole2'));
+  // typed 0: the TV can't move, so the holes are drawn hollow on the studs the plate reaches
+  r = G.compute(tab(BASE, { tv: { vesaW: 400, vesaH: 300 }, mount: Object.assign({ slide: 0 }, m), studs: { list: [-13.75, 2.25] } }), { mode: 'pro' });
+  assert.equal(r.slide.ok, false); assert.equal(r.drill.length, 4); assert.ok(r.drill.every(d => !d.ok));
+});

@@ -122,7 +122,7 @@
   }
 
   // Defaults that stand in for pro values in Simple mode, or when a pro field is blank.
-  const DEFAULTS = { sag: 0, ff: 0, slide: 0, holeDown: 0, boxMargin: 2, eye: 40, studWidth: 1.5, barGap: 2 };
+  const DEFAULTS = { sag: 0, ff: 0, slide: 0, holeDown: 0, boxMargin: 2, eye: 40, studWidth: 1.5, barGap: 2, lagInset: 1, armWidth: 1.5 };
 
   // With a soundbar under the TV, the bottom edge you measure to is the soundbar's bottom.
   function edgeOf(edge, kind, sb) {
@@ -354,21 +354,31 @@
     }
     r.studs = studs;
 
-    const lag = isNum(e.lagSpan) ? e.lagSpan : isNum(e.plateW) ? e.plateW : null;
-    const slide = isNum(e.slide) ? e.slide : DEFAULTS.slide;
+    // Lag slots stop a little short of the plate ends. When the mount's slide is blank, the TV's
+    // arms ride the plate rails: the plate can sit off center as long as both arms stay on it.
+    const lag = isNum(e.lagSpan) ? e.lagSpan : isNum(e.plateW) ? Math.max(0, e.plateW - 2 * DEFAULTS.lagInset) : null;
+    let slide = DEFAULTS.slide, slideFrom = 'none';
+    if (isNum(e.slide)) { slide = e.slide; slideFrom = 'mount'; }
+    else if (isNum(e.plateW)) {
+      const arms = r.vesa ? r.vesa.w + DEFAULTS.armWidth : DEFAULTS.armWidth;
+      slide = Math.max(0, (e.plateW - arms) / 2);
+      slideFrom = r.vesa ? 'plate' : 'plate-novesa';
+    }
     r.slide = null;
     if (pro && studs.length && lag) {
       const need = isNum(e.studsNeeded) && e.studsNeeded >= 1 ? Math.round(e.studsNeeded) : lag >= 16 ? 2 : 1;
       r.slide = slideCheck(studs, vesaX, lag, slide, need);
+      r.slide.from = slideFrom;
       if (!r.slide.ok && r.slide.reason === 'span') r.warnings.push('The plate can’t reach ' + need + ' studs. Add blocking or a wider plate.');
-      if (!r.slide.ok && r.slide.reason === 'slide') r.warnings.push('Lagging into studs needs ' + T(r.slide.short) + ' more slide than the mount has.');
+      if (!r.slide.ok && r.slide.reason === 'slide') r.warnings.push('Lagging into studs needs ' + T(r.slide.short) + ' more slide than the ' + (slideFrom === 'mount' ? 'mount has.' : 'plate allows.'));
     }
     const P = r.slide && r.slide.P != null ? r.slide.P : vesaX;
     r.plateX = P;
 
     const holeRows = y.hole == null ? [] : [y.hole].concat(isNum(e.rowGap) && e.rowGap > 0 ? [y.hole - e.rowGap] : []);
     r.holeRows = holeRows;
-    r.drill = r.slide && r.slide.ok ? r.slide.hits.flatMap(x => holeRows.map(yy => ({ x, y: yy }))) : [];
+    // lag holes go on the studs the plate reaches, even when the TV can't slide far enough (drawn hollow)
+    r.drill = r.slide && r.slide.P != null ? r.slide.hits.flatMap(x => holeRows.map(yy => ({ x, y: yy, ok: r.slide.ok }))) : [];
 
     r.plate = null;
     if (y.hole != null && isNum(e.plateW) && isNum(e.plateH)) {
@@ -536,6 +546,10 @@
       return '';
     };
     rows.push({ id: 'hole', k: 'Drill top holes', v: m.hole, sub, alt: alt('hole'), cls: 'hero' });
+    if (r.holeRows.length > 1) {
+      const low = r.holeRows[1], a = r.aff.hole != null && (ffNow || ref.kind !== 'floor') ? r.aff.hole - (y.hole - low) : null;
+      rows.push({ id: 'hole2', k: 'Drill lower holes', v: r.toMeasure(low), sub, alt: T(y.hole - low) + ' below the top holes' + (a != null ? ', ' + T(a) + ' above ' + (ffNow ? 'finished ' : '') + 'floor' : '') });
+    }
     rows.push({ id: 'top', k: 'TV top', v: m.top, sub, alt: alt('top') });
     rows.push({ id: 'center', k: 'TV center', v: m.center, sub, alt: alt('center') });
     rows.push({ id: 'bottom', k: 'TV bottom', v: m.bottom, sub, alt: alt('bottom') });
@@ -577,8 +591,11 @@
       if (r.studs.length) rows.push({ id: 'studs', k: 'Studs', s: r.studs.map(s => (s < 0 ? 'L ' : s > 0 ? 'R ' : '') + T(Math.abs(s))).join(' · '), sub: 'from the center line', cls: 'wide' });
       if (r.slide) {
         const s = r.slide;
-        if (s.ok) rows.push({ id: 'plate', k: 'Plate', s: 'center ' + side(s.P), sub: 'lags into ' + s.hits.length + ' stud' + (s.hits.length > 1 ? 's' : '') + (Math.abs(s.used) > EPS ? ', TV slides ' + side(s.used) + ' of plate center' : ''), cls: 'wide good' });
-        else rows.push({ id: 'plate', k: 'Plate', s: s.reason === 'span' ? 'can’t reach ' + s.need + ' studs' : 'needs ' + T(s.short) + ' more slide', sub: s.reason === 'slide' ? 'slide ' + T(s.slide) + ' each way' : 'lag holes ' + T(s.lagSpan) + ' apart', cls: 'wide warn' });
+        const studsOn = 'lags into ' + s.hits.length + ' stud' + (s.hits.length > 1 ? 's' : '');
+        const tvOn = Math.abs(s.used) < EPS ? 'TV centered on the plate' : 'TV ' + side(s.used) + ' of plate center';
+        const room = s.from === 'mount' ? 'slide ' + T(s.slide) + ' each way' : s.from === 'plate-novesa' ? 'add the VESA width to check both arms stay on the plate' : 'arms can go ' + T(s.slide) + ' either way on the plate';
+        if (s.ok) rows.push({ id: 'plate', k: 'Plate', s: 'center ' + side(s.P), sub: studsOn + ', ' + tvOn, alt: Math.abs(s.used) > EPS && s.from !== 'mount' ? 'slide the arms ' + side(s.used) + ' on the plate rails' + (s.from === 'plate-novesa' ? '; ' + room : '') : s.from === 'plate-novesa' ? room : '', cls: 'wide good' });
+        else rows.push({ id: 'plate', k: 'Plate', s: s.reason === 'span' ? 'can’t reach ' + s.need + ' studs' : 'needs ' + T(s.short) + ' more slide', sub: s.reason === 'slide' ? room : 'lag holes ' + T(s.lagSpan) + ' apart', cls: 'wide warn' });
       }
       if (r.adjust) {
         const a = r.adjust, parts = [];
@@ -721,7 +738,7 @@
       add({ t: 'rect', cls: 'sbar', x0: -sb.w / 2, x1: sb.w / 2, y0: sb.bottom, y1: sb.top, text: 'Soundbar' });
       if (sb.hole != null) crew({ t: 'line', cls: 'drill', x0: -sb.w / 2 - 1.5, x1: sb.w / 2 + 1.5, y0: sb.hole, y1: sb.hole });
     }
-    for (const d of r.drill) crew({ t: 'dot', cls: 'hole', x: d.x, y: d.y });
+    for (const d of r.drill) crew({ t: 'dot', cls: d.ok ? 'hole' : 'hole miss', x: d.x, y: d.y });
     crew({ t: 'mark', cls: 'cmark', x: 0, y: y.center });
 
     const name = tv.est ? tv.size + '″ class (estimate)' : (tv.model || 'TV');
@@ -744,6 +761,10 @@
       const d = { t: 'dim', side: 'left', b: y[k], name: nm, key: k, input: k === ref.edge };
       if (Math.abs(y[k] - from) > EPS) (k === 'hole' || ffNow ? crew : add)(Object.assign({ a: from, v: Math.abs(y[k] - from) }, d));
       if (k !== 'hole' && ffNow && Math.abs(y[k]) > EPS) add(Object.assign({ a: 0, v: Math.abs(y[k]), client: true }, d));
+    }
+    if (r.holeRows.length > 1) {
+      const low = r.holeRows[1];
+      crew({ t: 'dim', side: 'left', a: from, b: low, v: Math.abs(low - from), name: 'lower holes', key: 'hole2' });
     }
     if (r.chain.from === 'bottom' && y.hole != null) crew({ t: 'dim', side: 'right', a: y.bottom, b: y.hole, v: Math.abs(y.hole - y.bottom), name: 'holes to bottom', key: 'chain' });
     else if (r.chain.hung != null && Math.abs(r.chain.hung) > EPS) crew({ t: 'dim', side: 'right', a: y.hole, b: y.top, v: Math.abs(r.chain.hung), name: 'holes to top', key: 'chain' });
