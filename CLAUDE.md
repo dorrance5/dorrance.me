@@ -1,6 +1,6 @@
 # dorrance.me
 
-This is a static site of small phone apps. GitHub Pages deploys `main` with `.github/workflows/static.yml`. The owner is the only user.
+This is a static site of small phone apps. Cloudflare Pages (project `dorrance5`) deploys every push to `main` and serves dorrance.me. The GitHub Pages workflow `.github/workflows/static.yml` runs only by hand. The owner is the only user.
 
 ## Push rule
 
@@ -8,14 +8,15 @@ This is a static site of small phone apps. GitHub Pages deploys `main` with `.gi
 - Run the checks for the app before you push. Push only when they pass.
 - If the session has its own branch, push that branch too.
 - Do not rewrite the history of `main`. Fast-forward it or add commits.
-- After the push, check that the "Deploy static content to Pages" run starts.
+- After the push, check that the "Cloudflare Pages" check on the commit succeeds: `curl https://api.github.com/repos/dorrance5/dorrance.me/commits/<sha>/check-runs`. Preview copies are at `<hash>.dorrance5.pages.dev`.
 
 ## Costs
 
 - The site must cost nothing to run. The only bill is the yearly renewal of the domain `dorrance.me` at Cloudflare Registrar.
 - Use only free services on free plans. Do not start a trial, a paid plan or a paid API, and do not add a payment method.
-- Ask the owner before you add a service, an API key or a Cloudflare binding. Today the site uses only GitHub Pages, GitHub Actions, the GitHub API (from the Worker), Cloudflare DNS, one Cloudflare Worker with one KV namespace and the owner's Google Apps Script (Parking).
+- Ask the owner before you add a service, an API key or a Cloudflare binding. Today the site uses only Cloudflare Pages, GitHub Pages (by hand only), GitHub Actions, the GitHub API (from the Worker), Cloudflare DNS, one Cloudflare Worker with one KV namespace and the owner's Google Apps Script (Parking).
 - GitHub: keep the repository public. Pages and Actions are free for public repositories. In workflows, use only standard runners such as `ubuntu-latest`. Larger runners cost money even for public repositories. Do not use Git LFS.
+- Cloudflare Pages free plan: 500 builds a month (each push and each Recipes save is one), 20,000 files and 25 MiB a file.
 - Keep the published site under 1 GB. Put photos in as small JPEGs.
 - Cloudflare: the account stays on the Workers Free plan. On that plan, a request over a limit fails with an error. It is never billed. Do not move to Workers Paid.
 - The Worker must fit the free limits: 100,000 requests a day and 10 ms of CPU for each request. For KV: 100,000 reads, 1,000 writes, 1,000 deletes and 1,000 lists a day, and 1 GB stored. Do not put a KV write, delete or list on a request that runs often, such as loading a page.

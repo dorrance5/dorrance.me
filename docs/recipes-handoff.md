@@ -131,7 +131,7 @@ The site is static, so the page saves through the API Worker, and the Worker sav
   4. PUT `message`, `content` (base64 UTF-8) and `sha`. The Worker checks that the content is JSON with a `recipes` list, adds the person's name to the message, and commits to `main`.
   5. If the PUT returns 409, do steps 1 to 4 one more time.
 - Commit titles: `Recipes: add <recipe> (<person>)`, `Recipes: edit <recipe> (<person>)`, `Recipes: delete <recipe> (<person>)`, `Recipes: import N recipes (<person>)`.
-- Each save starts a Pages deploy. The live file updates in about 1 minute. Signed in, the page loads the data through the Worker, so the change shows at once. Signed out, it loads `recipes.json` from the site.
+- Each save starts a Cloudflare Pages deploy. The live file updates in about 1 minute. Signed in, the page loads the data through the Worker, so the change shows at once. Signed out, it loads `recipes.json` from the site.
 - Show plain errors. `recipes/data.js` has the words for each error code from the Worker, for example:
   - signed out: "You are signed out. Sign in again." with a "Sign in again" button that opens Settings over the editor.
   - a bad GitHub token in the Worker: "The recipe book cannot reach GitHub. The admin needs to check its GitHub token."
@@ -166,7 +166,7 @@ The site is static, so the page saves through the API Worker, and the Worker sav
 2. The browser checks run the Worker in Node with KV in memory and a stand-in for GitHub (`worker/test/harness.cjs`), and route the page's `/api/**` requests to it. They cover: the box, dividers and search; the recipe card; cooking mode and its timers (on a test clock); the theme; asking for an account, signing in, a wrong password, an account that waits; approve, deny and remove as the admin; add, edit and delete; a 409 on the first PUT; a sign-in that ended, a bad GitHub token and no connection; the back button; tap sizes and sideways scroll. Then the meal plan on three phones (Mitchell, Jen and Nicole, on Saturday, Oct 24, 2026): asking, No thanks, the dot, Join, the plan and the picker, the grocery list and its merged items, batches, no connection, a busy Worker, Night, Stop sharing, a removed account, and signing out.
    - The browser checks use `recipes/test/fixture-recipes.json`, a frozen copy of the recipe book, in place of `recipes/recipes.json`, so the family's edits do not change what they expect. The screenshots use the real book.
 3. There must be no console errors.
-4. Push, then check that the "Deploy static content to Pages" run starts.
+4. Push, then check that the "Cloudflare Pages" check on the commit succeeds.
 
 ## Setup for the owner
 
