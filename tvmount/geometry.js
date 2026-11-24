@@ -356,7 +356,7 @@
 
     // Lag slots stop a little short of the plate ends. When the mount's slide is blank, the TV's
     // arms ride the plate rails: the plate can sit off center as long as both arms stay on it.
-    const lag = isNum(e.lagSpan) ? e.lagSpan : isNum(e.plateW) ? Math.max(0, e.plateW - 2 * DEFAULTS.lagInset) : null;
+    const lag = isNum(e.plateW) ? Math.max(0, e.plateW - 2 * DEFAULTS.lagInset) : null;
     let slide = DEFAULTS.slide, slideFrom = 'none';
     if (isNum(e.slide)) { slide = e.slide; slideFrom = 'mount'; }
     else if (isNum(e.plateW)) {
@@ -595,7 +595,7 @@
         const tvOn = Math.abs(s.used) < EPS ? 'TV centered on the plate' : 'TV ' + side(s.used) + ' of plate center';
         const room = s.from === 'mount' ? 'slide ' + T(s.slide) + ' each way' : s.from === 'plate-novesa' ? 'add the VESA width to check both arms stay on the plate' : 'arms can go ' + T(s.slide) + ' either way on the plate';
         if (s.ok) rows.push({ id: 'plate', k: 'Plate', s: 'center ' + side(s.P), sub: studsOn + ', ' + tvOn, alt: Math.abs(s.used) > EPS && s.from !== 'mount' ? 'slide the arms ' + side(s.used) + ' on the plate rails' + (s.from === 'plate-novesa' ? '; ' + room : '') : s.from === 'plate-novesa' ? room : '', cls: 'wide good' });
-        else rows.push({ id: 'plate', k: 'Plate', s: s.reason === 'span' ? 'can’t reach ' + s.need + ' studs' : 'needs ' + T(s.short) + ' more slide', sub: s.reason === 'slide' ? room : 'lag holes ' + T(s.lagSpan) + ' apart', cls: 'wide warn' });
+        else rows.push({ id: 'plate', k: 'Plate', s: s.reason === 'span' ? 'can’t reach ' + s.need + ' studs' : 'needs ' + T(s.short) + ' more slide', sub: s.reason === 'slide' ? room : 'lag slots ' + T(s.lagSpan) + ' end to end', cls: 'wide warn' });
       }
       if (r.adjust) {
         const a = r.adjust, parts = [];

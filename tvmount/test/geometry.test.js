@@ -225,7 +225,7 @@ test('plate slide check', () => {
 });
 
 test('studs measured from the edge convert to the center line', () => {
-  const t = tab(BASE, { center: { mode: 'two', from: 'left', a: 30, b: 94 }, studs: { from: 'edge', list: [51.25, 67.25] }, mount: { holesToTop: 4.5, lagSpan: 24, slide: 2 } });
+  const t = tab(BASE, { center: { mode: 'two', from: 'left', a: 30, b: 94 }, studs: { from: 'edge', list: [51.25, 67.25] }, mount: { holesToTop: 4.5, plateW: 26, slide: 2 } });
   const r = G.compute(t, { mode: 'pro' });
   assert.deepEqual(r.studs, [-10.75, 5.25]);
   assert.ok(r.slide.ok);
@@ -241,7 +241,7 @@ test('studs measured from the edge convert to the center line', () => {
 });
 
 test('VESA centered and drill points on two rows', () => {
-  const t = tab(BASE, { tv: { w: 57.125, h: 32.75, vesaW: 400, vesaH: 300 }, mount: { holesToTop: 4.5, plateW: 26, plateH: 10, holeDown: 1, rowGap: 8, lagSpan: 24, slide: 0 }, studs: { list: [-8, 8] } });
+  const t = tab(BASE, { tv: { w: 57.125, h: 32.75, vesaW: 400, vesaH: 300 }, mount: { holesToTop: 4.5, plateW: 26, plateH: 10, holeDown: 1, rowGap: 8, slide: 0 }, studs: { list: [-8, 8] } });
   const r = G.compute(t, { mode: 'pro' });
   near(r.vesa.x, 0);
   near(r.vesa.w, 400 / 25.4);                           // typed in mm, drawn in inches
@@ -254,7 +254,7 @@ test('VESA centered and drill points on two rows', () => {
 });
 
 test('adjustment left after drilling', () => {
-  const t = tab(BASE, { mount: { holesToTop: 4.5, lagSpan: 24, slide: 3, adjUp: 0.5, adjDown: 1 }, studs: { list: [-14, 2, 18] } });
+  const t = tab(BASE, { mount: { holesToTop: 4.5, plateW: 26, slide: 3, adjUp: 0.5, adjDown: 1 }, studs: { list: [-14, 2, 18] } });
   const r = G.compute(t, { mode: 'pro' });
   assert.deepEqual(r.adjust, { up: 0.5, down: 1, left: 5, right: 1 });
 });
